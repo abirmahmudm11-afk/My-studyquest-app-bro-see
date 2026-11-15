@@ -1,7 +1,9 @@
 package com.example
 
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
@@ -14,17 +16,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -32,18 +39,24 @@ import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,15 +65,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.core.AppLanguage
+import com.example.core.LocalUserPreferences
 import com.example.core.StudyQuestStrings
 import com.example.core.configureAppCheck
 import com.example.data.local.StudyQuestWorkScheduler
+import com.example.data.model.PublicProfile
 import com.example.ui.components.AudioFeedbackHelper
 import com.example.ui.components.LottieCelebrationOverlay
+import com.example.ui.components.StudyQuestCard
 import com.example.ui.screens.AcademicSetupWizardScreen
 import com.example.ui.screens.AiDoubtSolverSheet
 import com.example.ui.screens.CompeteTabScreen
@@ -73,6 +91,7 @@ import com.example.ui.screens.TodayTabScreen
 import com.example.ui.screens.WelcomeAndGoogleSignInScreen
 import com.example.ui.theme.StudyQuestTheme
 import com.example.ui.viewmodel.AdminStudioViewModel
+import com.example.ui.viewmodel.BootstrapState
 import com.example.ui.viewmodel.CompeteViewModel
 import com.example.ui.viewmodel.LearnAndExamViewModel
 import com.example.ui.viewmodel.MainSessionViewModel
@@ -83,9 +102,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,23 +115,37 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-internal fun FirebaseAuth.authStateFlow(): Flow<FirebaseUser?> = callbackFlow {
-    val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-        trySend(firebaseAuth.currentUser)
-    }
-    addAuthStateListener(listener)
-    awaitClose { removeAuthStateListener(listener) }
-}
-
 @Composable
 private fun StudyQuestRootApp() {
     val auth = remember { Firebase.auth }
-    val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
+    var currentUser by remember { mutableStateOf(auth.currentUser) }
+
+    DisposableEffect(auth) {
+        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+            currentUser = firebaseAuth.currentUser
+        }
+        auth.addAuthStateListener(listener)
+        onDispose {
+            auth.removeAuthStateListener(listener)
+        }
+    }
 
     val preAuthVm: PreAuthViewModel = viewModel(factory = StudyQuestViewModelFactories.preAuthFactory())
     val preAuthPrefs by preAuthVm.localPreferences.collectAsStateWithLifecycle()
     val isSigningIn by preAuthVm.isSigningIn.collectAsStateWithLifecycle()
     val authMessage by preAuthVm.authMessage.collectAsStateWithLifecycle()
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    DisposableEffect(preAuthPrefs.darkMode) {
+        val activity = context as? ComponentActivity
+        val style = if (preAuthPrefs.darkMode) {
+            SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+        } else {
+            SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+        }
+        activity?.enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+        onDispose {}
+    }
 
     StudyQuestTheme(
         darkTheme = preAuthPrefs.darkMode,
@@ -123,8 +153,10 @@ private fun StudyQuestRootApp() {
     ) {
         val user = currentUser
         if (user != null) {
-            // Feature ViewModels & Firestore listeners are gated cleanly behind authenticated session!
-            AuthenticatedStudyQuestHost(user = user)
+            // Feature ViewModels & Firestore listeners are gated behind authenticated session and keyed by UID
+            key(user.uid) {
+                AuthenticatedStudyQuestHost(user = user)
+            }
         } else if (!preAuthPrefs.hasChosenInitialLanguage) {
             LanguagePickerLaunchScreen(
                 onSelectLanguage = { lang -> preAuthVm.selectInitialLanguage(lang) }
@@ -137,7 +169,11 @@ private fun StudyQuestRootApp() {
                 authError = authMessage,
                 onSetLanguage = { preAuthVm.setUiLanguage(it) },
                 onSigningInChanged = { preAuthVm.setSigningIn(it) },
-                onIdTokenReceived = { preAuthVm.signInWithGoogleIdToken(it) },
+                onIdTokenReceived = { token ->
+                    preAuthVm.signInWithGoogleIdToken(token) {
+                        currentUser = auth.currentUser
+                    }
+                },
                 onAuthError = { preAuthVm.setAuthError(it) }
             )
         }
@@ -153,6 +189,169 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
         key = "session_${user.uid}",
         factory = StudyQuestViewModelFactories.mainSessionFactory(user)
     )
+
+    LaunchedEffect(user.uid) {
+        StudyQuestWorkScheduler.schedulePeriodicReminders(context)
+        StudyQuestWorkScheduler.enqueueImmediateSync(context)
+    }
+
+    val prefs by sessionVm.localPreferences.collectAsStateWithLifecycle()
+    val bootstrapState by sessionVm.bootstrapState.collectAsStateWithLifecycle()
+    val isCompletingSetup by sessionVm.isCompletingSetup.collectAsStateWithLifecycle()
+    val sessionBanner by sessionVm.bannerMessage.collectAsStateWithLifecycle()
+
+    when (val state = bootstrapState) {
+        BootstrapState.Loading -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                StudyQuestCard(
+                    modifier = Modifier.widthIn(max = 420.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = StudyQuestStrings.t(prefs.uiLanguage, "Loading StudyQuest...", "লোড হচ্ছে..."),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = StudyQuestStrings.t(
+                                prefs.uiLanguage,
+                                "Syncing your student profile and curriculum progress...",
+                                "তোমার প্রোফাইল ও পড়াশোনার অগ্রগতি সিঙ্ক হচ্ছে..."
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        TextButton(
+                            onClick = { sessionVm.signOut() },
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("bootstrap_loading_sign_out")
+                        ) {
+                            Text(StudyQuestStrings.t(prefs.uiLanguage, "Switch Account", "অ্যাকাউন্ট বদলান"))
+                        }
+                    }
+                }
+            }
+        }
+
+        is BootstrapState.Error -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                StudyQuestCard(
+                    modifier = Modifier.widthIn(max = 440.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Text(
+                            text = StudyQuestStrings.t(
+                                prefs.uiLanguage,
+                                "Couldn't Load Your Profile",
+                                "প্রোফাইল লোড করা যায়নি"
+                            ),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Button(
+                            onClick = { sessionVm.retryBootstrap() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .minimumInteractiveComponentSize()
+                                .testTag("bootstrap_retry_button")
+                        ) {
+                            Text(StudyQuestStrings.t(prefs.uiLanguage, "Retry", "আবার চেষ্টা করুন"))
+                        }
+                        OutlinedButton(
+                            onClick = { sessionVm.signOut() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .minimumInteractiveComponentSize()
+                                .testTag("bootstrap_sign_out_button")
+                        ) {
+                            Text(StudyQuestStrings.t(prefs.uiLanguage, "Switch Account", "অ্যাকাউন্ট বদলান"))
+                        }
+                    }
+                }
+            }
+        }
+
+        is BootstrapState.Ready -> {
+            val activeProfile = state.profile
+            if (!activeProfile.onboardingCompleted) {
+                AcademicSetupWizardScreen(
+                    profile = activeProfile,
+                    language = prefs.uiLanguage,
+                    isSaving = isCompletingSetup,
+                    errorMessage = sessionBanner,
+                    onSignOut = { sessionVm.signOut() },
+                    onCompleteSetup = { name, cls, ver, subjs, avatar, grp, dailyMins, goalTitle ->
+                        AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
+                        sessionVm.completeAcademicSetup(
+                            displayName = name,
+                            classId = cls,
+                            curriculumVersion = ver,
+                            selectedSubjects = subjs,
+                            avatarId = avatar,
+                            academicGroup = grp,
+                            dailyGoalMinutes = dailyMins,
+                            studyGoalTitle = goalTitle
+                        )
+                    }
+                )
+            } else {
+                AuthenticatedReadyHost(
+                    user = user,
+                    activeProfile = activeProfile,
+                    prefs = prefs,
+                    sessionBanner = sessionBanner,
+                    sessionVm = sessionVm
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuthenticatedReadyHost(
+    user: FirebaseUser,
+    activeProfile: PublicProfile,
+    prefs: LocalUserPreferences,
+    sessionBanner: String?,
+    sessionVm: MainSessionViewModel
+) {
+    val view = LocalView.current
+
     val learnVm: LearnAndExamViewModel = viewModel(
         key = "learn_${user.uid}",
         factory = StudyQuestViewModelFactories.learnAndExamFactory(user.uid)
@@ -166,14 +365,6 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
         factory = StudyQuestViewModelFactories.socialFactory(user.uid)
     )
 
-    LaunchedEffect(user.uid) {
-        StudyQuestWorkScheduler.schedulePeriodicReminders(context)
-        StudyQuestWorkScheduler.enqueueImmediateSync(context)
-    }
-
-    val prefs by sessionVm.localPreferences.collectAsStateWithLifecycle()
-    val profile by sessionVm.profile.collectAsStateWithLifecycle()
-    val bootstrapping by sessionVm.bootstrapping.collectAsStateWithLifecycle()
     val isOnline by sessionVm.isOnline.collectAsStateWithLifecycle()
     val quests by sessionVm.quests.collectAsStateWithLifecycle()
     val notifications by sessionVm.notifications.collectAsStateWithLifecycle()
@@ -181,7 +372,6 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
     val unlockedCosmetics by sessionVm.unlockedCosmetics.collectAsStateWithLifecycle()
     val adminRole by sessionVm.adminRole.collectAsStateWithLifecycle()
     val exportedJson by sessionVm.exportedJson.collectAsStateWithLifecycle()
-    val sessionBanner by sessionVm.bannerMessage.collectAsStateWithLifecycle()
     val guestMergedCount by sessionVm.guestMergedCount.collectAsStateWithLifecycle()
 
     val learningRecords by learnVm.learningRecords.collectAsStateWithLifecycle()
@@ -217,39 +407,6 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
     val activeMessages by socialVm.activeMessages.collectAsStateWithLifecycle()
     val socialBanner by socialVm.message.collectAsStateWithLifecycle()
 
-    val activeProfile = profile
-    if (bootstrapping || activeProfile == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                CircularProgressIndicator()
-                Text(StudyQuestStrings.t(prefs.uiLanguage, "Loading StudyQuest...", "লোড হচ্ছে..."))
-            }
-        }
-        return
-    }
-
-    if (!activeProfile.onboardingCompleted) {
-        AcademicSetupWizardScreen(
-            profile = activeProfile,
-            language = prefs.uiLanguage,
-            onSignOut = { sessionVm.signOut() },
-            onCompleteSetup = { name, cls, ver, subjs, avatar, grp, dailyMins, goalTitle ->
-                AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
-                sessionVm.completeAcademicSetup(
-                    displayName = name,
-                    classId = cls,
-                    curriculumVersion = ver,
-                    selectedSubjects = subjs,
-                    avatarId = avatar,
-                    academicGroup = grp,
-                    dailyGoalMinutes = dailyMins,
-                    studyGoalTitle = goalTitle
-                )
-            }
-        )
-        return
-    }
-
     var selectedTab by remember { mutableIntStateOf(0) } // 0=Today, 1=Learn, 2=Compete, 3=Friends, 4=Profile
     var pendingLearnDest by remember { mutableStateOf<LearnDestination?>(null) }
     var showGlobalAiSheet by remember { mutableStateOf(false) }
@@ -266,9 +423,13 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
 
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
-            ) {
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                ) {
                 val tabs = listOf(
                     Triple(0, StudyQuestStrings.tabToday(lang), Icons.Filled.Home to Icons.Outlined.Home),
                     Triple(1, StudyQuestStrings.tabLearn(lang), Icons.AutoMirrored.Filled.MenuBook to Icons.AutoMirrored.Outlined.MenuBook),
@@ -288,6 +449,7 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
                         modifier = Modifier.testTag("nav_tab_$idx")
                     )
                 }
+            }
             }
         }
     ) { innerPadding ->

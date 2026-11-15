@@ -1,6 +1,9 @@
 package com.example.ui.screens
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
@@ -55,6 +58,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,7 +95,15 @@ import com.example.ui.components.StudyQuestCard
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 @Composable
 fun rememberGoogleSignInLauncher(
@@ -101,50 +113,70 @@ fun rememberGoogleSignInLauncher(
     onAuthError: (String) -> Unit
 ): () -> Unit {
     val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
     val scope = rememberCoroutineScope()
     val credentialManager = remember(context) { CredentialManager.create(context) }
     val webClientId = remember(context) { context.getString(R.string.default_web_client_id) }
 
-    return remember(context, language, webClientId) {
+    val latestOnSigningInChanged by rememberUpdatedState(onSigningInChanged)
+    val latestOnIdTokenReceived by rememberUpdatedState(onIdTokenReceived)
+    val latestOnAuthError by rememberUpdatedState(onAuthError)
+
+    return remember(context, activity, language, webClientId) {
         {
             scope.launch {
-                onSigningInChanged(true)
+                latestOnSigningInChanged(true)
                 try {
+                    Log.d("StudyQuestAuth", "Launching GetSignInWithGoogleOption via CredentialManager")
                     val googleOption = GetSignInWithGoogleOption.Builder(webClientId).build()
                     val request = GetCredentialRequest.Builder()
                         .addCredentialOption(googleOption)
                         .build()
-                    val result = credentialManager.getCredential(context, request)
+                    val result = credentialManager.getCredential(activity ?: context, request)
                     val credential = result.credential
                     if (credential is CustomCredential &&
                         credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                     ) {
                         val googleCred = GoogleIdTokenCredential.createFrom(credential.data)
-                        onIdTokenReceived(googleCred.idToken)
+                        if (googleCred.idToken.isBlank()) {
+                            latestOnSigningInChanged(false)
+                            latestOnAuthError(
+                                StudyQuestStrings.t(
+                                    language,
+                                    "Google did not return an ID token. Please try again.",
+                                    "গুগল থেকে বৈধ টোকেন পাওয়া যায়নি। আবার চেষ্টা করো।"
+                                )
+                            )
+                        } else {
+                            Log.d("StudyQuestAuth", "Received Google ID token; passing to Firebase Auth")
+                            latestOnIdTokenReceived(googleCred.idToken)
+                        }
                     } else {
-                        onAuthError("Unexpected credential type received.")
+                        Log.w("StudyQuestAuth", "Unexpected credential type: ${credential.type}")
+                        latestOnSigningInChanged(false)
+                        latestOnAuthError("Unexpected credential type received (${credential.type}).")
                     }
                 } catch (e: GetCredentialCancellationException) {
-                    Log.w("StudyQuestAuth", "Google Sign-In cancelled by user", e)
-                    onSigningInChanged(false)
-                    onAuthError(
+                    Log.w("StudyQuestAuth", "Google Sign-In cancelled or rejected by Play Services: ${e.message}", e)
+                    latestOnSigningInChanged(false)
+                    latestOnAuthError(
                         StudyQuestStrings.t(
                             language,
-                            "Sign-in was cancelled. Please select your Google account to continue.",
-                            "সাইন-ইন বাতিল হয়েছে। এগিয়ে যেতে তোমার গুগল অ্যাকাউন্ট নির্বাচন করো।"
+                            "Google Sign-In did not complete (${e.errorMessage ?: "cancelled or signing configuration mismatch"}). Please try again.",
+                            "গুগল সাইন-ইন সম্পন্ন হয়নি (${e.errorMessage ?: "বাতিল হয়েছে বা সাইনিং মিলছে না"})। আবার চেষ্টা করো।"
                         )
                     )
                 } catch (e: GetCredentialCustomException) {
                     val raw = e.errorMessage?.toString() ?: e.localizedMessage.orEmpty()
                     Log.e("StudyQuestAuth", "CredentialManager custom failure: $raw", e)
-                    onSigningInChanged(false)
+                    latestOnSigningInChanged(false)
                     val isDevConsole28444 = raw.contains("28444") || raw.contains("Developer console", ignoreCase = true)
-                    onAuthError(
+                    latestOnAuthError(
                         if (isDevConsole28444) {
                             StudyQuestStrings.t(
                                 language,
-                                "Google Sign-In configuration error [28444]: Package com.aistudio.studyquest.bdxkpq is missing its SHA-1 signing fingerprint in Firebase project com-aistudio-studyquest-5811a. Add the debug SHA-1 in Firebase Console and refresh google-services.json.",
-                                "গুগল সাইন-ইন কনফিগারেশন ত্রুটি [28444]: com.aistudio.studyquest.bdxkpq প্যাকেজের SHA-1 ফিঙ্গারপ্রিন্ট Firebase প্রজেক্ট com-aistudio-studyquest-5811a-তে যুক্ত নেই। Firebase Console-এ SHA-1 যোগ করে google-services.json আপডেট করো।"
+                                "Google Sign-In configuration error [28444]: The app signing SHA-1 fingerprint for com.aistudio.studyquest.bdxkpq does not match Firebase configuration.",
+                                "গুগল সাইন-ইন কনফিগারেশন ত্রুটি [28444]: com.aistudio.studyquest.bdxkpq প্যাকেজের SHA-1 ফিঙ্গারপ্রিন্ট Firebase কনফিগারেশনের সাথে মিলছে না।"
                             )
                         } else {
                             raw.ifBlank { "Google Sign-In failed" }
@@ -152,8 +184,8 @@ fun rememberGoogleSignInLauncher(
                     )
                 } catch (e: NoCredentialException) {
                     Log.w("StudyQuestAuth", "No Google account available on device", e)
-                    onSigningInChanged(false)
-                    onAuthError(
+                    latestOnSigningInChanged(false)
+                    latestOnAuthError(
                         StudyQuestStrings.t(
                             language,
                             "No Google account found on this device. Please add a Google account in Android Settings and try again.",
@@ -161,13 +193,13 @@ fun rememberGoogleSignInLauncher(
                         )
                     )
                 } catch (e: GetCredentialException) {
-                    Log.e("StudyQuestAuth", "CredentialManager failed", e)
-                    onSigningInChanged(false)
-                    onAuthError(e.errorMessage?.toString() ?: e.localizedMessage ?: "Google Sign-In failed")
+                    Log.e("StudyQuestAuth", "CredentialManager failed [${e.type}]", e)
+                    latestOnSigningInChanged(false)
+                    latestOnAuthError(e.errorMessage?.toString() ?: e.localizedMessage ?: "Google Sign-In failed (${e.type})")
                 } catch (e: Exception) {
                     Log.e("StudyQuestAuth", "Sign-in exception", e)
-                    onSigningInChanged(false)
-                    onAuthError(e.localizedMessage ?: "Sign-in failed")
+                    latestOnSigningInChanged(false)
+                    latestOnAuthError(e.localizedMessage ?: "Sign-in failed")
                 }
             }
         }
@@ -184,7 +216,7 @@ fun LanguagePickerLaunchScreen(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
                         MaterialTheme.colorScheme.background
                     )
                 )
@@ -309,11 +341,14 @@ fun WelcomeAndGoogleSignInScreen(
     onAuthError: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
     val credentialManager = remember(context) { CredentialManager.create(context) }
     val webClientId = remember(context) { context.getString(R.string.default_web_client_id) }
+    val scrollState = rememberScrollState()
 
     // Separate GetGoogleIdOption silent auto sign-in on welcome screen launch
     LaunchedEffect(Unit) {
+        if (Firebase.auth.currentUser != null || isSigningIn) return@LaunchedEffect
         try {
             val autoOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(true)
@@ -321,11 +356,16 @@ fun WelcomeAndGoogleSignInScreen(
                 .setAutoSelectEnabled(true)
                 .build()
             val req = GetCredentialRequest.Builder().addCredentialOption(autoOption).build()
-            val result = credentialManager.getCredential(context, req)
+            val result = credentialManager.getCredential(activity ?: context, req)
             val cred = result.credential
-            if (cred is CustomCredential && cred.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+            if (!isSigningIn &&
+                cred is CustomCredential &&
+                cred.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+            ) {
                 val googleCred = GoogleIdTokenCredential.createFrom(cred.data)
-                onIdTokenReceived(googleCred.idToken)
+                if (googleCred.idToken.isNotBlank()) {
+                    onIdTokenReceived(googleCred.idToken)
+                }
             }
         } catch (_: NoCredentialException) {
             // Expected on first install when no authorized account is cached
@@ -335,6 +375,12 @@ fun WelcomeAndGoogleSignInScreen(
             Log.w("StudyQuestAuth", "Silent auto sign-in custom error: ${e.errorMessage ?: e.message}")
         } catch (e: Exception) {
             Log.d("StudyQuestAuth", "Silent auto sign-in skipped: ${e.message}")
+        }
+    }
+
+    LaunchedEffect(authError) {
+        if (!authError.isNullOrBlank()) {
+            scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
 
@@ -351,7 +397,7 @@ fun WelcomeAndGoogleSignInScreen(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f),
                         MaterialTheme.colorScheme.background
                     )
                 )
@@ -364,7 +410,7 @@ fun WelcomeAndGoogleSignInScreen(
             modifier = Modifier
                 .widthIn(max = 540.dp)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -426,19 +472,27 @@ fun WelcomeAndGoogleSignInScreen(
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.errorContainer,
-                    modifier = Modifier.fillMaxWidth()
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("auth_error_banner")
                 ) {
                     Text(
                         text = authError,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(12.dp)
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(14.dp)
                     )
                 }
             }
 
             StaggeredEntrance(index = 3, reducedMotion = reducedMotion) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Button(
                         onClick = { launchInteractiveGoogleSignIn() },
                         enabled = !isSigningIn,
@@ -460,6 +514,17 @@ fun WelcomeAndGoogleSignInScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    }
+                    if (isSigningIn) {
+                        Text(
+                            text = StudyQuestStrings.t(
+                                language,
+                                "Signing in with Google...",
+                                "গুগল অ্যাকাউন্ট যাচাই হচ্ছে..."
+                            ),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
@@ -491,6 +556,8 @@ private fun FeatureBulletRow(icon: androidx.compose.ui.graphics.vector.ImageVect
 fun AcademicSetupWizardScreen(
     profile: PublicProfile,
     language: AppLanguage,
+    isSaving: Boolean = false,
+    errorMessage: String? = null,
     onSignOut: () -> Unit = {},
     onCompleteSetup: (
         displayName: String,
@@ -525,7 +592,6 @@ fun AcademicSetupWizardScreen(
         )
     }
     var selectedGoalIndex by remember { mutableIntStateOf(0) }
-    var isSaving by remember { mutableStateOf(false) }
 
     val selectedClassInfo = BangladeshCurriculumCatalog.classes.firstOrNull { it.id == selectedClassId }
     val supportsGroups = selectedClassInfo?.supportsGroups == true
@@ -774,9 +840,23 @@ fun AcademicSetupWizardScreen(
             }
         }
 
+        if (!errorMessage.isNullOrBlank()) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
+
         Button(
             onClick = {
-                isSaving = true
                 onCompleteSetup(
                     displayName.ifBlank { profile.displayName },
                     selectedClassId,

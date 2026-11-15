@@ -73,9 +73,8 @@ import com.example.ui.components.RankTierBadge
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
-import com.example.ui.theme.ForestGreen
+import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.JetBrainsMonoFontFamily
-import com.example.ui.theme.MangoYellow
 import com.example.ui.viewmodel.ActiveSoloSprintState
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -627,7 +626,7 @@ private fun LeaderboardSubTab(
                                 text = "#${StudyQuestStrings.formatDigits(idx + 1, uiLanguage)}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = ForestGreen
+                                color = CobaltPrimary
                             )
                             Column {
                                 Text(
@@ -701,7 +700,7 @@ fun LiveBattleArenaScreen(
                             text = "Room Code: ${match.roomCode}",
                             fontFamily = JetBrainsMonoFontFamily,
                             style = MaterialTheme.typography.titleSmall,
-                            color = ForestGreen
+                            color = CobaltPrimary
                         )
                     }
                 }
@@ -787,7 +786,7 @@ fun LiveBattleArenaScreen(
                     Text(
                         text = "Q${safeIdx + 1}/${matchQuestions.size}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = ForestGreen,
+                        color = CobaltPrimary,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(6.dp))

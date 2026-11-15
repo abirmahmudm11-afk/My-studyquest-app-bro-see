@@ -18,28 +18,40 @@ import com.example.data.model.UserQuestDoc
 import com.example.data.repository.AdminStudioRepository
 import com.example.data.repository.AuthAndProfileRepository
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 sealed interface AuthSessionState {
     data object Loading : AuthSessionState
     data object SignedOut : AuthSessionState
     data class Error(val message: String) : AuthSessionState
     data class Authenticated(val user: FirebaseUser) : AuthSessionState
+}
+
+sealed interface BootstrapState {
+    data object Loading : BootstrapState
+    data class Ready(val profile: PublicProfile) : BootstrapState
+    data class Error(val message: String) : BootstrapState
 }
 
 class PreAuthViewModel(
@@ -107,6 +119,8 @@ class PreAuthViewModel(
         }
     }
 
+    private var signInJob: Job? = null
+
     fun setSigningIn(loading: Boolean) {
         _isSigningIn.value = loading
     }
@@ -116,21 +130,46 @@ class PreAuthViewModel(
         _isSigningIn.value = false
     }
 
-    fun signInWithGoogleIdToken(idToken: String) {
-        viewModelScope.launch {
+    fun signInWithGoogleIdToken(
+        idToken: String,
+        onSuccess: () -> Unit = {}
+    ) {
+        if (idToken.isBlank()) {
+            _isSigningIn.value = false
+            _authMessage.value = "Google Sign-In did not return a valid ID token. Please try again."
+            return
+        }
+        if (signInJob?.isActive == true) {
+            Log.d(TAG, "Ignoring duplicate signInWithGoogleIdToken call while exchange is in progress")
+            return
+        }
+        signInJob = viewModelScope.launch {
             _isSigningIn.value = true
             _authMessage.value = null
             try {
+                Log.d(TAG, "Exchanging Google ID token with Firebase Auth")
                 val credential = GoogleAuthProvider.getCredential(idToken, null)
-                Firebase.auth.signInWithCredential(credential).await()
+                withTimeout(25_000L) {
+                    Firebase.auth.signInWithCredential(credential).await()
+                }
+                Log.d(TAG, "Firebase signInWithCredential succeeded for uid=${Firebase.auth.currentUser?.uid}")
                 _isSigningIn.value = false
+                onSuccess()
+            } catch (e: TimeoutCancellationException) {
+                Log.e(TAG, "Firebase Google signIn timed out", e)
+                _isSigningIn.value = false
+                _authMessage.value = "Google Sign-In timed out while contacting Firebase. Please check your internet connection and try again."
             } catch (e: CancellationException) {
                 _isSigningIn.value = false
                 throw e
+            } catch (e: FirebaseAuthException) {
+                Log.e(TAG, "FirebaseAuthException during Google signIn [${e.errorCode}]", e)
+                _isSigningIn.value = false
+                _authMessage.value = "Sign-in failed [${e.errorCode}]: ${e.localizedMessage ?: "Firebase authentication rejected the credential."}"
             } catch (e: Exception) {
                 Log.e(TAG, "Firebase Google signIn failed", e)
                 _isSigningIn.value = false
-                _authMessage.value = e.localizedMessage ?: "Google Sign-In failed"
+                _authMessage.value = e.localizedMessage ?: "Google Sign-In failed. Please try again."
             }
         }
     }
@@ -155,14 +194,58 @@ class MainSessionViewModel(
     val isOnline: StateFlow<Boolean> = connectivityObserver.observeOnline()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), true)
 
-    val profile: StateFlow<PublicProfile?> = authRepo.observePublicProfile(currentUser.uid)
+    private val _bootstrappedProfile = MutableStateFlow<PublicProfile?>(null)
+    private val _bootstrapping = MutableStateFlow(true)
+    val bootstrapping: StateFlow<Boolean> = _bootstrapping.asStateFlow()
+
+    private val _bootstrapError = MutableStateFlow<String?>(null)
+    private val _isCompletingSetup = MutableStateFlow(false)
+    val isCompletingSetup: StateFlow<Boolean> = _isCompletingSetup.asStateFlow()
+
+    private val liveProfileFlow = authRepo.observePublicProfile(currentUser.uid)
+        .retryWhen { cause, attempt ->
+            val fsErr = generateSequence(cause) { it.cause }.filterIsInstance<FirebaseFirestoreException>().firstOrNull()
+            if (fsErr == null && cause is CancellationException) false
+            else if (attempt < 3) {
+                delay(1_000L * (attempt + 1))
+                true
+            } else {
+                false
+            }
+        }
         .catch { error ->
             val fsErr = generateSequence(error) { it.cause }.filterIsInstance<FirebaseFirestoreException>().firstOrNull()
             if (fsErr == null && error is CancellationException) throw error
             Log.w(TAG, "Profile observe error", fsErr ?: error)
-            _bannerMessage.value = unwrapFirestoreMessage(error, "Unable to sync profile")
+            val msg = unwrapFirestoreMessage(error, "Unable to sync profile")
+            if (_bootstrappedProfile.value == null) {
+                _bootstrapError.value = msg
+            } else {
+                _bannerMessage.value = msg
+            }
+            emit(_bootstrappedProfile.value)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), null)
+
+    val profile: StateFlow<PublicProfile?> = combine(
+        liveProfileFlow,
+        _bootstrappedProfile
+    ) { live, fallback ->
+        live ?: fallback
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), null)
+
+    val bootstrapState: StateFlow<BootstrapState> = combine(
+        _bootstrapping,
+        profile,
+        _bootstrapError
+    ) { loading, activeProfile, error ->
+        when {
+            activeProfile != null -> BootstrapState.Ready(activeProfile)
+            loading -> BootstrapState.Loading
+            else -> BootstrapState.Error(
+                error ?: "Unable to load your StudyQuest profile. Please check your internet connection and try again."
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), BootstrapState.Loading)
 
     val quests: StateFlow<List<UserQuestDoc>> = authRepo.observeUserQuests(currentUser.uid)
         .catch { emit(emptyList()) }
@@ -179,9 +262,6 @@ class MainSessionViewModel(
     private val _adminRole = MutableStateFlow<String?>(null)
     val adminRole: StateFlow<String?> = _adminRole.asStateFlow()
 
-    private val _bootstrapping = MutableStateFlow(true)
-    val bootstrapping: StateFlow<Boolean> = _bootstrapping.asStateFlow()
-
     private val _bannerMessage = MutableStateFlow<String?>(null)
     val bannerMessage: StateFlow<String?> = _bannerMessage.asStateFlow()
 
@@ -196,15 +276,27 @@ class MainSessionViewModel(
     val guestMergedCount: StateFlow<Int> = _guestMergedCount.asStateFlow()
 
     init {
+        bootstrapSession()
+    }
+
+    fun retryBootstrap() {
+        bootstrapSession()
+    }
+
+    private fun bootstrapSession() {
         viewModelScope.launch {
             _bootstrapping.value = true
+            _bootstrapError.value = null
             val currentLang = localPreferences.value.uiLanguage
             val boot = authRepo.ensureUserBootstrapped(currentUser, currentLang)
-            if (boot.isFailure) {
-                _bannerMessage.value = boot.exceptionOrNull()?.localizedMessage
-            } else {
-                val mergeRes = authRepo.mergeGuestProgressToAccount(currentUser.uid, preferences)
-                mergeRes.onSuccess { count ->
+            boot.onSuccess { loadedProfile ->
+                _bootstrappedProfile.value = loadedProfile
+                _bootstrapError.value = null
+                runCatching {
+                    withTimeout(15_000L) {
+                        authRepo.mergeGuestProgressToAccount(currentUser.uid, preferences)
+                    }
+                }.getOrNull()?.onSuccess { count ->
                     if (count > 0) {
                         _guestMergedCount.value = count
                         _bannerMessage.value = if (currentLang == AppLanguage.BANGLA) {
@@ -214,8 +306,14 @@ class MainSessionViewModel(
                         }
                     }
                 }
+            }.onFailure { err ->
+                val msg = unwrapFirestoreMessage(err, err.localizedMessage ?: "Profile bootstrap failed")
+                _bootstrapError.value = msg
+                _bannerMessage.value = msg
             }
-            _adminRole.value = adminRepo.resolveAdminRole(currentUser)
+            _adminRole.value = runCatching {
+                withTimeout(8_000L) { adminRepo.resolveAdminRole(currentUser) }
+            }.getOrNull()
             _bootstrapping.value = false
         }
     }
@@ -239,6 +337,7 @@ class MainSessionViewModel(
         studyGoalTitle: String = ""
     ) {
         viewModelScope.launch {
+            _isCompletingSetup.value = true
             val res = authRepo.completeAcademicSetup(
                 userId = currentUser.uid,
                 displayName = displayName,
@@ -250,9 +349,21 @@ class MainSessionViewModel(
                 dailyGoalMinutes = dailyGoalMinutes,
                 studyGoalTitle = studyGoalTitle
             )
-            if (res.isFailure) {
-                _bannerMessage.value = res.exceptionOrNull()?.localizedMessage ?: "Setup failed"
+            res.onSuccess {
+                _bootstrappedProfile.value = (_bootstrappedProfile.value ?: profile.value)?.copy(
+                    displayName = displayName.trim().ifBlank { "Student" }.take(60),
+                    classId = classId,
+                    curriculumVersion = curriculumVersion,
+                    selectedSubjects = selectedSubjects.take(20),
+                    avatarId = avatarId,
+                    academicGroup = academicGroup,
+                    dailyGoalMinutes = dailyGoalMinutes.coerceIn(5L, 360L),
+                    onboardingCompleted = true
+                )
+            }.onFailure {
+                _bannerMessage.value = it.localizedMessage ?: "Setup failed"
             }
+            _isCompletingSetup.value = false
         }
     }
 

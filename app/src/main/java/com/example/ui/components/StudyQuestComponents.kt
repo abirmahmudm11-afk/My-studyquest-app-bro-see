@@ -81,10 +81,10 @@ import com.example.data.model.AcademicSubject
 import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
 import com.example.data.model.UserQuestDoc
-import com.example.ui.theme.ForestGreen
-import com.example.ui.theme.MangoYellow
-import com.example.ui.theme.NaturalGreen
-import com.example.ui.theme.WarmOrange
+import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.TealSecondary
+import com.example.ui.theme.VioletTertiary
 
 @Composable
 fun StudyQuestCard(
@@ -104,7 +104,7 @@ fun StudyQuestCard(
         modifier = cardModifier,
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
@@ -331,7 +331,7 @@ fun QuestCard(
             StatBadgePill(
                 icon = Icons.Filled.Star,
                 label = "+${StudyQuestStrings.formatDigits(quest.xpReward, language)} XP",
-                tint = WarmOrange,
+                tint = VioletTertiary,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer
             )
         }
@@ -342,7 +342,7 @@ fun QuestCard(
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(999.dp)),
-            color = if (quest.completed) ForestGreen else NaturalGreen
+            color = if (quest.completed) CobaltPrimary else TealSecondary
         )
         Spacer(Modifier.height(8.dp))
         Row(
@@ -358,12 +358,12 @@ fun QuestCard(
             when {
                 quest.claimed -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = ForestGreen, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = TealSecondary, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = StudyQuestStrings.t(language, "Claimed", "সংগৃহীত"),
                             style = MaterialTheme.typography.labelMedium,
-                            color = ForestGreen,
+                            color = TealSecondary,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -374,14 +374,14 @@ fun QuestCard(
                         modifier = Modifier
                             .minimumInteractiveComponentSize()
                             .testTag("claim_quest_${quest.questId}"),
-                        colors = ButtonDefaults.buttonColors(containerColor = MangoYellow, contentColor = Color(0xFF2B2000))
+                        colors = ButtonDefaults.buttonColors(containerColor = VioletTertiary, contentColor = PureWhite)
                     ) {
                         Text(StudyQuestStrings.t(language, "Claim +${quest.coinReward} Coins", "সংগ্রহ করুন"))
                     }
                 }
                 else -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.MonetizationOn, contentDescription = null, tint = MangoYellow, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.MonetizationOn, contentDescription = null, tint = VioletTertiary, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = "+${StudyQuestStrings.formatDigits(quest.coinReward, language)}",
@@ -454,7 +454,7 @@ fun QuestionPracticeCard(
                     Icon(
                         imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                         contentDescription = StudyQuestStrings.t(uiLanguage, "Bookmark question", "প্রশ্ন বুকমার্ক"),
-                        tint = if (isBookmarked) MangoYellow else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (isBookmarked) CobaltPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 IconButton(
@@ -673,7 +673,7 @@ fun QuestionPracticeCard(
                     text = StudyQuestStrings.t(uiLanguage, "Explanation", "ব্যাখ্যা"),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = ForestGreen
+                    color = CobaltPrimary
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -778,14 +778,15 @@ fun RankTierBadge(
         "Master" -> Color(0xFF9333EA)
         "Diamond" -> Color(0xFF0284C7)
         "Platinum" -> Color(0xFF0D9488)
-        "Gold" -> MangoYellow
+        "Gold" -> Color(0xFFD97706)
         "Silver" -> Color(0xFF64748B)
-        else -> Color(0xFFB45309)
+        else -> Color(0xFF475569)
     }
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(999.dp),
-        color = tierColor.copy(alpha = 0.16f)
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        border = BorderStroke(1.dp, tierColor.copy(alpha = 0.35f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -812,9 +813,9 @@ fun AvatarBadgeView(
     modifier: Modifier = Modifier
 ) {
     val frameColor = when (frameId) {
-        "frame_mango" -> MangoYellow
-        "frame_emerald" -> ForestGreen
-        else -> NaturalGreen.copy(alpha = 0.45f)
+        "frame_mango" -> VioletTertiary
+        "frame_emerald" -> TealSecondary
+        else -> CobaltPrimary.copy(alpha = 0.45f)
     }
     val initial = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "S"
     Surface(
@@ -832,9 +833,9 @@ fun AvatarBadgeView(
             )
         } else {
             val bg = when (avatarId) {
-                "tiger_bengal" -> WarmOrange.copy(alpha = 0.22f)
-                "kingfisher_bd" -> Color(0xFF0284C7).copy(alpha = 0.22f)
-                else -> ForestGreen.copy(alpha = 0.22f)
+                "tiger_bengal" -> VioletTertiary.copy(alpha = 0.20f)
+                "kingfisher_bd" -> Color(0xFF0284C7).copy(alpha = 0.20f)
+                else -> CobaltPrimary.copy(alpha = 0.20f)
             }
             Box(
                 modifier = Modifier.background(bg),

@@ -42,7 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.ui.components.StudyQuestCard
-import com.example.ui.theme.ForestGreen
+import com.example.ui.theme.CobaltPrimary
 import com.example.ui.viewmodel.AdminStudioViewModel
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -73,7 +73,7 @@ fun AdminStudioScreen(
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
             Column(modifier = Modifier.weight(1f)) {
                 Text("Admin Studio", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Role: $adminRole", style = MaterialTheme.typography.labelSmall, color = ForestGreen)
+                Text("Role: $adminRole", style = MaterialTheme.typography.labelSmall, color = CobaltPrimary)
             }
         }
 

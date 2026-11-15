@@ -84,9 +84,11 @@ import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
 import com.example.ui.components.SubjectCard
 import com.example.ui.components.SyncStatusPill
-import com.example.ui.theme.ForestGreen
-import com.example.ui.theme.MangoYellow
-import com.example.ui.theme.WarmOrange
+import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.RoseAlert
+import com.example.ui.theme.SkyCyanAccent
+import com.example.ui.theme.TealSecondary
+import com.example.ui.theme.VioletTertiary
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -241,7 +243,7 @@ fun TodayTabScreen(
                             .fillMaxWidth()
                             .height(7.dp)
                             .clip(RoundedCornerShape(999.dp)),
-                        color = MangoYellow,
+                        color = SkyCyanAccent,
                         trackColor = Color.White.copy(alpha = 0.24f)
                     )
                     Spacer(Modifier.height(10.dp))
@@ -258,7 +260,7 @@ fun TodayTabScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
-                                Icon(Icons.Filled.Star, contentDescription = null, tint = MangoYellow, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Filled.Star, contentDescription = null, tint = SkyCyanAccent, modifier = Modifier.size(16.dp))
                                 AnimatedCounterText(
                                     targetValue = profile.totalXp.toInt(),
                                     language = language,
@@ -277,7 +279,7 @@ fun TodayTabScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
-                                Icon(Icons.Filled.MonetizationOn, contentDescription = null, tint = MangoYellow, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Filled.MonetizationOn, contentDescription = null, tint = Color(0xFFC4B5FD), modifier = Modifier.size(16.dp))
                                 AnimatedCounterText(
                                     targetValue = profile.coins.toInt(),
                                     language = language,
@@ -296,7 +298,7 @@ fun TodayTabScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
-                                Icon(Icons.Filled.LocalFireDepartment, contentDescription = null, tint = MangoYellow, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Filled.LocalFireDepartment, contentDescription = null, tint = SkyCyanAccent, modifier = Modifier.size(16.dp))
                                 Text(
                                     text = StudyQuestStrings.t(
                                         language,
@@ -370,7 +372,7 @@ fun TodayTabScreen(
                             Icon(
                                 if (dailyChallengeDoneToday) Icons.Filled.CheckCircle else Icons.Filled.LocalFireDepartment,
                                 contentDescription = null,
-                                tint = if (dailyChallengeDoneToday) ForestGreen else WarmOrange,
+                                tint = if (dailyChallengeDoneToday) TealSecondary else VioletTertiary,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(Modifier.width(6.dp))
@@ -482,7 +484,7 @@ fun TodayTabScreen(
             item {
                 StaggeredEntrance(index = 4, reducedMotion = reducedMotion) {
                     StudyQuestCard(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
                         onClick = onOpenQuickPractice
                     ) {
                         Row(
@@ -491,13 +493,13 @@ fun TodayTabScreen(
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(14.dp),
-                                color = ForestGreen.copy(alpha = 0.14f),
+                                color = CobaltPrimary.copy(alpha = 0.14f),
                                 modifier = Modifier.size(46.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.School,
                                     contentDescription = null,
-                                    tint = ForestGreen,
+                                    tint = CobaltPrimary,
                                     modifier = Modifier.padding(10.dp)
                                 )
                             }
@@ -506,7 +508,7 @@ fun TodayTabScreen(
                                     text = StudyQuestStrings.t(language, "Today's NCTB Spotlight", "আজকের এনসিটিবি পাঠ"),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = ForestGreen
+                                    color = CobaltPrimary
                                 )
                                 Text(
                                     text = StudyQuestStrings.t(language, spotlightLesson.titleEn, spotlightLesson.titleBn),
@@ -526,7 +528,7 @@ fun TodayTabScreen(
                             StatBadgePill(
                                 icon = Icons.Filled.Bolt,
                                 label = "+20 XP",
-                                tint = WarmOrange,
+                                tint = VioletTertiary,
                                 containerColor = MaterialTheme.colorScheme.surface
                             )
                         }
@@ -541,7 +543,7 @@ fun TodayTabScreen(
                 val topWeak = weakTopics.first()
                 StudyQuestCard(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = WarmOrange)
+                        Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = RoseAlert)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = StudyQuestStrings.t(language, "Weak Topic Focus", "দুর্বল বিষয়ে মনোযোগ"),
@@ -600,7 +602,7 @@ fun TodayTabScreen(
                 val daysLeft = (((plan.targetDateEpochMs - System.currentTimeMillis()) / 86_400_000L).coerceAtLeast(0L)).toInt()
                 StudyQuestCard {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Filled.CalendarMonth, contentDescription = null, tint = ForestGreen)
+                        Icon(Icons.Filled.CalendarMonth, contentDescription = null, tint = CobaltPrimary)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(plan.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
@@ -630,7 +632,7 @@ fun TodayTabScreen(
             items(recentRecords.take(3), key = { it.id }) { rec ->
                 StudyQuestCard {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = ForestGreen)
+                        Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = CobaltPrimary)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(rec.summary ?: rec.refId, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                             Text(

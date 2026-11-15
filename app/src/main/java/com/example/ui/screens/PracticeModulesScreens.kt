@@ -72,10 +72,9 @@ import com.example.data.model.QuestionType
 import com.example.ui.components.EmptyStateView
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
-import com.example.ui.theme.ForestGreen
+import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.JetBrainsMonoFontFamily
-import com.example.ui.theme.MangoYellow
-import com.example.ui.theme.WarmOrange
+import com.example.ui.theme.TealSecondary
 import kotlinx.coroutines.delay
 import java.util.Locale
 
@@ -195,7 +194,7 @@ fun FlashcardsAndVaultScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = ForestGreen, modifier = Modifier.size(48.dp))
+                                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = TealSecondary, modifier = Modifier.size(48.dp))
                                 Text(
                                     text = StudyQuestStrings.t(uiLanguage, "Deck Complete!", "ফ্ল্যাশকার্ড ডেক সম্পন্ন!"),
                                     style = MaterialTheme.typography.titleLarge,
@@ -264,7 +263,7 @@ fun FlashcardsAndVaultScreen(
                             StatBadgePill(
                                 icon = Icons.Filled.CheckCircle,
                                 label = StudyQuestStrings.t(uiLanguage, "$masteredCount Mastered", "${StudyQuestStrings.formatDigits(masteredCount, uiLanguage)} আয়ত্ত"),
-                                tint = ForestGreen,
+                                tint = TealSecondary,
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer
                             )
                         }
@@ -413,7 +412,7 @@ fun FlashcardsAndVaultScreen(
                                 text = "${lesson.subjectId.uppercase(Locale.ROOT)} • ${StudyQuestStrings.t(uiLanguage, lesson.titleEn, lesson.titleBn)}",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = ForestGreen
+                                color = CobaltPrimary
                             )
                             Spacer(Modifier.height(8.dp))
                             lesson.formulas.forEach { formula ->
@@ -558,7 +557,7 @@ fun PomodoroFocusScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     val trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    val activeColor = if (remainingSeconds == 0) MangoYellow else ForestGreen
+                    val activeColor = if (remainingSeconds == 0) TealSecondary else CobaltPrimary
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(210.dp)) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val stroke = 14.dp.toPx()
@@ -593,7 +592,7 @@ fun PomodoroFocusScreen(
                                     StudyQuestStrings.t(uiLanguage, "Ready to Focus", "শুরু করতে প্রস্তুত")
                                 },
                                 style = MaterialTheme.typography.labelMedium,
-                                color = WarmOrange
+                                color = CobaltPrimary
                             )
                         }
                     }

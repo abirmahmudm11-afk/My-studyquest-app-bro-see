@@ -27,6 +27,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -96,28 +97,37 @@ class AuthAndProfileRepository(
         val profileRef = db.collection("public_profiles").document(uid)
         val privateRef = db.collection("users").document(uid).collection("private").document("account")
         return try {
-            val existing = profileRef.get().await()
+            // Ensure Firebase Auth ID token is ready before issuing Firestore requests
+            runCatching {
+                withTimeout(8_000L) { user.getIdToken(false).await() }
+            }
+
+            val existing = withTimeout(20_000L) { profileRef.get().await() }
             if (existing.exists()) {
                 val profile = existing.toObject(
                     PublicProfile::class.java,
                     DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
                 ) ?: return Result.failure(IllegalStateException("Profile unreadable"))
                 if (profile.showOnlineStatus && !profile.isOnline) {
-                    profileRef.update(
-                        mapOf(
-                            "isOnline" to true,
-                            "updatedAt" to FieldValue.serverTimestamp()
-                        )
-                    ).await()
+                    runCatching {
+                        withTimeout(8_000L) {
+                            profileRef.update(
+                                mapOf(
+                                    "isOnline" to true,
+                                    "updatedAt" to FieldValue.serverTimestamp()
+                                )
+                            ).await()
+                        }
+                    }
                 }
                 ensureActivePeriodQuests(uid)
-                return Result.success(profile)
+                return Result.success(profile.copy(isOnline = if (profile.showOnlineStatus) true else profile.isOnline))
             }
 
             val rawName = user.displayName?.takeIf { it.isNotBlank() }
                 ?: user.email?.substringBefore("@")
                 ?: "Scholar"
-            val displayName = rawName.take(58)
+            val displayName = rawName.trim().ifBlank { "Scholar" }.take(58)
             val sqCode = "SQ-" + Random.nextInt(100000, 999999)
             val baseHandle = rawName.lowercase(Locale.ROOT)
                 .replace(Regex("[^a-z0-9_]"), "")
@@ -125,6 +135,7 @@ class AuthAndProfileRepository(
                 .take(18)
             val username = "${baseHandle}_${sqCode.takeLast(4)}".take(30)
             val curriculum = if (defaultLanguage == AppLanguage.BANGLA) "bangla" else "english"
+            val initialSubjects = listOf("math", "english", "bangla", "physics", "ict")
 
             val batch = db.batch()
             batch.set(
@@ -149,7 +160,7 @@ class AuthAndProfileRepository(
                     "showOnlineStatus" to true,
                     "isOnline" to true,
                     "onboardingCompleted" to false,
-                    "selectedSubjects" to listOf("math", "english", "bangla", "physics", "ict"),
+                    "selectedSubjects" to initialSubjects,
                     "academicGroup" to "science",
                     "dailyGoalMinutes" to 30L,
                     "streakCount" to 0L,
@@ -161,7 +172,7 @@ class AuthAndProfileRepository(
                 privateRef,
                 mapOf(
                     "userId" to uid,
-                    "email" to (user.email ?: ""),
+                    "email" to (user.email ?: "").take(120),
                     "ageBracket" to "13_17",
                     "guardianConsentStatus" to "acknowledged",
                     "accountStatus" to "active",
@@ -186,19 +197,39 @@ class AuthAndProfileRepository(
                     "createdAt" to FieldValue.serverTimestamp()
                 )
             )
-            batch.commit().await()
+            withTimeout(20_000L) { batch.commit().await() }
             ensureActivePeriodQuests(uid)
 
-            val created = profileRef.get().await().toObject(
-                PublicProfile::class.java,
-                DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
-            ) ?: PublicProfile(
+            val created = runCatching {
+                withTimeout(5_000L) {
+                    profileRef.get().await().toObject(
+                        PublicProfile::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    )
+                }
+            }.getOrNull() ?: PublicProfile(
                 id = uid,
                 userId = uid,
                 studyQuestId = sqCode,
                 username = username,
                 displayName = displayName,
-                curriculumVersion = curriculum
+                avatarId = "owl_classic",
+                classId = "class_10",
+                curriculumVersion = curriculum,
+                overallLevel = 1L,
+                levelTitle = "Beginner",
+                totalXp = 0L,
+                coins = 50L,
+                competitionRating = 1000L,
+                rankTier = "Bronze",
+                optInNationalLeaderboard = false,
+                showOnlineStatus = true,
+                isOnline = true,
+                onboardingCompleted = false,
+                selectedSubjects = initialSubjects,
+                academicGroup = "science",
+                dailyGoalMinutes = 30L,
+                streakCount = 0L
             )
             Result.success(created)
         } catch (e: CancellationException) {
@@ -214,34 +245,36 @@ class AuthAndProfileRepository(
         val weeklyKey = currentWeeklyPeriodKey()
         val questsRef = db.collection("users").document(userId).collection("quests")
         try {
-            val existing = questsRef.get().await().documents.associateBy { it.id }
-            val batch = db.batch()
-            var hasWrites = false
-            for (item in BangladeshCurriculumCatalog.questsCatalog) {
-                val periodKey = if (item.questType == "daily") dailyKey else weeklyKey
-                val current = existing[item.id]
-                val existingPeriod = current?.getString("periodKey")
-                if (current == null || existingPeriod != periodKey) {
-                    batch.set(
-                        questsRef.document(item.id),
-                        mapOf(
-                            "userId" to userId,
-                            "questId" to item.id,
-                            "questType" to item.questType,
-                            "progress" to 0L,
-                            "target" to item.target.toLong(),
-                            "completed" to false,
-                            "claimed" to false,
-                            "xpReward" to item.xpReward.toLong(),
-                            "coinReward" to item.coinReward.toLong(),
-                            "periodKey" to periodKey,
-                            "updatedAt" to FieldValue.serverTimestamp()
+            withTimeout(10_000L) {
+                val existing = questsRef.get().await().documents.associateBy { it.id }
+                val batch = db.batch()
+                var hasWrites = false
+                for (item in BangladeshCurriculumCatalog.questsCatalog) {
+                    val periodKey = if (item.questType == "daily") dailyKey else weeklyKey
+                    val current = existing[item.id]
+                    val existingPeriod = current?.getString("periodKey")
+                    if (current == null || existingPeriod != periodKey) {
+                        batch.set(
+                            questsRef.document(item.id),
+                            mapOf(
+                                "userId" to userId,
+                                "questId" to item.id,
+                                "questType" to item.questType,
+                                "progress" to 0L,
+                                "target" to item.target.toLong(),
+                                "completed" to false,
+                                "claimed" to false,
+                                "xpReward" to item.xpReward.toLong(),
+                                "coinReward" to item.coinReward.toLong(),
+                                "periodKey" to periodKey,
+                                "updatedAt" to FieldValue.serverTimestamp()
+                            )
                         )
-                    )
-                    hasWrites = true
+                        hasWrites = true
+                    }
                 }
+                if (hasWrites) batch.commit().await()
             }
-            if (hasWrites) batch.commit().await()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -266,63 +299,73 @@ class AuthAndProfileRepository(
             val cleanName = displayName.trim().ifBlank { "Student" }.take(60)
             val safeGroup = if (academicGroup in listOf("general", "science", "business", "humanities")) academicGroup else "general"
             val safeDailyMins = dailyGoalMinutes.coerceIn(5L, 360L)
-            ref.update(
-                mapOf(
-                    "displayName" to cleanName,
-                    "classId" to classId,
-                    "curriculumVersion" to curriculumVersion,
-                    "selectedSubjects" to selectedSubjects.take(20),
-                    "avatarId" to avatarId,
-                    "academicGroup" to safeGroup,
-                    "dailyGoalMinutes" to safeDailyMins,
-                    "onboardingCompleted" to true,
-                    "updatedAt" to FieldValue.serverTimestamp()
-                )
-            ).await()
-            val cleanGoal = studyGoalTitle.trim().take(120)
-            if (cleanGoal.isNotEmpty()) {
-                val starterPlanRef = db.collection("users").document(userId)
-                    .collection("study_plans").document("onboarding_starter_goal")
-                starterPlanRef.set(
+            withTimeout(15_000L) {
+                ref.update(
                     mapOf(
-                        "userId" to userId,
-                        "title" to cleanGoal,
-                        "subjectId" to (selectedSubjects.firstOrNull() ?: "math"),
-                        "planType" to "exam_countdown",
-                        "targetDateEpochMs" to (System.currentTimeMillis() + 30L * 86_400_000L),
-                        "minutesPerDay" to safeDailyMins,
-                        "completed" to false,
-                        "createdAt" to FieldValue.serverTimestamp(),
+                        "displayName" to cleanName,
+                        "classId" to classId,
+                        "curriculumVersion" to curriculumVersion,
+                        "selectedSubjects" to selectedSubjects.take(20),
+                        "avatarId" to avatarId,
+                        "academicGroup" to safeGroup,
+                        "dailyGoalMinutes" to safeDailyMins,
+                        "onboardingCompleted" to true,
                         "updatedAt" to FieldValue.serverTimestamp()
                     )
                 ).await()
             }
-            val profSnap = ref.get().await()
-            val existingLb = lbRef.get().await()
-            val weekKey = currentWeeklyPeriodKey()
-            val oldWeekly = if (existingLb.getString("weekKey") == weekKey) existingLb.getLong("weeklyPoints") ?: 0L else 0L
-            lbRef.set(
-                mapOf(
-                    "userId" to userId,
-                    "displayName" to cleanName,
-                    "studyQuestId" to (profSnap.getString("studyQuestId") ?: "SQ-100000"),
-                    "avatarId" to avatarId,
-                    "frameId" to profSnap.getString("frameId"),
-                    "classId" to classId,
-                    "subjectId" to selectedSubjects.firstOrNull(),
-                    "seasonId" to "season_2026_11",
-                    "weekKey" to weekKey,
-                    "weeklyPoints" to oldWeekly,
-                    "seasonalPoints" to (existingLb.getLong("seasonalPoints") ?: (profSnap.getLong("totalXp") ?: 0L)),
-                    "competitionRating" to (existingLb.getLong("competitionRating") ?: (profSnap.getLong("competitionRating") ?: 1000L)),
-                    "rankTier" to (profSnap.getString("rankTier") ?: "Bronze"),
-                    "optInNational" to (profSnap.getBoolean("optInNationalLeaderboard") ?: false),
-                    "matchesPlayed" to (existingLb.getLong("matchesPlayed") ?: 0L),
-                    "matchesWon" to (existingLb.getLong("matchesWon") ?: 0L),
-                    "streakCount" to (profSnap.getLong("streakCount") ?: 0L),
-                    "updatedAt" to FieldValue.serverTimestamp()
-                ).filterValues { it != null }
-            ).await()
+            val cleanGoal = studyGoalTitle.trim().take(120)
+            if (cleanGoal.isNotEmpty()) {
+                runCatching {
+                    withTimeout(10_000L) {
+                        val starterPlanRef = db.collection("users").document(userId)
+                            .collection("study_plans").document("onboarding_starter_goal")
+                        starterPlanRef.set(
+                            mapOf(
+                                "userId" to userId,
+                                "title" to cleanGoal,
+                                "subjectId" to (selectedSubjects.firstOrNull() ?: "math"),
+                                "planType" to "exam_countdown",
+                                "targetDateEpochMs" to (System.currentTimeMillis() + 30L * 86_400_000L),
+                                "minutesPerDay" to safeDailyMins,
+                                "completed" to false,
+                                "createdAt" to FieldValue.serverTimestamp(),
+                                "updatedAt" to FieldValue.serverTimestamp()
+                            )
+                        ).await()
+                    }
+                }
+            }
+            runCatching {
+                withTimeout(10_000L) {
+                    val profSnap = ref.get().await()
+                    val existingLb = lbRef.get().await()
+                    val weekKey = currentWeeklyPeriodKey()
+                    val oldWeekly = if (existingLb.getString("weekKey") == weekKey) existingLb.getLong("weeklyPoints") ?: 0L else 0L
+                    lbRef.set(
+                        mapOf(
+                            "userId" to userId,
+                            "displayName" to cleanName,
+                            "studyQuestId" to (profSnap.getString("studyQuestId") ?: "SQ-100000"),
+                            "avatarId" to avatarId,
+                            "frameId" to profSnap.getString("frameId"),
+                            "classId" to classId,
+                            "subjectId" to selectedSubjects.firstOrNull(),
+                            "seasonId" to "season_2026_11",
+                            "weekKey" to weekKey,
+                            "weeklyPoints" to oldWeekly,
+                            "seasonalPoints" to (existingLb.getLong("seasonalPoints") ?: (profSnap.getLong("totalXp") ?: 0L)),
+                            "competitionRating" to (existingLb.getLong("competitionRating") ?: (profSnap.getLong("competitionRating") ?: 1000L)),
+                            "rankTier" to (profSnap.getString("rankTier") ?: "Bronze"),
+                            "optInNational" to (profSnap.getBoolean("optInNationalLeaderboard") ?: false),
+                            "matchesPlayed" to (existingLb.getLong("matchesPlayed") ?: 0L),
+                            "matchesWon" to (existingLb.getLong("matchesWon") ?: 0L),
+                            "streakCount" to (profSnap.getLong("streakCount") ?: 0L),
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        ).filterValues { it != null }
+                    ).await()
+                }
+            }
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e

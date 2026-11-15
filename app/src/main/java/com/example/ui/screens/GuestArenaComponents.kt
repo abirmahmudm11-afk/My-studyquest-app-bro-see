@@ -66,9 +66,9 @@ import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
-import com.example.ui.theme.ForestGreen
-import com.example.ui.theme.MangoYellow
-import com.example.ui.theme.WarmOrange
+import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.TealSecondary
+import com.example.ui.theme.VioletTertiary
 import com.example.ui.viewmodel.ActiveSoloSprintState
 import kotlinx.coroutines.delay
 
@@ -119,14 +119,14 @@ fun SoloSpeedSprintScreen(
                     Text(
                         text = StudyQuestStrings.t(uiLanguage, "Solo Speed Sprint • Local Arena", "সোলো স্পিড স্প্রিন্ট • লোকাল অ্যারেনা"),
                         style = MaterialTheme.typography.labelSmall,
-                        color = ForestGreen
+                        color = CobaltPrimary
                     )
                 }
                 if (!sprint.finished) {
                     StatBadgePill(
                         icon = Icons.Filled.Timer,
                         label = "${StudyQuestStrings.formatDigits(elapsedSec, uiLanguage)}s",
-                        tint = WarmOrange,
+                        tint = VioletTertiary,
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer
                     )
                 }
@@ -166,13 +166,13 @@ fun SoloSpeedSprintScreen(
                                 StatBadgePill(
                                     icon = Icons.Filled.Star,
                                     label = "+${StudyQuestStrings.formatDigits(sprint.earnedXp, uiLanguage)} XP",
-                                    tint = WarmOrange,
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                    tint = CobaltPrimary,
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
                                 )
                                 StatBadgePill(
                                     icon = Icons.Filled.MonetizationOn,
                                     label = "+${StudyQuestStrings.formatDigits(sprint.earnedCoins, uiLanguage)} Coins",
-                                    tint = MangoYellow,
+                                    tint = VioletTertiary,
                                     containerColor = MaterialTheme.colorScheme.tertiaryContainer
                                 )
                             }
@@ -182,7 +182,7 @@ fun SoloSpeedSprintScreen(
                             centerValueText = "${sprint.correctCount}/${sprint.questions.size}",
                             centerCaptionText = StudyQuestStrings.t(uiLanguage, "Correct", "সঠিক"),
                             reducedMotion = reducedMotion,
-                            ringColor = ForestGreen,
+                            ringColor = TealSecondary,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                             valueColor = MaterialTheme.colorScheme.onSurface,
                             captionColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -219,7 +219,7 @@ fun SoloSpeedSprintScreen(
                         .fillMaxWidth()
                         .height(8.dp)
                         .clip(RoundedCornerShape(999.dp)),
-                    color = ForestGreen
+                    color = CobaltPrimary
                 )
             }
             item {
@@ -231,7 +231,7 @@ fun SoloSpeedSprintScreen(
                         Text(
                             text = "Q${safeIdx + 1}/${sprint.questions.size}",
                             style = MaterialTheme.typography.labelLarge,
-                            color = ForestGreen,
+                            color = CobaltPrimary,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
@@ -371,12 +371,12 @@ fun GuestArenaTabContent(
 
         item {
             StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
-                StudyQuestCard(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)) {
+                StudyQuestCard(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(Icons.Filled.CloudUpload, contentDescription = null, tint = ForestGreen)
+                        Icon(Icons.Filled.CloudUpload, contentDescription = null, tint = CobaltPrimary)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = StudyQuestStrings.t(uiLanguage, "Unlock Live 1v1 & Private Rooms", "লাইভ ১v১ ও প্রাইভেট রুম আনলক করুন"),
@@ -394,7 +394,7 @@ fun GuestArenaTabContent(
                         }
                         Button(
                             onClick = onRequestGoogleSignIn,
-                            colors = ButtonDefaults.buttonColors(containerColor = ForestGreen, contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = CobaltPrimary, contentColor = Color.White),
                             modifier = Modifier.testTag("guest_compete_signin_btn")
                         ) {
                             Text(StudyQuestStrings.t(uiLanguage, "Sign In", "সাইন-ইন"))
@@ -445,7 +445,7 @@ fun GuestArenaTabContent(
                             icon = Icons.Filled.EmojiEvents,
                             label = if (m.won) StudyQuestStrings.t(uiLanguage, "Cleared", "সফল")
                             else StudyQuestStrings.t(uiLanguage, "Practiced", "অনুশীলিত"),
-                            tint = if (m.won) MangoYellow else ForestGreen,
+                            tint = if (m.won) VioletTertiary else CobaltPrimary,
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
                         )
                     }

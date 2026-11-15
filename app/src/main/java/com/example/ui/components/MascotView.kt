@@ -48,10 +48,9 @@ import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.model.MascotMood
-import com.example.ui.theme.ForestGreen
-import com.example.ui.theme.MangoYellow
-import com.example.ui.theme.NaturalGreen
-import com.example.ui.theme.WarmOrange
+import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.TealSecondary
+import com.example.ui.theme.VioletTertiary
 
 @Composable
 fun MascotTituCard(
@@ -87,9 +86,9 @@ fun MascotTituCard(
     }
 
     val ringColor = when (mood) {
-        MascotMood.SUCCESS, MascotMood.QUEST_COMPLETION, MascotMood.ACHIEVEMENT -> MangoYellow
-        MascotMood.ENCOURAGEMENT, MascotMood.STUDY_REMINDER -> WarmOrange
-        else -> NaturalGreen
+        MascotMood.SUCCESS, MascotMood.QUEST_COMPLETION, MascotMood.ACHIEVEMENT -> VioletTertiary
+        MascotMood.ENCOURAGEMENT, MascotMood.STUDY_REMINDER -> CobaltPrimary
+        else -> TealSecondary
     }
 
     Surface(
@@ -104,7 +103,7 @@ fun MascotTituCard(
                 .background(
                     Brush.horizontalGradient(
                         listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
                             MaterialTheme.colorScheme.surface
                         )
                     )
@@ -137,13 +136,13 @@ fun MascotTituCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = ringColor.copy(alpha = 0.18f)
+                        color = ringColor.copy(alpha = 0.14f)
                     ) {
                         Text(
                             text = moodBadge,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (ringColor == MangoYellow) MaterialTheme.colorScheme.onTertiaryContainer else ForestGreen,
+                            color = ringColor,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
@@ -173,7 +172,7 @@ fun MascotTituCard(
 @Composable
 fun MascotAvatar(
     size: Dp = 56.dp,
-    ringColor: Color = NaturalGreen,
+    ringColor: Color = TealSecondary,
     modifier: Modifier = Modifier
 ) {
     Surface(

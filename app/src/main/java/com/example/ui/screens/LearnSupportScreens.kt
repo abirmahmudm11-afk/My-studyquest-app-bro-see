@@ -73,8 +73,8 @@ import com.example.ui.components.EmptyStateView
 import com.example.ui.components.MascotTituCard
 import com.example.ui.components.QuestionPracticeCard
 import com.example.ui.components.StudyQuestCard
-import com.example.ui.theme.ForestGreen
-import com.example.ui.theme.WarmOrange
+import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.RoseAlert
 import com.example.ui.viewmodel.AiDoubtUiState
 import com.example.ui.viewmodel.AssessmentResultSummary
 
@@ -312,7 +312,7 @@ fun PracticeAndExamRunnerScreen(
                         ),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = ForestGreen
+                        color = CobaltPrimary
                     )
                     Spacer(Modifier.height(8.dp))
                     Text("✓ ${StudyQuestStrings.t(uiLanguage, "Correct", "সঠিক")}: ${assessmentResult.correctCount}")
@@ -325,7 +325,7 @@ fun PracticeAndExamRunnerScreen(
                                 "Negative marking deducted: -${String.format("%.2f", assessmentResult.negativeDeduction)}",
                                 "নেগেটিভ মার্কিং কর্তন: -${String.format("%.2f", assessmentResult.negativeDeduction)}"
                             ),
-                            color = WarmOrange,
+                            color = RoseAlert,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -742,7 +742,7 @@ fun AiDoubtSolverSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = ForestGreen)
+                Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = CobaltPrimary)
                 Text(
                     text = StudyQuestStrings.t(language, "Titu AI Doubt Solver", "টিটু AI সমাধান"),
                     style = MaterialTheme.typography.titleLarge,

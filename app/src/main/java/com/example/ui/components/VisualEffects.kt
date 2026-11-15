@@ -70,10 +70,11 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
-import com.example.ui.theme.ForestGreen
-import com.example.ui.theme.ForestGreenDark
-import com.example.ui.theme.MangoYellow
-import com.example.ui.theme.NaturalGreen
+import com.example.ui.theme.CobaltDark
+import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.OnCobaltContainer
+import com.example.ui.theme.SkyCyanAccent
+import com.example.ui.theme.TealSecondary
 import kotlinx.coroutines.delay
 
 @Composable
@@ -135,9 +136,9 @@ fun StudyQuestGradientHeroBanner(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        color = ForestGreenDark,
+        color = CobaltDark,
         tonalElevation = 4.dp,
-        border = BorderStroke(1.dp, NaturalGreen.copy(alpha = 0.35f))
+        border = BorderStroke(1.dp, CobaltPrimary.copy(alpha = 0.35f))
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             if (backgroundResId != null) {
@@ -147,7 +148,7 @@ fun StudyQuestGradientHeroBanner(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .matchParentSize()
-                        .alpha(0.28f)
+                        .alpha(0.24f)
                 )
             }
             Box(
@@ -156,9 +157,9 @@ fun StudyQuestGradientHeroBanner(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                ForestGreenDark.copy(alpha = 0.94f),
-                                ForestGreen.copy(alpha = 0.88f),
-                                NaturalGreen.copy(alpha = 0.82f)
+                                CobaltDark.copy(alpha = 0.95f),
+                                CobaltPrimary.copy(alpha = 0.90f),
+                                TealSecondary.copy(alpha = 0.85f)
                             )
                         )
                     )
@@ -167,7 +168,7 @@ fun StudyQuestGradientHeroBanner(
                 val w = size.width
                 val h = size.height
                 drawCircle(
-                    color = MangoYellow.copy(alpha = 0.14f),
+                    color = SkyCyanAccent.copy(alpha = 0.16f),
                     radius = h * (0.42f + 0.06f * shimmer),
                     center = Offset(w * 0.90f, h * 0.18f)
                 )
@@ -177,7 +178,7 @@ fun StudyQuestGradientHeroBanner(
                     center = Offset(w * (0.15f + 0.05f * shimmer), h * 1.05f)
                 )
                 drawCircle(
-                    color = MangoYellow.copy(alpha = 0.32f),
+                    color = SkyCyanAccent.copy(alpha = 0.35f),
                     radius = 5.dp.toPx(),
                     center = Offset(w * 0.72f, h * (0.25f + 0.1f * shimmer))
                 )
@@ -202,13 +203,13 @@ fun StudyQuestGradientHeroBanner(
                         if (!eyebrow.isNullOrBlank()) {
                             Surface(
                                 shape = RoundedCornerShape(999.dp),
-                                color = MangoYellow.copy(alpha = 0.22f)
+                                color = SkyCyanAccent.copy(alpha = 0.22f)
                             ) {
                                 Text(
                                     text = eyebrow,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFFF3C4),
+                                    color = Color(0xFFE0F2FE),
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                                 )
                             }
@@ -248,7 +249,7 @@ fun AnimatedCircularMasteryRing(
     centerCaptionText: String,
     reducedMotion: Boolean,
     size: Dp = 76.dp,
-    ringColor: Color = MangoYellow,
+    ringColor: Color = SkyCyanAccent,
     trackColor: Color = Color.White.copy(alpha = 0.22f),
     valueColor: Color = Color.White,
     captionColor: Color = Color.White.copy(alpha = 0.84f),
@@ -324,7 +325,7 @@ fun AnimatedCounterText(
 
 @Composable
 fun PulseLiveDot(
-    color: Color = NaturalGreen,
+    color: Color = TealSecondary,
     reducedMotion: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -396,8 +397,8 @@ fun GuestUpgradeBannerCard(
             .fillMaxWidth()
             .testTag("guest_upgrade_banner"),
         shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.75f),
-        border = BorderStroke(1.dp, MangoYellow.copy(alpha = 0.55f))
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, CobaltPrimary.copy(alpha = 0.35f))
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -406,14 +407,14 @@ fun GuestUpgradeBannerCard(
         ) {
             Surface(
                 shape = CircleShape,
-                color = MangoYellow.copy(alpha = 0.25f),
+                color = CobaltPrimary.copy(alpha = 0.14f),
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.CloudUpload,
                         contentDescription = null,
-                        tint = Color(0xFF6B4E00)
+                        tint = OnCobaltContainer
                     )
                 }
             }
@@ -436,7 +437,7 @@ fun GuestUpgradeBannerCard(
             Button(
                 onClick = onSignInClick,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ForestGreen,
+                    containerColor = CobaltPrimary,
                     contentColor = Color.White
                 ),
                 modifier = Modifier

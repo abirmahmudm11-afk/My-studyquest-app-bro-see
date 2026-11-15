@@ -73,9 +73,10 @@ import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
-import com.example.ui.theme.ForestGreen
+import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.JetBrainsMonoFontFamily
-import com.example.ui.theme.MangoYellow
+import com.example.ui.theme.TealSecondary
+import com.example.ui.theme.VioletTertiary
 import com.example.ui.viewmodel.AdminStudioViewModel
 
 sealed interface ProfileDestination {
@@ -184,8 +185,8 @@ fun ProfileTabScreen(
                                     StatBadgePill(
                                         icon = Icons.Filled.MonetizationOn,
                                         label = "${StudyQuestStrings.formatDigits(profile.coins, lang)} Coins",
-                                        tint = MangoYellow,
-                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                                        tint = VioletTertiary,
+                                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
                                     )
                                 }
                                 AnimatedCircularMasteryRing(
@@ -231,7 +232,7 @@ fun ProfileTabScreen(
                                 StatBadgePill(
                                     icon = Icons.Filled.EmojiEvents,
                                     label = "${profile.totalXp} XP",
-                                    tint = MangoYellow,
+                                    tint = VioletTertiary,
                                     containerColor = MaterialTheme.colorScheme.surface
                                 )
                             }
@@ -385,7 +386,7 @@ private fun ProfileNavTile(
 ) {
     StudyQuestCard(onClick = onClick, modifier = Modifier.testTag(testTag)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(icon, contentDescription = null, tint = ForestGreen, modifier = Modifier.size(28.dp))
+            Icon(icon, contentDescription = null, tint = CobaltPrimary, modifier = Modifier.size(28.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -431,7 +432,7 @@ private fun AnalyticsAndAchievementsScreen(
                 StudyQuestCard {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(StudyQuestStrings.t(lang, subj?.titleEn ?: item.subjectId, subj?.titleBn ?: item.subjectId), fontWeight = FontWeight.Bold)
-                        Text("Lv.${item.subjectLevel} • ${item.totalXp} XP", color = ForestGreen, fontWeight = FontWeight.Bold)
+                        Text("Lv.${item.subjectLevel} • ${item.totalXp} XP", color = CobaltPrimary, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(6.dp))
                     LinearProgressIndicator(
@@ -483,7 +484,7 @@ private fun AnalyticsAndAchievementsScreen(
                     Icon(
                         imageVector = if (unlocked) Icons.Filled.CheckCircle else Icons.Filled.EmojiEvents,
                         contentDescription = null,
-                        tint = if (unlocked) ForestGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (unlocked) TealSecondary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(StudyQuestStrings.t(lang, ach.titleEn, ach.titleBn), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -493,7 +494,7 @@ private fun AnalyticsAndAchievementsScreen(
                         text = if (unlocked) StudyQuestStrings.t(lang, "Unlocked", "অর্জিত") else "+${ach.xpBonus} XP",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = ForestGreen
+                        color = if (unlocked) TealSecondary else CobaltPrimary
                     )
                 }
             }
@@ -524,7 +525,7 @@ private fun CosmeticsShopScreen(
                 StatBadgePill(
                     icon = Icons.Filled.MonetizationOn,
                     label = "${profile.coins}",
-                    tint = MangoYellow,
+                    tint = VioletTertiary,
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer
                 )
             }
@@ -646,7 +647,7 @@ private fun PreferencesAndSafetyScreen(
         item {
             StudyQuestCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Filled.Security, contentDescription = null, tint = ForestGreen)
+                    Icon(Icons.Filled.Security, contentDescription = null, tint = CobaltPrimary)
                     Text(StudyQuestStrings.t(lang, "Student Safety & Data Controls", "শিক্ষার্থী নিরাপত্তা ও ডেটা নিয়ন্ত্রণ"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(6.dp))

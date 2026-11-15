@@ -77,8 +77,9 @@ import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
 import com.example.ui.components.SubjectCard
-import com.example.ui.theme.ForestGreen
+import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.TealSecondary
 import com.example.ui.viewmodel.AiDoubtUiState
 import com.example.ui.viewmodel.AssessmentResultSummary
 
@@ -377,7 +378,7 @@ fun LearnTabScreen(
                                         "${StudyQuestStrings.formatDigits(tpl.durationSeconds / 60, uiLanguage)} মিনিট • ${StudyQuestStrings.formatDigits(tpl.totalMarks, uiLanguage)} নম্বর"
                                     ),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = ForestGreen
+                                    color = CobaltPrimary
                                 )
                             }
                             Button(
@@ -463,7 +464,7 @@ fun LearnTabScreen(
                                     Icon(
                                         imageVector = if (isCached) Icons.Filled.DownloadDone else Icons.Filled.DownloadForOffline,
                                         contentDescription = StudyQuestStrings.t(uiLanguage, "Download offline", "অফলাইন ডাউনলোড"),
-                                        tint = ForestGreen
+                                        tint = CobaltPrimary
                                     )
                                 }
                             }
@@ -486,7 +487,7 @@ fun LearnTabScreen(
                                             Icon(
                                                 if (completed) Icons.Filled.CheckCircle else Icons.AutoMirrored.Filled.MenuBook,
                                                 contentDescription = null,
-                                                tint = ForestGreen,
+                                                tint = if (completed) TealSecondary else CobaltPrimary,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                             Spacer(Modifier.width(8.dp))
@@ -837,7 +838,7 @@ private fun LessonDetailScreen(
                 val points = if (uiLanguage == AppLanguage.BANGLA) lesson.keyPointsBn else lesson.keyPointsEn
                 examples.forEach { Text("Ex: $it", style = MaterialTheme.typography.bodySmall) }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                points.forEach { Text("✓ $it", style = MaterialTheme.typography.bodySmall, color = ForestGreen) }
+                points.forEach { Text("✓ $it", style = MaterialTheme.typography.bodySmall, color = TealSecondary) }
             }
         }
 

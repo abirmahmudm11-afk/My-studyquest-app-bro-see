@@ -57,9 +57,10 @@ import com.example.ui.components.QuestionPracticeCard
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
-import com.example.ui.theme.ForestGreen
-import com.example.ui.theme.MangoYellow
-import com.example.ui.theme.WarmOrange
+import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.RoseAlert
+import com.example.ui.theme.TealSecondary
+import com.example.ui.theme.VioletTertiary
 import com.example.ui.viewmodel.AssessmentResultSummary
 
 @Composable
@@ -126,7 +127,7 @@ fun DailyChallengeScreen(
                     StatBadgePill(
                         icon = Icons.Filled.LocalFireDepartment,
                         label = "${StudyQuestStrings.formatDigits(profile.streakCount, uiLanguage)}d",
-                        tint = WarmOrange,
+                        tint = CobaltPrimary,
                         containerColor = MaterialTheme.colorScheme.surface
                     )
                 }
@@ -137,7 +138,7 @@ fun DailyChallengeScreen(
             item {
                 StudyQuestCard(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = ForestGreen, modifier = Modifier.size(28.dp))
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = TealSecondary, modifier = Modifier.size(28.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = StudyQuestStrings.t(
@@ -265,7 +266,7 @@ fun MasteryAnalyticsScreen(
                     StatBadgePill(
                         icon = Icons.Filled.Star,
                         label = profile.rankTier,
-                        tint = MangoYellow,
+                        tint = VioletTertiary,
                         containerColor = MaterialTheme.colorScheme.surface
                     )
                 }
@@ -284,7 +285,7 @@ fun MasteryAnalyticsScreen(
             item {
                 StudyQuestCard {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Filled.Analytics, contentDescription = null, tint = ForestGreen)
+                        Icon(Icons.Filled.Analytics, contentDescription = null, tint = CobaltPrimary)
                         Text(
                             text = StudyQuestStrings.t(
                                 uiLanguage,
@@ -301,7 +302,7 @@ fun MasteryAnalyticsScreen(
                 val pct = (wt.averageAccuracy * 100).toInt()
                 StudyQuestCard(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = WarmOrange)
+                        Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = RoseAlert)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = StudyQuestStrings.t(uiLanguage, wt.topicLabelEn, wt.topicLabelBn),
@@ -360,7 +361,7 @@ fun MasteryAnalyticsScreen(
                         )
                         Text(
                             text = "Lv.${item.subjectLevel} • ${item.totalXp} XP",
-                            color = ForestGreen,
+                            color = CobaltPrimary,
                             fontWeight = FontWeight.Bold
                         )
                     }

@@ -66,9 +66,9 @@ import com.example.ui.components.AvatarBadgeView
 import com.example.ui.components.EmptyStateView
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
-import com.example.ui.theme.ForestGreen
+import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.JetBrainsMonoFontFamily
-import com.example.ui.theme.NaturalGreen
+import com.example.ui.theme.TealSecondary
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -228,7 +228,7 @@ fun FriendsTabScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = ForestGreen)
+                                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = CobaltPrimary)
                                 }
                             }
                         }
@@ -277,7 +277,7 @@ fun FriendsTabScreen(
                                             Text(
                                                 text = "${fp.studyQuestId} • $presence",
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = if (fp.showOnlineStatus && fp.isOnline) NaturalGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = if (fp.showOnlineStatus && fp.isOnline) TealSecondary else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -325,7 +325,7 @@ fun FriendsTabScreen(
                                 fontFamily = JetBrainsMonoFontFamily,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = ForestGreen
+                                color = CobaltPrimary
                             )
                         }
                     }
@@ -707,7 +707,7 @@ fun ChatConversationScreen(
                                     Text(
                                         text = if (msg.readByUids.size > 1) "✓✓" else "✓",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = ForestGreen
+                                        color = CobaltPrimary
                                     )
                                 }
                             }

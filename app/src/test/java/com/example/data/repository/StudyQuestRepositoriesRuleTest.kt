@@ -67,6 +67,50 @@ class StudyQuestRepositoriesRuleTest : FirestoreEmulatorTestBase() {
     }
 
     @Test
+    fun authAndProfile_reloginIdempotencyAndLiveProfileObservation() = runBlocking {
+        val uid = signInTestUser("relogin_sq_rule@test.com")
+        val authRepo = AuthAndProfileRepository(firestore, localDb.studyQuestDao())
+        val user = checkNotNull(auth.currentUser)
+
+        val firstBoot = withTimeout(DEFAULT_TIMEOUT_MS) {
+            authRepo.ensureUserBootstrapped(user, AppLanguage.ENGLISH)
+        }
+        assertTrue("First bootstrap failed: ${firstBoot.exceptionOrNull()?.message}", firstBoot.isSuccess)
+        val initialProfile = firstBoot.getOrThrow()
+        assertEquals(uid, initialProfile.userId)
+
+        // Live snapshot listener should emit the bootstrapped profile
+        val observed = withTimeout(FLOW_TIMEOUT_MS) {
+            authRepo.observePublicProfile(uid).first { it != null }
+        }
+        assertEquals(initialProfile.studyQuestId, observed?.studyQuestId)
+
+        // Second login (idempotent re-bootstrap) should succeed and preserve StudyQuest ID
+        val secondBoot = withTimeout(DEFAULT_TIMEOUT_MS) {
+            authRepo.ensureUserBootstrapped(user, AppLanguage.BANGLA)
+        }
+        assertTrue("Second bootstrap failed: ${secondBoot.exceptionOrNull()?.message}", secondBoot.isSuccess)
+        assertEquals(initialProfile.studyQuestId, secondBoot.getOrThrow().studyQuestId)
+
+        // Completing setup should update onboardingCompleted in live profile stream
+        val setupRes = withTimeout(DEFAULT_TIMEOUT_MS) {
+            authRepo.completeAcademicSetup(
+                userId = uid,
+                displayName = "Relogin Scholar",
+                classId = "class_10",
+                curriculumVersion = "bangla",
+                selectedSubjects = listOf("math", "physics"),
+                avatarId = "owl_classic"
+            )
+        }
+        assertTrue("Setup failed: ${setupRes.exceptionOrNull()?.message}", setupRes.isSuccess)
+        val completed = withTimeout(FLOW_TIMEOUT_MS) {
+            authRepo.observePublicProfile(uid).first { it?.onboardingCompleted == true }
+        }
+        assertEquals("Relogin Scholar", completed?.displayName)
+    }
+
+    @Test
     fun unauthenticatedCaller_rejectedBySecurityRules() = runBlocking {
         auth.signOut()
         val academicRepo = AcademicProgressRepository(firestore, localDb.studyQuestDao())

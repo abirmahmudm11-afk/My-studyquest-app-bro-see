@@ -53,7 +53,7 @@ import com.example.ui.components.PulseLiveDot
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
-import com.example.ui.theme.ForestGreen
+import com.example.ui.theme.CobaltPrimary
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -136,13 +136,13 @@ fun GuestStudyCircleContent(
                         ) {
                             if (isAi) {
                                 PulseLiveDot(reducedMotion = reducedMotion)
-                                Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = ForestGreen, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = CobaltPrimary, modifier = Modifier.size(16.dp))
                             }
                             Text(
                                 text = note.authorLabel,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isAi) ForestGreen else MaterialTheme.colorScheme.onSurface
+                                color = if (isAi) CobaltPrimary else MaterialTheme.colorScheme.onSurface
                             )
                         }
                         if (!isAi) {
@@ -192,9 +192,9 @@ fun GuestStudyCircleContent(
             }
 
             item {
-                StudyQuestCard(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)) {
+                StudyQuestCard(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Filled.CloudUpload, contentDescription = null, tint = ForestGreen)
+                        Icon(Icons.Filled.CloudUpload, contentDescription = null, tint = CobaltPrimary)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = StudyQuestStrings.t(uiLanguage, "Want live classmate chat?", "সহপাঠীদের সাথে লাইভ চ্যাট করতে চাও?"),
@@ -226,7 +226,7 @@ fun GuestStudyCircleContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = ForestGreen, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = CobaltPrimary, modifier = Modifier.size(16.dp))
                         Text(
                             text = StudyQuestStrings.t(uiLanguage, "Ask Titu AI Buddy to reply", "টিটু AI বন্ধুর উত্তর নিন"),
                             style = MaterialTheme.typography.labelMedium,
