@@ -25,6 +25,10 @@
         "isOnline": { "type": "boolean" },
         "onboardingCompleted": { "type": "boolean" },
         "selectedSubjects": { "type": "array" },
+        "academicGroup": { "type": "string", "enum": ["general", "science", "business", "humanities"] },
+        "dailyGoalMinutes": { "type": "integer" },
+        "streakCount": { "type": "integer" },
+        "lastChallengeDateKey": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -69,7 +73,7 @@
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "recordType": { "type": "string", "enum": ["lesson", "practice", "exam", "bookmark", "revision"] },
+        "recordType": { "type": "string", "enum": ["lesson", "practice", "exam", "bookmark", "revision", "pomodoro", "flashcard", "daily_challenge"] },
         "refId": { "type": "string" },
         "subjectId": { "type": "string" },
         "chapterId": { "type": "string" },
@@ -334,6 +338,7 @@
         "optInNational": { "type": "boolean" },
         "matchesPlayed": { "type": "integer" },
         "matchesWon": { "type": "integer" },
+        "streakCount": { "type": "integer" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "displayName", "studyQuestId", "classId", "seasonId", "weekKey", "weeklyPoints", "seasonalPoints", "competitionRating", "rankTier", "optInNational", "updatedAt"]

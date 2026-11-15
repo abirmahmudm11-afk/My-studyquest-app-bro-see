@@ -150,6 +150,9 @@ class AuthAndProfileRepository(
                     "isOnline" to true,
                     "onboardingCompleted" to false,
                     "selectedSubjects" to listOf("math", "english", "bangla", "physics", "ict"),
+                    "academicGroup" to "science",
+                    "dailyGoalMinutes" to 30L,
+                    "streakCount" to 0L,
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
                 ).filterValues { it != null }
@@ -252,20 +255,73 @@ class AuthAndProfileRepository(
         classId: String,
         curriculumVersion: String,
         selectedSubjects: List<String>,
-        avatarId: String
+        avatarId: String,
+        academicGroup: String = "general",
+        dailyGoalMinutes: Long = 30L,
+        studyGoalTitle: String = ""
     ): Result<Unit> {
         val ref = db.collection("public_profiles").document(userId)
+        val lbRef = db.collection("leaderboard_entries").document(userId)
         return try {
+            val cleanName = displayName.trim().ifBlank { "Student" }.take(60)
+            val safeGroup = if (academicGroup in listOf("general", "science", "business", "humanities")) academicGroup else "general"
+            val safeDailyMins = dailyGoalMinutes.coerceIn(5L, 360L)
             ref.update(
                 mapOf(
-                    "displayName" to displayName.trim().ifBlank { "Student" }.take(60),
+                    "displayName" to cleanName,
                     "classId" to classId,
                     "curriculumVersion" to curriculumVersion,
                     "selectedSubjects" to selectedSubjects.take(20),
                     "avatarId" to avatarId,
+                    "academicGroup" to safeGroup,
+                    "dailyGoalMinutes" to safeDailyMins,
                     "onboardingCompleted" to true,
                     "updatedAt" to FieldValue.serverTimestamp()
                 )
+            ).await()
+            val cleanGoal = studyGoalTitle.trim().take(120)
+            if (cleanGoal.isNotEmpty()) {
+                val starterPlanRef = db.collection("users").document(userId)
+                    .collection("study_plans").document("onboarding_starter_goal")
+                starterPlanRef.set(
+                    mapOf(
+                        "userId" to userId,
+                        "title" to cleanGoal,
+                        "subjectId" to (selectedSubjects.firstOrNull() ?: "math"),
+                        "planType" to "exam_countdown",
+                        "targetDateEpochMs" to (System.currentTimeMillis() + 30L * 86_400_000L),
+                        "minutesPerDay" to safeDailyMins,
+                        "completed" to false,
+                        "createdAt" to FieldValue.serverTimestamp(),
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                ).await()
+            }
+            val profSnap = ref.get().await()
+            val existingLb = lbRef.get().await()
+            val weekKey = currentWeeklyPeriodKey()
+            val oldWeekly = if (existingLb.getString("weekKey") == weekKey) existingLb.getLong("weeklyPoints") ?: 0L else 0L
+            lbRef.set(
+                mapOf(
+                    "userId" to userId,
+                    "displayName" to cleanName,
+                    "studyQuestId" to (profSnap.getString("studyQuestId") ?: "SQ-100000"),
+                    "avatarId" to avatarId,
+                    "frameId" to profSnap.getString("frameId"),
+                    "classId" to classId,
+                    "subjectId" to selectedSubjects.firstOrNull(),
+                    "seasonId" to "season_2026_11",
+                    "weekKey" to weekKey,
+                    "weeklyPoints" to oldWeekly,
+                    "seasonalPoints" to (existingLb.getLong("seasonalPoints") ?: (profSnap.getLong("totalXp") ?: 0L)),
+                    "competitionRating" to (existingLb.getLong("competitionRating") ?: (profSnap.getLong("competitionRating") ?: 1000L)),
+                    "rankTier" to (profSnap.getString("rankTier") ?: "Bronze"),
+                    "optInNational" to (profSnap.getBoolean("optInNationalLeaderboard") ?: false),
+                    "matchesPlayed" to (existingLb.getLong("matchesPlayed") ?: 0L),
+                    "matchesWon" to (existingLb.getLong("matchesWon") ?: 0L),
+                    "streakCount" to (profSnap.getLong("streakCount") ?: 0L),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ).filterValues { it != null }
             ).await()
             Result.success(Unit)
         } catch (e: CancellationException) {
@@ -304,16 +360,19 @@ class AuthAndProfileRepository(
                 updates["isOnline"] = it
             }
             ref.update(updates).await()
-            if (optInNational != null) {
+            if (displayName != null || avatarId != null || frameId != null || classId != null || optInNational != null) {
                 val lbRef = db.collection("leaderboard_entries").document(userId)
                 val lbSnap = lbRef.get().await()
                 if (lbSnap.exists()) {
-                    lbRef.update(
-                        mapOf(
-                            "optInNational" to optInNational,
-                            "updatedAt" to FieldValue.serverTimestamp()
-                        )
-                    ).await()
+                    val lbUpdates = mutableMapOf<String, Any?>(
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                    displayName?.let { lbUpdates["displayName"] = it.trim().take(60) }
+                    avatarId?.let { lbUpdates["avatarId"] = it }
+                    if (frameId != null) lbUpdates["frameId"] = frameId.ifBlank { null }
+                    classId?.let { lbUpdates["classId"] = it }
+                    optInNational?.let { lbUpdates["optInNational"] = it }
+                    lbRef.update(lbUpdates).await()
                 }
             }
             Result.success(Unit)
@@ -724,10 +783,20 @@ class AuthAndProfileRepository(
     companion object {
         private const val TAG = "AuthProfileRepo"
 
-        fun currentDailyPeriodKey(): String {
+        fun currentDailyPeriodKey(): String = "daily_${currentDailyChallengeDateKey()}"
+
+        fun currentDailyChallengeDateKey(): String {
             val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             fmt.timeZone = TimeZone.getTimeZone("Asia/Dhaka")
-            return "daily_${fmt.format(Calendar.getInstance(fmt.timeZone).time)}"
+            return fmt.format(Calendar.getInstance(fmt.timeZone).time)
+        }
+
+        fun yesterdayDailyChallengeDateKey(): String {
+            val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            fmt.timeZone = TimeZone.getTimeZone("Asia/Dhaka")
+            val cal = Calendar.getInstance(fmt.timeZone)
+            cal.add(Calendar.DAY_OF_YEAR, -1)
+            return fmt.format(cal.time)
         }
 
         fun currentWeeklyPeriodKey(): String {

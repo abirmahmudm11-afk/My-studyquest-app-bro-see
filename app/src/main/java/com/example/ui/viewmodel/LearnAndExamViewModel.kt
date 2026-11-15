@@ -11,15 +11,18 @@ import com.example.data.local.LocalBookmarkEntity
 import com.example.data.local.LocalRevisionEntity
 import com.example.data.model.ExamTemplate
 import com.example.data.model.LearningRecordDoc
+import com.example.data.model.PublicProfile
 import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
 import com.example.data.model.StudyLesson
 import com.example.data.model.StudyPlanDoc
 import com.example.data.repository.AcademicProgressRepository
 import com.example.data.repository.AiDoubtSolverRepository
+import com.example.data.repository.AuthAndProfileRepository
 import com.example.data.repository.GuestDataRepository
 import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.WeakTopicStat
+import kotlin.random.Random
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -297,6 +300,152 @@ class LearnAndExamViewModel(
                 negativeDeduction = negDeduction,
                 xpEarned = xpEarned,
                 includesCqSelfAssessment = hasCq
+            )
+        }
+    }
+
+    fun todayChallengeDateKey(): String =
+        AuthAndProfileRepository.currentDailyChallengeDateKey()
+
+    fun isDailyChallengeDoneToday(profile: PublicProfile): Boolean =
+        profile.lastChallengeDateKey == todayChallengeDateKey()
+
+    fun dailyChallengeQuestions(allQuestions: List<QuestionItem>, classId: String): List<QuestionItem> {
+        val gradable = allQuestions.filter {
+            it.type in listOf(
+                QuestionType.SINGLE_MCQ,
+                QuestionType.TRUE_FALSE,
+                QuestionType.MULTI_MCQ,
+                QuestionType.NUMERICAL,
+                QuestionType.FILL_BLANK,
+                QuestionType.MATCHING
+            )
+        }
+        val pool = gradable.filter { it.classId == classId }.ifEmpty { gradable }
+        val seed = todayChallengeDateKey().hashCode().toLong()
+        return pool.shuffled(Random(seed)).take(5)
+    }
+
+    fun completePomodoroSession(
+        subjectId: String,
+        focusedMinutes: Int,
+        isOnline: Boolean,
+        onXpEarned: (Int) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val res = academicRepo.recordPomodoroSession(currentUserId, subjectId, focusedMinutes, isOnline)
+            res.onSuccess { xp ->
+                if (xp > 0) {
+                    _statusBanner.value = "Focus session saved! +$xp XP earned"
+                    onXpEarned(xp)
+                }
+            }
+            res.onFailure {
+                _statusBanner.value = unwrapFirestoreMessage(it, "Could not save focus session")
+            }
+        }
+    }
+
+    fun recordFlashcardSession(
+        subjectId: String,
+        reviewedCount: Int,
+        masteredCount: Int,
+        isOnline: Boolean,
+        onXpEarned: (Int) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val res = academicRepo.recordFlashcardDeckSession(
+                userId = currentUserId,
+                subjectId = subjectId,
+                reviewedCount = reviewedCount,
+                masteredCount = masteredCount,
+                isOnline = isOnline
+            )
+            res.onSuccess { xp ->
+                if (xp > 0) {
+                    _statusBanner.value = "Flashcards completed! +$xp XP earned"
+                    onXpEarned(xp)
+                }
+            }
+            res.onFailure {
+                _statusBanner.value = unwrapFirestoreMessage(it, "Could not save flashcard progress")
+            }
+        }
+    }
+
+    fun completeDailyChallenge(
+        questions: List<QuestionItem>,
+        selectedIndicesByQuestion: Map<String, Set<Int>>,
+        textAnswersByQuestion: Map<String, String>,
+        isOnline: Boolean,
+        onXpEarned: (Int) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            var correctCount = 0
+            var wrongCount = 0
+            var skippedCount = 0
+            var earnedMarks = 0.0
+            var totalMarks = 0.0
+
+            for (q in questions) {
+                totalMarks += q.marks.toDouble()
+                when (q.type) {
+                    QuestionType.SINGLE_MCQ, QuestionType.TRUE_FALSE, QuestionType.MULTI_MCQ, QuestionType.MATCHING -> {
+                        val picked = selectedIndicesByQuestion[q.id] ?: emptySet()
+                        if (picked.isEmpty()) {
+                            skippedCount++
+                        } else if (picked == q.correctOptionIndices.toSet()) {
+                            correctCount++
+                            earnedMarks += q.marks.toDouble()
+                        } else {
+                            wrongCount++
+                            academicRepo.addToRevisionQueue(q, markWrong = true)
+                            academicRepo.toggleBookmark(q, isMistake = true)
+                        }
+                    }
+                    else -> {
+                        val txt = textAnswersByQuestion[q.id]?.trim().orEmpty()
+                        if (txt.isBlank()) {
+                            skippedCount++
+                        } else if (q.acceptableTextAnswers.any { it.equals(txt, ignoreCase = true) }) {
+                            correctCount++
+                            earnedMarks += q.marks.toDouble()
+                        } else {
+                            wrongCount++
+                            academicRepo.addToRevisionQueue(q, markWrong = true)
+                        }
+                    }
+                }
+            }
+
+            val firstSubject = questions.firstOrNull()?.subjectId ?: "math"
+            val dateKey = todayChallengeDateKey()
+            val res = academicRepo.completeDailyChallenge(
+                userId = currentUserId,
+                subjectId = firstSubject,
+                correctCount = correctCount,
+                totalQuestions = questions.size,
+                score = earnedMarks,
+                totalMarks = totalMarks.coerceAtLeast(1.0),
+                summary = "Daily Challenge ($dateKey): $correctCount/${questions.size}",
+                isOnline = isOnline
+            )
+            val xpEarned = res.getOrNull() ?: 0
+            if (xpEarned > 0) {
+                _statusBanner.value = "Daily Streak updated! +$xpEarned XP"
+                onXpEarned(xpEarned)
+            }
+            _lastAssessmentResult.value = AssessmentResultSummary(
+                title = "Daily Challenge ($dateKey)",
+                isExam = true,
+                correctCount = correctCount,
+                wrongCount = wrongCount,
+                skippedCount = skippedCount,
+                score = earnedMarks,
+                totalMarks = totalMarks,
+                negativeDeduction = 0.0,
+                xpEarned = xpEarned,
+                includesCqSelfAssessment = false
             )
         }
     }

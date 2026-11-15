@@ -20,13 +20,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.DownloadForOffline
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
@@ -60,9 +63,12 @@ import com.example.data.local.LocalRevisionEntity
 import com.example.data.model.AcademicChapter
 import com.example.data.model.AcademicSubject
 import com.example.data.model.ExamTemplate
+import com.example.data.model.PublicProfile
 import com.example.data.model.QuestionItem
 import com.example.data.model.StudyLesson
 import com.example.data.model.StudyPlanDoc
+import com.example.data.repository.SubjectAnalyticsSummary
+import com.example.data.repository.WeakTopicStat
 import androidx.compose.foundation.lazy.itemsIndexed
 import com.example.R
 import com.example.ui.components.AnimatedCircularMasteryRing
@@ -84,6 +90,10 @@ sealed interface LearnDestination {
     data class PracticeSession(val title: String, val questions: List<QuestionItem>) : LearnDestination
     data class MockExamSession(val template: ExamTemplate, val questions: List<QuestionItem>) : LearnDestination
     data object RevisionAndPlanner : LearnDestination
+    data object FlashcardsAndVault : LearnDestination
+    data object PomodoroFocus : LearnDestination
+    data object DailyChallenge : LearnDestination
+    data object MasteryAnalytics : LearnDestination
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -124,7 +134,16 @@ fun LearnTabScreen(
     onReportQuestion: (QuestionItem) -> Unit,
     onAskAi: (questionPrompt: String, studentQuestion: String, classId: String, subjectName: String) -> Unit,
     onResetAi: () -> Unit,
-    reducedMotion: Boolean = false
+    reducedMotion: Boolean = false,
+    profile: PublicProfile = PublicProfile(),
+    subjectAnalytics: List<SubjectAnalyticsSummary> = emptyList(),
+    weakTopics: List<WeakTopicStat> = emptyList(),
+    dailyChallengeQuestions: List<QuestionItem> = emptyList(),
+    dailyChallengeDoneToday: Boolean = false,
+    dailyChallengeDateKey: String = "",
+    onCompletePomodoro: (subjectId: String, focusedMinutes: Int) -> Unit = { _, _ -> },
+    onCompleteFlashcardDeck: (subjectId: String, reviewedCount: Int, masteredCount: Int) -> Unit = { _, _, _ -> },
+    onSubmitDailyChallenge: (List<QuestionItem>, Map<String, Set<Int>>, Map<String, String>) -> Unit = { _, _, _ -> }
 ) {
     var destination by remember { mutableStateOf<LearnDestination>(LearnDestination.Home) }
     var selectedClassId by remember(initialClassId) { mutableStateOf(initialClassId) }
@@ -244,6 +263,46 @@ fun LearnTabScreen(
                                 Icon(Icons.Filled.Replay, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
                                 Text(StudyQuestStrings.t(uiLanguage, "Revision & Planner", "রিভিশন ও প্ল্যানার"))
+                            }
+                            FilledTonalButton(
+                                onClick = { destination = LearnDestination.FlashcardsAndVault },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("learn_flashcards_vault")
+                            ) {
+                                Icon(Icons.Filled.Style, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "Flashcards & Vault", "ফ্ল্যাশকার্ড ও সূত্র"))
+                            }
+                            FilledTonalButton(
+                                onClick = { destination = LearnDestination.PomodoroFocus },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("learn_pomodoro")
+                            ) {
+                                Icon(Icons.Filled.Timer, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "Pomodoro Focus", "পমোডোরো ফোকাস"))
+                            }
+                            FilledTonalButton(
+                                onClick = { destination = LearnDestination.DailyChallenge },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("learn_daily_challenge")
+                            ) {
+                                Icon(Icons.Filled.LocalFireDepartment, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "Daily Streak", "দৈনিক চ্যালেঞ্জ"))
+                            }
+                            FilledTonalButton(
+                                onClick = { destination = LearnDestination.MasteryAnalytics },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("learn_mastery_analytics")
+                            ) {
+                                Icon(Icons.Filled.Analytics, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "Mastery Analytics", "দক্ষতা বিশ্লেষণ"))
                             }
                             OutlinedButton(
                                 onClick = {
@@ -585,6 +644,75 @@ fun LearnTabScreen(
                 onCreatePlan = onCreateStudyPlan,
                 onTogglePlan = onToggleStudyPlan,
                 onDeletePlan = onDeleteStudyPlan
+            )
+        }
+
+        LearnDestination.FlashcardsAndVault -> {
+            FlashcardsAndVaultScreen(
+                uiLanguage = uiLanguage,
+                questionLanguage = questionLanguage,
+                classId = selectedClassId,
+                allQuestions = allQuestions,
+                reducedMotion = reducedMotion,
+                onBack = { destination = LearnDestination.Home },
+                onAddRevision = onAddRevision,
+                onCompleteFlashcardDeck = onCompleteFlashcardDeck
+            )
+        }
+
+        LearnDestination.PomodoroFocus -> {
+            PomodoroFocusScreen(
+                uiLanguage = uiLanguage,
+                classId = selectedClassId,
+                onBack = { destination = LearnDestination.Home },
+                onCompleteFocusSession = onCompletePomodoro
+            )
+        }
+
+        LearnDestination.DailyChallenge -> {
+            DailyChallengeScreen(
+                profile = profile,
+                uiLanguage = uiLanguage,
+                questionLanguage = questionLanguage,
+                reducedMotion = reducedMotion,
+                dateKey = dailyChallengeDateKey,
+                alreadyDoneToday = dailyChallengeDoneToday,
+                questions = dailyChallengeQuestions,
+                bookmarks = bookmarks,
+                assessmentResult = lastAssessmentResult,
+                onBack = {
+                    onClearAssessmentResult()
+                    destination = LearnDestination.Home
+                },
+                onToggleBookmark = onToggleBookmark,
+                onAddRevision = onAddRevision,
+                onReportQuestion = onReportQuestion,
+                onAskAi = { q ->
+                    aiSheetContext = StudyQuestStrings.t(questionLanguage, q.promptEn, q.promptBn) to q.subjectId
+                },
+                onSubmitChallenge = { sel, txt ->
+                    onSubmitDailyChallenge(dailyChallengeQuestions, sel, txt)
+                }
+            )
+        }
+
+        LearnDestination.MasteryAnalytics -> {
+            MasteryAnalyticsScreen(
+                profile = profile,
+                uiLanguage = uiLanguage,
+                reducedMotion = reducedMotion,
+                subjectAnalytics = subjectAnalytics,
+                weakTopics = weakTopics,
+                onBack = { destination = LearnDestination.Home },
+                onPracticeWeakTopic = { wt ->
+                    val topicQs = allQuestions.filter { it.topicId == wt.topicId }
+                        .ifEmpty { allQuestions.filter { it.subjectId == wt.subjectId } }
+                        .ifEmpty { allQuestions.take(5) }
+                    destination = LearnDestination.PracticeSession(
+                        StudyQuestStrings.t(uiLanguage, wt.topicLabelEn, wt.topicLabelBn),
+                        topicQs
+                    )
+                }
             )
         }
     }

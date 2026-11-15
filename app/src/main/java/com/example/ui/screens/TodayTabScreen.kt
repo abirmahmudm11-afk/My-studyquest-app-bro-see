@@ -18,15 +18,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HistoryEdu
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Badge
@@ -59,12 +63,14 @@ import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.local.LocalRevisionEntity
+import com.example.data.model.AcademicSubject
 import com.example.data.model.LearningRecordDoc
 import com.example.data.model.MascotMood
 import com.example.data.model.PublicProfile
 import com.example.data.model.StudyPlanDoc
 import com.example.data.model.UserNotificationDoc
 import com.example.data.model.UserQuestDoc
+import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.WeakTopicStat
 import com.example.ui.components.AnimatedCircularMasteryRing
 import com.example.ui.components.AnimatedCounterText
@@ -76,6 +82,7 @@ import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
+import com.example.ui.components.SubjectCard
 import com.example.ui.components.SyncStatusPill
 import com.example.ui.theme.ForestGreen
 import com.example.ui.theme.MangoYellow
@@ -103,6 +110,13 @@ fun TodayTabScreen(
     onOpenRevision: () -> Unit,
     onOpenAiDoubtSolver: () -> Unit,
     onOpenMessages: () -> Unit,
+    subjectAnalytics: List<SubjectAnalyticsSummary> = emptyList(),
+    dailyChallengeDoneToday: Boolean = false,
+    onOpenSubjectCategory: (AcademicSubject) -> Unit = {},
+    onOpenFlashcardsVault: () -> Unit = {},
+    onOpenPomodoro: () -> Unit = {},
+    onOpenDailyChallenge: () -> Unit = {},
+    onOpenMasteryAnalytics: () -> Unit = {},
     isGuestMode: Boolean = false,
     onRequestGoogleSignIn: () -> Unit = {}
 ) {
@@ -114,6 +128,11 @@ fun TodayTabScreen(
     }
     val xpWithinLevel = (profile.totalXp % 100L).toInt()
     val dailyGoalProgress = (recentRecords.take(3).sumOf { it.xpAwarded.toInt() }).coerceAtMost(60)
+    val categorySubjects = remember(profile.classId, profile.selectedSubjects) {
+        val allForClass = BangladeshCurriculumCatalog.subjectsForClass(profile.classId)
+        val filtered = allForClass.filter { it.id in profile.selectedSubjects }
+        filtered.ifEmpty { allForClass }
+    }
     val spotlightLesson = remember(profile.classId, profile.selectedSubjects) {
         val subjs = profile.selectedSubjects.ifEmpty {
             BangladeshCurriculumCatalog.subjectsForClass(profile.classId).map { it.id }
@@ -268,6 +287,28 @@ fun TodayTabScreen(
                                 )
                             }
                         }
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = Color.White.copy(alpha = 0.16f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Icon(Icons.Filled.LocalFireDepartment, contentDescription = null, tint = MangoYellow, modifier = Modifier.size(16.dp))
+                                Text(
+                                    text = StudyQuestStrings.t(
+                                        language,
+                                        "${profile.streakCount}d Streak",
+                                        "${StudyQuestStrings.formatDigits(profile.streakCount, language)} দিন স্ট্রিক"
+                                    ),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -295,12 +336,12 @@ fun TodayTabScreen(
             }
         }
 
-        // Quick Shortcuts Row
+        // Quick-Access Practice Modules
         item {
             StaggeredEntrance(index = 3, reducedMotion = reducedMotion) {
                 Column {
                     Text(
-                        text = StudyQuestStrings.t(language, "Quick Actions", "দ্রুত শুরু"),
+                        text = StudyQuestStrings.t(language, "Practice Modules", "অনুশীলন মডিউলসমূহ"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -321,12 +362,63 @@ fun TodayTabScreen(
                             Text(StudyQuestStrings.t(language, "Quick Practice", "কুইক প্র্যাকটিস"))
                         }
                         FilledTonalButton(
+                            onClick = onOpenDailyChallenge,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("today_daily_challenge")
+                        ) {
+                            Icon(
+                                if (dailyChallengeDoneToday) Icons.Filled.CheckCircle else Icons.Filled.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = if (dailyChallengeDoneToday) ForestGreen else WarmOrange,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                if (dailyChallengeDoneToday) {
+                                    StudyQuestStrings.t(language, "Daily Done ✓", "দৈনিক সম্পন্ন ✓")
+                                } else {
+                                    StudyQuestStrings.t(language, "Daily Streak", "দৈনিক চ্যালেঞ্জ")
+                                }
+                            )
+                        }
+                        FilledTonalButton(
+                            onClick = onOpenFlashcardsVault,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("today_flashcards_vault")
+                        ) {
+                            Icon(Icons.Filled.Style, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(StudyQuestStrings.t(language, "Flashcards & Formulas", "ফ্ল্যাশকার্ড ও সূত্র"))
+                        }
+                        FilledTonalButton(
+                            onClick = onOpenPomodoro,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("today_pomodoro")
+                        ) {
+                            Icon(Icons.Filled.Timer, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(StudyQuestStrings.t(language, "Pomodoro Focus", "পমোডোরো ফোকাস"))
+                        }
+                        FilledTonalButton(
+                            onClick = onOpenMasteryAnalytics,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("today_mastery_analytics")
+                        ) {
+                            Icon(Icons.Filled.Analytics, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(StudyQuestStrings.t(language, "Mastery Analytics", "দক্ষতা বিশ্লেষণ"))
+                        }
+                        FilledTonalButton(
                             onClick = onOpenMockExam,
                             modifier = Modifier
                                 .minimumInteractiveComponentSize()
                                 .testTag("today_mock_exam")
                         ) {
-                            Icon(Icons.Filled.Timer, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Filled.HistoryEdu, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(StudyQuestStrings.t(language, "Mock Exam", "মডেল টেস্ট"))
                         }
@@ -358,6 +450,30 @@ fun TodayTabScreen(
                         }
                     }
                 }
+            }
+        }
+
+        // Study Categories Section
+        if (categorySubjects.isNotEmpty()) {
+            item {
+                Text(
+                    text = StudyQuestStrings.t(language, "Study Categories", "অধ্যয়নের বিষয়সমূহ"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            items(categorySubjects, key = { "cat_${it.id}" }) { subject ->
+                val chCount = BangladeshCurriculumCatalog.chapters.count { it.subjectId == subject.id }
+                val summary = subjectAnalytics.find { it.subjectId == subject.id }
+                val mastery = summary?.averageAccuracy?.toFloat()?.coerceIn(0f, 1f) ?: 0f
+                SubjectCard(
+                    subject = subject,
+                    language = language,
+                    chapterCount = chCount,
+                    masteryProgress = mastery,
+                    onClick = { onOpenSubjectCategory(subject) },
+                    modifier = Modifier.testTag("today_category_${subject.id}")
+                )
             }
         }
 

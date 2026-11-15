@@ -318,3 +318,121 @@ test("Admin Studio: email spoofing without email_verified fails, verified owner 
     })
   );
 });
+
+test("Practice modules & leaderboard: allows pomodoro/flashcard/daily_challenge and streakCount, rejects invalid recordType or negative streak", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+
+  await assertSucceeds(
+    aliceDb.collection("public_profiles").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      studyQuestId: "SQ-1001",
+      username: "alice_bd",
+      displayName: "Alice Rahman",
+      avatarId: "owl_classic",
+      classId: "class_10",
+      curriculumVersion: "bangla",
+      academicGroup: "science",
+      dailyGoalMinutes: 45,
+      overallLevel: 2,
+      totalXp: 120,
+      coins: 65,
+      streakCount: 3,
+      lastChallengeDateKey: "2026-11-15",
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertFails(
+    aliceDb.collection("public_profiles").doc(ALICE_UID).update({
+      academicGroup: "invalid_group",
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertFails(
+    aliceDb.collection("public_profiles").doc(ALICE_UID).update({
+      dailyGoalMinutes: 2,
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("study_plans").doc("onboarding_starter_goal").set({
+      userId: ALICE_UID,
+      title: "SSC Board Exam Readiness",
+      subjectId: "math",
+      planType: "exam_countdown",
+      targetDateEpochMs: Date.now() + 86400000 * 30,
+      minutesPerDay: 45,
+      completed: false,
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertFails(
+    aliceDb.collection("public_profiles").doc(ALICE_UID).update({
+      streakCount: -1,
+      updatedAt: serverTs(),
+    })
+  );
+
+  for (const rType of ["pomodoro", "flashcard", "daily_challenge"]) {
+    await assertSucceeds(
+      aliceDb.collection("users").doc(ALICE_UID).collection("learning_records").doc(`rec_${rType}`).set({
+        userId: ALICE_UID,
+        recordType: rType,
+        refId: `ref_${rType}`,
+        subjectId: "math",
+        idempotencyKey: `key_${rType}`,
+        score: 5,
+        totalMarks: 5,
+        xpAwarded: 25,
+        createdAt: serverTs(),
+        updatedAt: serverTs(),
+      })
+    );
+  }
+
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("learning_records").doc("rec_bad").set({
+      userId: ALICE_UID,
+      recordType: "unknown_demo",
+      refId: "bad",
+      subjectId: "math",
+      idempotencyKey: "key_bad",
+      xpAwarded: 10,
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertSucceeds(
+    aliceDb.collection("leaderboard_entries").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      displayName: "Alice Rahman",
+      studyQuestId: "SQ-1001",
+      classId: "class_10",
+      seasonId: "season_2026_1",
+      weekKey: "2026_w46",
+      subjectId: "all",
+      weeklyPoints: 120,
+      seasonalPoints: 120,
+      competitionRating: 1000,
+      rankTier: "Bronze",
+      streakCount: 3,
+      optInNational: true,
+      updatedAt: serverTs(),
+    })
+  );
+
+  // Bob cannot tamper with Alice's leaderboard entry
+  await assertFails(
+    bobDb.collection("leaderboard_entries").doc(ALICE_UID).update({
+      weeklyPoints: 9999,
+      updatedAt: serverTs(),
+    })
+  );
+});

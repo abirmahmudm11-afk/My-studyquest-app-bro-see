@@ -65,15 +65,12 @@ import com.example.ui.screens.AcademicSetupWizardScreen
 import com.example.ui.screens.AiDoubtSolverSheet
 import com.example.ui.screens.CompeteTabScreen
 import com.example.ui.screens.FriendsTabScreen
-import com.example.ui.screens.GuestStudyQuestHost
 import com.example.ui.screens.LanguagePickerLaunchScreen
 import com.example.ui.screens.LearnDestination
 import com.example.ui.screens.LearnTabScreen
 import com.example.ui.screens.ProfileTabScreen
-import com.example.ui.screens.QuickGuestSetupScreen
 import com.example.ui.screens.TodayTabScreen
 import com.example.ui.screens.WelcomeAndGoogleSignInScreen
-import com.example.ui.screens.rememberGoogleSignInLauncher
 import com.example.ui.theme.StudyQuestTheme
 import com.example.ui.viewmodel.AdminStudioViewModel
 import com.example.ui.viewmodel.CompeteViewModel
@@ -120,13 +117,6 @@ private fun StudyQuestRootApp() {
     val isSigningIn by preAuthVm.isSigningIn.collectAsStateWithLifecycle()
     val authMessage by preAuthVm.authMessage.collectAsStateWithLifecycle()
 
-    val googleSignInLauncher = rememberGoogleSignInLauncher(
-        language = preAuthPrefs.uiLanguage,
-        onSigningInChanged = { preAuthVm.setSigningIn(it) },
-        onIdTokenReceived = { preAuthVm.signInWithGoogleIdToken(it) },
-        onAuthError = { preAuthVm.setAuthError(it) }
-    )
-
     StudyQuestTheme(
         darkTheme = preAuthPrefs.darkMode,
         isBangla = preAuthPrefs.uiLanguage == AppLanguage.BANGLA
@@ -135,21 +125,6 @@ private fun StudyQuestRootApp() {
         if (user != null) {
             // Feature ViewModels & Firestore listeners are gated cleanly behind authenticated session!
             AuthenticatedStudyQuestHost(user = user)
-        } else if (preAuthPrefs.isGuestMode && !preAuthPrefs.guestOnboardingCompleted) {
-            QuickGuestSetupScreen(
-                language = preAuthPrefs.uiLanguage,
-                reducedMotion = preAuthPrefs.reducedMotion,
-                onBackToWelcome = { preAuthVm.exitGuestMode() },
-                onCompleteGuestSetup = { name, cls, ver, subjs, avatar ->
-                    preAuthVm.completeGuestQuickSetup(name, cls, ver, subjs, avatar)
-                }
-            )
-        } else if (preAuthPrefs.isGuestMode) {
-            GuestStudyQuestHost(
-                authError = authMessage,
-                onClearAuthError = { preAuthVm.setAuthError(null) },
-                onRequestGoogleSignIn = googleSignInLauncher
-            )
         } else if (!preAuthPrefs.hasChosenInitialLanguage) {
             LanguagePickerLaunchScreen(
                 onSelectLanguage = { lang -> preAuthVm.selectInitialLanguage(lang) }
@@ -163,8 +138,7 @@ private fun StudyQuestRootApp() {
                 onSetLanguage = { preAuthVm.setUiLanguage(it) },
                 onSigningInChanged = { preAuthVm.setSigningIn(it) },
                 onIdTokenReceived = { preAuthVm.signInWithGoogleIdToken(it) },
-                onAuthError = { preAuthVm.setAuthError(it) },
-                onContinueAsGuest = { preAuthVm.enterGuestMode() }
+                onAuthError = { preAuthVm.setAuthError(it) }
             )
         }
     }
@@ -258,9 +232,19 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
         AcademicSetupWizardScreen(
             profile = activeProfile,
             language = prefs.uiLanguage,
-            onCompleteSetup = { name, cls, ver, subjs, avatar ->
+            onSignOut = { sessionVm.signOut() },
+            onCompleteSetup = { name, cls, ver, subjs, avatar, grp, dailyMins, goalTitle ->
                 AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
-                sessionVm.completeAcademicSetup(name, cls, ver, subjs, avatar)
+                sessionVm.completeAcademicSetup(
+                    displayName = name,
+                    classId = cls,
+                    curriculumVersion = ver,
+                    selectedSubjects = subjs,
+                    avatarId = avatar,
+                    academicGroup = grp,
+                    dailyGoalMinutes = dailyMins,
+                    studyGoalTitle = goalTitle
+                )
             }
         )
         return
@@ -390,7 +374,29 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
                             selectedTab = 1
                         },
                         onOpenAiDoubtSolver = { showGlobalAiSheet = true },
-                        onOpenMessages = { selectedTab = 3 }
+                        onOpenMessages = { selectedTab = 3 },
+                        subjectAnalytics = subjectAnalytics,
+                        dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(activeProfile),
+                        onOpenSubjectCategory = { subj ->
+                            pendingLearnDest = LearnDestination.SubjectDetail(subj)
+                            selectedTab = 1
+                        },
+                        onOpenFlashcardsVault = {
+                            pendingLearnDest = LearnDestination.FlashcardsAndVault
+                            selectedTab = 1
+                        },
+                        onOpenPomodoro = {
+                            pendingLearnDest = LearnDestination.PomodoroFocus
+                            selectedTab = 1
+                        },
+                        onOpenDailyChallenge = {
+                            pendingLearnDest = LearnDestination.DailyChallenge
+                            selectedTab = 1
+                        },
+                        onOpenMasteryAnalytics = {
+                            pendingLearnDest = LearnDestination.MasteryAnalytics
+                            selectedTab = 1
+                        }
                     )
 
                     1 -> LearnTabScreen(
@@ -434,7 +440,33 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
                             learnVm.askAiDoubtSolver(prompt, studentQ, cls, subj, lang)
                         },
                         onResetAi = { learnVm.resetAiDoubtState() },
-                        reducedMotion = prefs.reducedMotion
+                        reducedMotion = prefs.reducedMotion,
+                        profile = activeProfile,
+                        subjectAnalytics = subjectAnalytics,
+                        weakTopics = weakTopics,
+                        dailyChallengeQuestions = remember(mergedQuestions, activeProfile.classId) {
+                            learnVm.dailyChallengeQuestions(mergedQuestions, activeProfile.classId)
+                        },
+                        dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(activeProfile),
+                        dailyChallengeDateKey = learnVm.todayChallengeDateKey(),
+                        onCompletePomodoro = { subjId, mins ->
+                            learnVm.completePomodoroSession(subjId, mins, isOnline) {
+                                celebrationPulse += 1
+                                AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
+                            }
+                        },
+                        onCompleteFlashcardDeck = { subjId, rev, mast ->
+                            learnVm.recordFlashcardSession(subjId, rev, mast, isOnline) {
+                                celebrationPulse += 1
+                                AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
+                            }
+                        },
+                        onSubmitDailyChallenge = { qs, sel, txt ->
+                            learnVm.completeDailyChallenge(qs, sel, txt, isOnline) {
+                                celebrationPulse += 1
+                                AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
+                            }
+                        }
                     )
 
                     2 -> CompeteTabScreen(

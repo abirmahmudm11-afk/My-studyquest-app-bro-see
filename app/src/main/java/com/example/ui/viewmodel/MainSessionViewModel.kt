@@ -1,7 +1,10 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.AppLanguage
@@ -20,6 +23,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 sealed interface AuthSessionState {
     data object Loading : AuthSessionState
@@ -140,7 +145,8 @@ class MainSessionViewModel(
     private val authRepo: AuthAndProfileRepository,
     private val adminRepo: AdminStudioRepository,
     private val preferences: StudyQuestPreferences,
-    connectivityObserver: ConnectivityObserver
+    connectivityObserver: ConnectivityObserver,
+    private val appContext: Context? = null
 ) : ViewModel() {
 
     val localPreferences: StateFlow<LocalUserPreferences> = preferences.preferencesFlow
@@ -227,7 +233,10 @@ class MainSessionViewModel(
         classId: String,
         curriculumVersion: String,
         selectedSubjects: List<String>,
-        avatarId: String
+        avatarId: String,
+        academicGroup: String = "general",
+        dailyGoalMinutes: Long = 30L,
+        studyGoalTitle: String = ""
     ) {
         viewModelScope.launch {
             val res = authRepo.completeAcademicSetup(
@@ -236,7 +245,10 @@ class MainSessionViewModel(
                 classId = classId,
                 curriculumVersion = curriculumVersion,
                 selectedSubjects = selectedSubjects,
-                avatarId = avatarId
+                avatarId = avatarId,
+                academicGroup = academicGroup,
+                dailyGoalMinutes = dailyGoalMinutes,
+                studyGoalTitle = studyGoalTitle
             )
             if (res.isFailure) {
                 _bannerMessage.value = res.exceptionOrNull()?.localizedMessage ?: "Setup failed"
@@ -352,8 +364,18 @@ class MainSessionViewModel(
 
     fun signOut() {
         viewModelScope.launch {
-            authRepo.setOnlinePresence(currentUser.uid, false)
-            Firebase.auth.signOut()
+            withContext(NonCancellable) {
+                try {
+                    authRepo.setOnlinePresence(currentUser.uid, false)
+                    appContext?.let { ctx ->
+                        CredentialManager.create(ctx).clearCredentialState(ClearCredentialStateRequest())
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to clear credential state on sign-out: ${e.message}")
+                } finally {
+                    Firebase.auth.signOut()
+                }
+            }
         }
     }
 

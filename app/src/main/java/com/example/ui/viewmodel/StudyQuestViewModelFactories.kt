@@ -63,7 +63,8 @@ object StudyQuestViewModelFactories {
                 authRepo = AuthAndProfileRepository(db, dao),
                 adminRepo = AdminStudioRepository(db),
                 preferences = StudyQuestPreferences(app),
-                connectivityObserver = ConnectivityObserver(app)
+                connectivityObserver = ConnectivityObserver(app),
+                appContext = app
             )
         }
     }

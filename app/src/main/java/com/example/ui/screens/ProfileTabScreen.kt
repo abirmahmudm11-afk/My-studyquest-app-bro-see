@@ -699,6 +699,28 @@ private fun PreferencesAndSafetyScreen(
                 }
             }
         }
+
+        item {
+            StudyQuestCard(modifier = Modifier.testTag("firebase_project_info_card")) {
+                Text(
+                    text = StudyQuestStrings.t(lang, "Firebase Project & App Info", "ফায়ারবেস প্রোজেক্ট ও অ্যাপ তথ্য"),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "App Name: StudyQuest\n" +
+                        "Android Package: com.aistudio.studyquest.bdxkpq\n" +
+                        "Firebase Project ID: com-aistudio-studyquest-5811a\n" +
+                        "Firebase Project Number: 716745939273\n" +
+                        "Firestore Database ID: ai-studio-android-mystudyq-f4667920-563c-4888-a2b3-dd7d887506df\n" +
+                        "Storage Bucket: com-aistudio-studyquest-5811a.firebasestorage.app",
+                    fontFamily = JetBrainsMonoFontFamily,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 
     if (exportedJson != null) {

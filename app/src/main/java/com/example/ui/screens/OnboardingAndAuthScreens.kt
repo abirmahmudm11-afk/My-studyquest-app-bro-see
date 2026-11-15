@@ -44,10 +44,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,18 +72,20 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialCustomException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.model.AcademicGroup
 import com.example.data.model.CurriculumVersion
 import com.example.data.model.MascotMood
 import com.example.data.model.PublicProfile
+import com.example.ui.components.AvatarBadgeView
 import com.example.ui.components.MascotAvatar
 import com.example.ui.components.MascotTituCard
-import com.example.ui.components.PulseLiveDot
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -120,7 +125,8 @@ fun rememberGoogleSignInLauncher(
                         onAuthError("Unexpected credential type received.")
                     }
                 } catch (e: GetCredentialCancellationException) {
-                    Log.w("StudyQuestAuth", "Google Sign-In cancelled by user or fingerprint config", e)
+                    Log.w("StudyQuestAuth", "Google Sign-In cancelled by user", e)
+                    onSigningInChanged(false)
                     onAuthError(
                         StudyQuestStrings.t(
                             language,
@@ -128,11 +134,39 @@ fun rememberGoogleSignInLauncher(
                             "সাইন-ইন বাতিল হয়েছে। এগিয়ে যেতে তোমার গুগল অ্যাকাউন্ট নির্বাচন করো।"
                         )
                     )
+                } catch (e: GetCredentialCustomException) {
+                    val raw = e.errorMessage?.toString() ?: e.localizedMessage.orEmpty()
+                    Log.e("StudyQuestAuth", "CredentialManager custom failure: $raw", e)
+                    onSigningInChanged(false)
+                    val isDevConsole28444 = raw.contains("28444") || raw.contains("Developer console", ignoreCase = true)
+                    onAuthError(
+                        if (isDevConsole28444) {
+                            StudyQuestStrings.t(
+                                language,
+                                "Google Sign-In configuration error [28444]: Package com.aistudio.studyquest.bdxkpq is missing its SHA-1 signing fingerprint in Firebase project com-aistudio-studyquest-5811a. Add the debug SHA-1 in Firebase Console and refresh google-services.json.",
+                                "গুগল সাইন-ইন কনফিগারেশন ত্রুটি [28444]: com.aistudio.studyquest.bdxkpq প্যাকেজের SHA-1 ফিঙ্গারপ্রিন্ট Firebase প্রজেক্ট com-aistudio-studyquest-5811a-তে যুক্ত নেই। Firebase Console-এ SHA-1 যোগ করে google-services.json আপডেট করো।"
+                            )
+                        } else {
+                            raw.ifBlank { "Google Sign-In failed" }
+                        }
+                    )
+                } catch (e: NoCredentialException) {
+                    Log.w("StudyQuestAuth", "No Google account available on device", e)
+                    onSigningInChanged(false)
+                    onAuthError(
+                        StudyQuestStrings.t(
+                            language,
+                            "No Google account found on this device. Please add a Google account in Android Settings and try again.",
+                            "এই ডিভাইসে কোনো গুগল অ্যাকাউন্ট পাওয়া যায়নি। সেটিংস থেকে গুগল অ্যাকাউন্ট যোগ করে আবার চেষ্টা করো।"
+                        )
+                    )
                 } catch (e: GetCredentialException) {
                     Log.e("StudyQuestAuth", "CredentialManager failed", e)
-                    onAuthError(e.localizedMessage ?: "Google Sign-In failed")
+                    onSigningInChanged(false)
+                    onAuthError(e.errorMessage?.toString() ?: e.localizedMessage ?: "Google Sign-In failed")
                 } catch (e: Exception) {
                     Log.e("StudyQuestAuth", "Sign-in exception", e)
+                    onSigningInChanged(false)
                     onAuthError(e.localizedMessage ?: "Sign-in failed")
                 }
             }
@@ -272,8 +306,7 @@ fun WelcomeAndGoogleSignInScreen(
     onSetLanguage: (AppLanguage) -> Unit,
     onSigningInChanged: (Boolean) -> Unit,
     onIdTokenReceived: (String) -> Unit,
-    onAuthError: (String) -> Unit,
-    onContinueAsGuest: () -> Unit = {}
+    onAuthError: (String) -> Unit
 ) {
     val context = LocalContext.current
     val credentialManager = remember(context) { CredentialManager.create(context) }
@@ -298,6 +331,8 @@ fun WelcomeAndGoogleSignInScreen(
             // Expected on first install when no authorized account is cached
         } catch (_: GetCredentialCancellationException) {
             // Silent flow cancelled
+        } catch (e: GetCredentialCustomException) {
+            Log.w("StudyQuestAuth", "Silent auto sign-in custom error: ${e.errorMessage ?: e.message}")
         } catch (e: Exception) {
             Log.d("StudyQuestAuth", "Silent auto sign-in skipped: ${e.message}")
         }
@@ -426,36 +461,14 @@ fun WelcomeAndGoogleSignInScreen(
                             )
                         }
                     }
-
-                    OutlinedButton(
-                        onClick = onContinueAsGuest,
-                        enabled = !isSigningIn,
-                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .testTag("continue_as_guest_button")
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            PulseLiveDot(reducedMotion = reducedMotion)
-                            Text(
-                                text = StudyQuestStrings.t(language, "Continue as Guest", "গেস্ট হিসেবে চালিয়ে যান"),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
                 }
             }
 
             Text(
                 text = StudyQuestStrings.t(
                     language,
-                    "Guest progress (XP, bookmarks & plans) auto-merges into your Google account whenever you sign in.",
-                    "গেস্ট মোডের সব অগ্রগতি (XP, বুকমার্ক ও প্ল্যান) পরে গুগল সাইন-ইন করলে স্বয়ংক্রিয়ভাবে সিঙ্ক হবে।"
+                    "Sign in with your Google account to sync your Class 6–10 progress, streak, flashcards, and leaderboard rank across devices.",
+                    "তোমার শ্রেণি ৬–১০ অগ্রগতি, স্ট্রিক, ফ্ল্যাশকার্ড এবং লিডারবোর্ড র‍্যাংক সিঙ্ক রাখতে গুগল অ্যাকাউন্ট দিয়ে সাইন-ইন করো।"
                 ),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -478,12 +491,16 @@ private fun FeatureBulletRow(icon: androidx.compose.ui.graphics.vector.ImageVect
 fun AcademicSetupWizardScreen(
     profile: PublicProfile,
     language: AppLanguage,
+    onSignOut: () -> Unit = {},
     onCompleteSetup: (
         displayName: String,
         classId: String,
         curriculumVersion: String,
         selectedSubjects: List<String>,
-        avatarId: String
+        avatarId: String,
+        academicGroup: String,
+        dailyGoalMinutes: Long,
+        studyGoalTitle: String
     ) -> Unit
 ) {
     val context = LocalContext.current
@@ -491,9 +508,37 @@ fun AcademicSetupWizardScreen(
     var selectedClassId by remember { mutableStateOf(profile.classId.ifBlank { "class_10" }) }
     var selectedVersion by remember { mutableStateOf(profile.curriculumVersion.ifBlank { "bangla" }) }
     var selectedAvatar by remember { mutableStateOf(profile.avatarId.ifBlank { "owl_classic" }) }
+    var selectedGroup by remember(profile.academicGroup) {
+        mutableStateOf(
+            profile.academicGroup.takeIf { it in listOf("science", "business", "humanities") } ?: "science"
+        )
+    }
+    var dailyGoalMinutes by remember(profile.dailyGoalMinutes) {
+        mutableLongStateOf(profile.dailyGoalMinutes.takeIf { it in listOf(15L, 30L, 45L, 60L) } ?: 30L)
+    }
+    val goalPresets = remember(language) {
+        listOf(
+            StudyQuestStrings.t(language, "SSC Board Exam Readiness", "এসএসসি বোর্ড পরীক্ষার পূর্ণ প্রস্তুতি"),
+            StudyQuestStrings.t(language, "Weekly Chapter Mastery", "সাপ্তাহিক অধ্যায়ভিত্তিক দক্ষতা"),
+            StudyQuestStrings.t(language, "Daily Streak & Focus Habit", "প্রতিদিনের পড়া ও স্ট্রিক অভ্যাস"),
+            StudyQuestStrings.t(language, "School Term Exam Prep", "স্কুলের সাময়িক পরীক্ষার প্রস্তুতি")
+        )
+    }
+    var selectedGoalIndex by remember { mutableIntStateOf(0) }
+    var isSaving by remember { mutableStateOf(false) }
+
+    val selectedClassInfo = BangladeshCurriculumCatalog.classes.firstOrNull { it.id == selectedClassId }
+    val supportsGroups = selectedClassInfo?.supportsGroups == true
+    val effectiveGroup = if (supportsGroups) selectedGroup else "general"
+
     val selectedSubjects = remember {
         mutableStateListOf<String>().apply {
-            addAll(profile.selectedSubjects.ifEmpty { listOf("math", "english", "bangla", "ict") })
+            val initialValid = BangladeshCurriculumCatalog.subjectsForClassAndGroup(
+                selectedClassId,
+                effectiveGroup
+            ).map { it.id }.toSet()
+            val seeded = profile.selectedSubjects.filter { it in initialValid }
+            addAll(seeded.ifEmpty { initialValid.take(4).toList() })
         }
     }
     var notifGranted by remember {
@@ -515,23 +560,65 @@ fun AcademicSetupWizardScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MascotAvatar(size = 32.dp)
+                Column {
+                    Text(
+                        text = StudyQuestStrings.t(language, "Student Onboarding", "শিক্ষার্থী প্রোফাইল সেটআপ"),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = profile.studyQuestId,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            TextButton(
+                onClick = onSignOut,
+                modifier = Modifier
+                    .minimumInteractiveComponentSize()
+                    .testTag("onboarding_switch_account")
+            ) {
+                Text(StudyQuestStrings.t(language, "Switch Account", "অ্যাকাউন্ট বদলান"))
+            }
+        }
+
         MascotTituCard(
             mood = MascotMood.LEARNING_ASSISTANCE,
-            messageEn = "Let's personalize your Class, NCTB Version, and core subjects! Your StudyQuest ID is ${profile.studyQuestId}.",
-            messageBn = "চলো তোমার শ্রেণি, ভার্সন ও বিষয়গুলো ঠিক করি! তোমার StudyQuest আইডি হলো ${profile.studyQuestId}।",
+            messageEn = "Welcome! Let's personalize your Class, SSC Group, NCTB Version, Subjects & Daily Target.",
+            messageBn = "স্বাগতম! চলো তোমার শ্রেণি, বিভাগ, ভার্সন, বিষয় ও দৈনিক লক্ষ্য সেট করি।",
             language = language,
             reducedMotion = false
         )
 
-        OutlinedTextField(
-            value = displayName,
-            onValueChange = { displayName = it },
-            label = { Text(StudyQuestStrings.t(language, "Your Student Name", "তোমার নাম")) },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("setup_name_input")
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            AvatarBadgeView(
+                avatarId = selectedAvatar,
+                frameId = profile.frameId,
+                displayName = displayName.ifBlank { profile.displayName },
+                size = 56.dp
+            )
+            OutlinedTextField(
+                value = displayName,
+                onValueChange = { displayName = it },
+                label = { Text(StudyQuestStrings.t(language, "Your Student Name", "তোমার নাম")) },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("setup_name_input")
+            )
+        }
 
         Text(
             text = StudyQuestStrings.t(language, "Select Class (6–10 & SSC)", "শ্রেণি নির্বাচন করো"),
@@ -544,13 +631,37 @@ fun AcademicSetupWizardScreen(
                     selected = selectedClassId == cls.id,
                     onClick = {
                         selectedClassId = cls.id
-                        val validIds = BangladeshCurriculumCatalog.subjectsForClass(cls.id).map { it.id }
+                        val nextGroup = if (cls.supportsGroups) selectedGroup else "general"
+                        val validIds = BangladeshCurriculumCatalog.subjectsForClassAndGroup(cls.id, nextGroup).map { it.id }
                         selectedSubjects.retainAll(validIds.toSet())
                         if (selectedSubjects.isEmpty()) selectedSubjects.addAll(validIds.take(4))
                     },
                     label = { Text(StudyQuestStrings.t(language, cls.labelEn, cls.labelBn)) },
                     modifier = Modifier.testTag("setup_class_${cls.id}")
                 )
+            }
+        }
+
+        if (supportsGroups) {
+            Text(
+                text = StudyQuestStrings.t(language, "SSC Academic Group", "এসএসসি বিভাগ নির্বাচন"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                AcademicGroup.entries.filter { it != AcademicGroup.GENERAL }.forEach { grp ->
+                    FilterChip(
+                        selected = selectedGroup == grp.id,
+                        onClick = {
+                            selectedGroup = grp.id
+                            val validIds = BangladeshCurriculumCatalog.subjectsForClassAndGroup(selectedClassId, grp.id).map { it.id }
+                            selectedSubjects.clear()
+                            selectedSubjects.addAll(validIds.take(5))
+                        },
+                        label = { Text(StudyQuestStrings.t(language, grp.labelEn, grp.labelBn)) },
+                        modifier = Modifier.testTag("setup_group_${grp.id}")
+                    )
+                }
             }
         }
 
@@ -564,7 +675,8 @@ fun AcademicSetupWizardScreen(
                 FilterChip(
                     selected = selectedVersion == ver.id,
                     onClick = { selectedVersion = ver.id },
-                    label = { Text(StudyQuestStrings.t(language, ver.labelEn, ver.labelBn)) }
+                    label = { Text(StudyQuestStrings.t(language, ver.labelEn, ver.labelBn)) },
+                    modifier = Modifier.testTag("setup_version_${ver.id}")
                 )
             }
         }
@@ -574,7 +686,7 @@ fun AcademicSetupWizardScreen(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
-        val availableSubjects = BangladeshCurriculumCatalog.subjectsForClass(selectedClassId)
+        val availableSubjects = BangladeshCurriculumCatalog.subjectsForClassAndGroup(selectedClassId, effectiveGroup)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             availableSubjects.forEach { subj ->
                 val active = subj.id in selectedSubjects
@@ -584,7 +696,42 @@ fun AcademicSetupWizardScreen(
                         if (active && selectedSubjects.size > 1) selectedSubjects.remove(subj.id)
                         else if (!active) selectedSubjects.add(subj.id)
                     },
-                    label = { Text(StudyQuestStrings.t(language, subj.titleEn, subj.titleBn)) }
+                    label = { Text(StudyQuestStrings.t(language, subj.titleEn, subj.titleBn)) },
+                    modifier = Modifier.testTag("setup_subject_${subj.id}")
+                )
+            }
+        }
+
+        Text(
+            text = StudyQuestStrings.t(language, "Daily Study Target", "দৈনিক পড়ার লক্ষ্য"),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(15L, 30L, 45L, 60L).forEach { mins ->
+                FilterChip(
+                    selected = dailyGoalMinutes == mins,
+                    onClick = { dailyGoalMinutes = mins },
+                    label = {
+                        Text(StudyQuestStrings.t(language, "$mins min / day", "দৈনিক $mins মিনিট"))
+                    },
+                    modifier = Modifier.testTag("setup_daily_goal_$mins")
+                )
+            }
+        }
+
+        Text(
+            text = StudyQuestStrings.t(language, "Primary Study Goal", "প্রাথমিক অধ্যয়ন লক্ষ্য"),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            goalPresets.forEachIndexed { idx, label ->
+                FilterChip(
+                    selected = selectedGoalIndex == idx,
+                    onClick = { selectedGoalIndex = idx },
+                    label = { Text(label) },
+                    modifier = Modifier.testTag("setup_goal_$idx")
                 )
             }
         }
@@ -599,7 +746,8 @@ fun AcademicSetupWizardScreen(
                 FilterChip(
                     selected = selectedAvatar == cos.id,
                     onClick = { selectedAvatar = cos.id },
-                    label = { Text(StudyQuestStrings.t(language, cos.nameEn, cos.nameBn)) }
+                    label = { Text(StudyQuestStrings.t(language, cos.nameEn, cos.nameBn)) },
+                    modifier = Modifier.testTag("setup_avatar_${cos.id}")
                 )
             }
         }
@@ -628,26 +776,39 @@ fun AcademicSetupWizardScreen(
 
         Button(
             onClick = {
+                isSaving = true
                 onCompleteSetup(
                     displayName.ifBlank { profile.displayName },
                     selectedClassId,
                     selectedVersion,
                     selectedSubjects.toList(),
-                    selectedAvatar
+                    selectedAvatar,
+                    effectiveGroup,
+                    dailyGoalMinutes,
+                    goalPresets.getOrElse(selectedGoalIndex) { goalPresets.first() }
                 )
             },
+            enabled = !isSaving && selectedSubjects.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
                 .testTag("complete_setup_button")
         ) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = StudyQuestStrings.t(language, "Start Learning with StudyQuest", "শেখা শুরু করুন"),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.5.dp
+                )
+            } else {
+                Icon(Icons.Filled.CheckCircle, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = StudyQuestStrings.t(language, "Start Learning with StudyQuest", "শেখা শুরু করুন"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

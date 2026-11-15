@@ -85,6 +85,10 @@ service cloud.firestore {
         (!('showOnlineStatus' in data) || data.showOnlineStatus is bool) &&
         (!('isOnline' in data) || data.isOnline is bool) &&
         (!('onboardingCompleted' in data) || data.onboardingCompleted is bool) &&
+        (!('academicGroup' in data) || data.academicGroup in ['general', 'science', 'business', 'humanities']) &&
+        (!('dailyGoalMinutes' in data) || (data.dailyGoalMinutes is int && data.dailyGoalMinutes >= 5 && data.dailyGoalMinutes <= 360)) &&
+        (!('streakCount' in data) || (data.streakCount is int && data.streakCount >= 0)) &&
+        (!('lastChallengeDateKey' in data) || data.lastChallengeDateKey == null || (data.lastChallengeDateKey is string && data.lastChallengeDateKey.size() <= 32)) &&
         (!('selectedSubjects' in data) || (data.selectedSubjects is list && data.selectedSubjects.size() <= 20 && (data.selectedSubjects.size() == 0 || data.selectedSubjects[0] is string)));
     }
 
@@ -110,7 +114,7 @@ service cloud.firestore {
 
     function isValidLearningRecord(data) {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
-        data.recordType in ['lesson', 'practice', 'exam', 'bookmark', 'revision'] &&
+        data.recordType in ['lesson', 'practice', 'exam', 'bookmark', 'revision', 'pomodoro', 'flashcard', 'daily_challenge'] &&
         data.refId is string && data.refId.size() >= 1 && data.refId.size() <= 128 &&
         data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
         data.idempotencyKey is string && data.idempotencyKey.size() >= 1 && data.idempotencyKey.size() <= 160 &&
@@ -282,7 +286,8 @@ service cloud.firestore {
         data.optInNational is bool &&
         (!('subjectId' in data) || data.subjectId == null || (data.subjectId is string && data.subjectId.size() <= 64)) &&
         (!('avatarId' in data) || data.avatarId == null || (data.avatarId is string && data.avatarId.size() <= 40)) &&
-        (!('frameId' in data) || data.frameId == null || (data.frameId is string && data.frameId.size() <= 40));
+        (!('frameId' in data) || data.frameId == null || (data.frameId is string && data.frameId.size() <= 40)) &&
+        (!('streakCount' in data) || (data.streakCount is int && data.streakCount >= 0));
     }
 
     function isValidTournament(data) {

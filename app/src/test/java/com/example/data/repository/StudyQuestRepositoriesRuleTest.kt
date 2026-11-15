@@ -252,6 +252,77 @@ class StudyQuestRepositoriesRuleTest : FirestoreEmulatorTestBase() {
         )
     }
 
+    @Test
+    fun practiceModules_pomodoroFlashcardsDailyChallengeAndLeaderboardSync() = runBlocking {
+        val aliceUid = signInTestUser(ALICE_EMAIL)
+        val authRepo = AuthAndProfileRepository(firestore, localDb.studyQuestDao())
+        authRepo.ensureUserBootstrapped(checkNotNull(auth.currentUser), AppLanguage.ENGLISH).getOrThrow()
+
+        val setupRes = withTimeout(DEFAULT_TIMEOUT_MS) {
+            authRepo.completeAcademicSetup(
+                userId = aliceUid,
+                displayName = "Alice Topper",
+                classId = "class_10",
+                curriculumVersion = "bangla",
+                selectedSubjects = listOf("math", "physics", "chemistry", "ict"),
+                avatarId = "owl_classic",
+                academicGroup = "science",
+                dailyGoalMinutes = 45L,
+                studyGoalTitle = "SSC Board Exam Readiness"
+            )
+        }
+        assertTrue("completeAcademicSetup failed: ${setupRes.exceptionOrNull()?.message}", setupRes.isSuccess)
+
+        val academicRepo = AcademicProgressRepository(firestore, localDb.studyQuestDao())
+        val pomoRes = withTimeout(DEFAULT_TIMEOUT_MS) {
+            academicRepo.recordPomodoroSession(aliceUid, "physics", focusedMinutes = 25, isOnline = true)
+        }
+        assertTrue("recordPomodoroSession failed: ${pomoRes.exceptionOrNull()?.message}", pomoRes.isSuccess)
+        assertTrue((pomoRes.getOrNull() ?: 0) >= 20)
+
+        val flashRes = withTimeout(DEFAULT_TIMEOUT_MS) {
+            academicRepo.recordFlashcardDeckSession(aliceUid, "math", reviewedCount = 5, masteredCount = 4, isOnline = true)
+        }
+        assertTrue("recordFlashcardDeckSession failed: ${flashRes.exceptionOrNull()?.message}", flashRes.isSuccess)
+
+        val challengeRes = withTimeout(DEFAULT_TIMEOUT_MS) {
+            academicRepo.completeDailyChallenge(
+                userId = aliceUid,
+                subjectId = "math",
+                correctCount = 4,
+                totalQuestions = 5,
+                score = 4.0,
+                totalMarks = 5.0,
+                summary = "Daily Streak Challenge",
+                isOnline = true
+            )
+        }
+        assertTrue("completeDailyChallenge failed: ${challengeRes.exceptionOrNull()?.message}", challengeRes.isSuccess)
+
+        val profileSnap = withTimeout(DEFAULT_TIMEOUT_MS) {
+            firestore.collection("public_profiles").document(aliceUid).get().await()
+        }
+        assertEquals("science", profileSnap.getString("academicGroup"))
+        assertEquals(45L, profileSnap.getLong("dailyGoalMinutes"))
+        assertTrue((profileSnap.getLong("streakCount") ?: 0L) >= 1L)
+        assertEquals(AuthAndProfileRepository.currentDailyChallengeDateKey(), profileSnap.getString("lastChallengeDateKey"))
+
+        val starterPlanSnap = withTimeout(DEFAULT_TIMEOUT_MS) {
+            firestore.collection("users").document(aliceUid)
+                .collection("study_plans").document("onboarding_starter_goal").get().await()
+        }
+        assertTrue("Expected starter study goal doc to exist", starterPlanSnap.exists())
+        assertEquals("SSC Board Exam Readiness", starterPlanSnap.getString("title"))
+        assertEquals(45L, starterPlanSnap.getLong("minutesPerDay"))
+
+        val lbSnap = withTimeout(DEFAULT_TIMEOUT_MS) {
+            firestore.collection("leaderboard_entries").document(aliceUid).get().await()
+        }
+        assertTrue("Expected leaderboard entry to exist", lbSnap.exists())
+        assertTrue((lbSnap.getLong("weeklyPoints") ?: 0L) > 0L)
+        assertTrue((lbSnap.getLong("streakCount") ?: 0L) >= 1L)
+    }
+
     private companion object {
         const val ALICE_EMAIL = "alice_sq_rule@test.com"
         const val BOB_EMAIL = "bob_sq_rule@test.com"

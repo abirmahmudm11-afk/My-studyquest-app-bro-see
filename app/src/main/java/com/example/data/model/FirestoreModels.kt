@@ -28,6 +28,10 @@ data class PublicProfile(
     val isOnline: Boolean = true,
     val onboardingCompleted: Boolean = false,
     val selectedSubjects: List<String> = emptyList(),
+    val academicGroup: String = "general",
+    val dailyGoalMinutes: Long = 30L,
+    val streakCount: Long = 0L,
+    val lastChallengeDateKey: String? = null,
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
@@ -48,7 +52,7 @@ data class PrivateAccountInfo(
 data class LearningRecordDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
-    val recordType: String = "practice", // lesson, practice, exam, bookmark, revision
+    val recordType: String = "practice", // lesson, practice, exam, bookmark, revision, pomodoro, flashcard, daily_challenge
     val refId: String = "",
     val subjectId: String = "",
     val chapterId: String? = null,
@@ -271,6 +275,7 @@ data class LeaderboardEntryDoc(
     val optInNational: Boolean = false,
     val matchesPlayed: Long = 0L,
     val matchesWon: Long = 0L,
+    val streakCount: Long = 0L,
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
 

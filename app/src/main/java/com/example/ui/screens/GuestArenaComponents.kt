@@ -72,6 +72,7 @@ import com.example.ui.theme.WarmOrange
 import com.example.ui.viewmodel.ActiveSoloSprintState
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SoloSpeedSprintScreen(
     sprint: ActiveSoloSprintState,

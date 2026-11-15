@@ -19,6 +19,10 @@ Bangladesh-first Android educational mobile application built with **Kotlin**, *
   - Filters for Class, Subject, Chapter, Source/Board, Difficulty, Question Type, High-Yield, Offline-Only, and Unanswered.
   - Quick Practice and Timed Mock Exams with configurable negative marking, explicit CQ self-assessment vs. objective grading clarity, and weak-topic identification.
 - **SM-2 Spaced Repetition & Study Planner**: Bookmark cards, schedule SM-2 review intervals (`LocalRevisionEntity`), and manage personal study plans (`StudyPlanDoc`).
+- **Interactive Flashcards & Formula Vault**: 3D tap-to-flip bilingual NCTB flashcards with SM-2 "Still Learning" bookmarking, XP completion tracking, and searchable Subject Formula Vault.
+- **Pomodoro Focus Timer**: Subject-linked 15 / 25 / 45-minute focus sprints with animated countdown ring and verified XP rewards.
+- **Daily Board-Exam Streak Challenge**: Deterministic daily 5-question board challenge synced in Cloud Firestore (`streakCount`, `lastChallengeDateKey`, `leaderboard_entries`).
+- **Subject Mastery & Weak-Topic Analytics**: Real-time breakdown across lessons, practice, flashcards, Pomodoro sessions, and daily challenges with targeted weak-topic drill launchers.
 - **AI Doubt Solver**: Curriculum-aware, streaming step-by-step explanations powered by **Firebase AI Logic** (`Firebase.ai.generativeModel("gemini-3.8-flash")`) with App Check verification and Admin kill-switch (`aiSolverEnabled`).
 
 ### 3. Social Learning & Safe Student Community
@@ -38,17 +42,30 @@ Bangladesh-first Android educational mobile application built with **Kotlin**, *
 
 ---
 
+## Firebase Project & Console Reference
+
+| Resource | Value |
+| :--- | :--- |
+| **App Name** | `StudyQuest` |
+| **Android Package / Application ID** | `com.aistudio.studyquest.bdxkpq` |
+| **Firebase Project ID** | `com-aistudio-studyquest-5811a` |
+| **Firebase Project Number** | `716745939273` |
+| **Cloud Firestore Database ID** | `ai-studio-android-mystudyq-f4667920-563c-4888-a2b3-dd7d887506df` |
+| **Firebase Storage Bucket** | `com-aistudio-studyquest-5811a.firebasestorage.app` |
+
+---
+
 ## Architecture & Persistence Split
 
 - **Room (`StudyQuestDatabase`)**: Downloaded lessons & questions, offline progress queue (`PendingSyncEntity`), bookmarks (`LocalBookmarkEntity`), and SM-2 spaced-repetition cards (`LocalRevisionEntity`). Synchronized via `SyncWorker` (`WorkManager`).
-- **Cloud Firestore (`ai-studio-android-3340c22c-2211-48a0-bcbd-9da93a235842`)**: Authoritative user profiles, friendships, direct/group messaging, matchmaking, live rooms, leaderboards, study plans, notifications, moderation reports, tournaments, and admin configuration (`firestore.rules`).
-- **DataStore (`StudyQuestPreferences`)**: Client preferences (languages, theme mode, reduced motion, sound effects, quiet hours).
+- **Cloud Firestore (`ai-studio-android-mystudyq-f4667920-563c-4888-a2b3-dd7d887506df`)**: Authoritative user profiles, friendships, direct/group messaging, matchmaking, live rooms, leaderboards, study plans, notifications, moderation reports, tournaments, and admin configuration (`firestore.rules`).
+- **DataStore (`StudyQuestPreferences`)**: Client preferences (languages, Daylight White Mode default / Dark theme, reduced motion, sound effects, quiet hours).
 
 ---
 
 ## Testing & Verification
 
-- **Firestore Security Rules (JS Emulator Suite)**: `firestore.test.js` validates owner/admin access, cross-user profile protection, chat privacy, matchmaking integrity, deterministic match submissions, and report handling against the local Firestore Emulator (`127.0.0.1:8085`).
+- **Firestore Security Rules (JS Emulator Suite)**: `firestore.test.js` validates owner/admin access, cross-user profile protection, chat privacy, matchmaking integrity, deterministic match submissions, streak & practice module records, and report handling against the local Firestore Emulator (`127.0.0.1:8085`).
 - **Kotlin Repository Integration Tests**: `StudyQuestRepositoriesRuleTest.kt` exercises real repository read/write paths against Firebase Auth (`127.0.0.1:9099`) and Firestore (`127.0.0.1:8085`) emulators via Robolectric.
 - **App Check**: Debug builds automatically install `DebugAppCheckProviderFactory`; release builds use `PlayIntegrityAppCheckProviderFactory`.
 

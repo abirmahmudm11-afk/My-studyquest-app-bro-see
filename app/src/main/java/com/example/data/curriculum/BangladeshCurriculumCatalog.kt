@@ -35,6 +35,12 @@ object BangladeshCurriculumCatalog {
     fun subjectsForClass(classId: String): List<AcademicSubject> =
         subjects.filter { classId in it.classIds }
 
+    fun subjectsForClassAndGroup(classId: String, groupId: String): List<AcademicSubject> =
+        subjects.filter {
+            classId in it.classIds &&
+                (groupId == "general" || groupId in it.groupIds || "general" in it.groupIds)
+        }
+
     val chapters: List<AcademicChapter> = listOf(
         AcademicChapter("ch_math_sets", "math", "class_10", 1, "Sets and Functions", "সেট ও ফাংশন", "Roster & set-builder notation, Venn diagrams, domain & range.", "তালিকা ও গঠন পদ্ধতি, ভেনচিত্র, ডোমেন ও রেঞ্জ।"),
         AcademicChapter("ch_math_trig", "math", "class_10", 2, "Trigonometric Ratios", "ত্রিকোণমিতিক অনুপাত", "Right-triangle ratios, standard angles, and identities.", "সমকোণী ত্রিভুজের অনুপাত, আদর্শ কোণ ও অভেদাবলি।"),
@@ -567,6 +573,175 @@ object BangladeshCurriculumCatalog {
             correctOptionIndices = listOf(1),
             explanationEn = "a² + b² = (a + b)² - 2ab = 49 - 20 = 29.",
             explanationBn = "a² + b² = (a + b)² - 2ab = ৪৯ - ২০ = ২৯।"
+        ),
+        QuestionItem(
+            id = "q_flash_math_trig",
+            classId = "class_10",
+            subjectId = "math",
+            chapterId = "ch_math_trig",
+            topicId = "topic_trig_ratios",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "Pythagorean Trigonometric Identities (3 core equations)",
+            promptBn = "ত্রিকোণমিতির তিনটি মৌলিক অভেদাবলি কী কী?",
+            explanationEn = "1) sin²θ + cos²θ = 1\n2) sec²θ - tan²θ = 1\n3) cosec²θ - cot²θ = 1",
+            explanationBn = "১) sin²θ + cos²θ = 1\n২) sec²θ - tan²θ = 1\n৩) cosec²θ - cot²θ = 1"
+        ),
+        QuestionItem(
+            id = "q_flash_math_sets",
+            classId = "class_10",
+            subjectId = "math",
+            chapterId = "ch_math_sets",
+            topicId = "topic_sets_ops",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "De Morgan's Laws for Sets A and B",
+            promptBn = "সেট A ও B-এর জন্য ডি মর্গানের সূত্র দুটি কী?",
+            explanationEn = "(A ∪ B)' = A' ∩ B'  and  (A ∩ B)' = A' ∪ B'",
+            explanationBn = "(A ∪ B)' = A' ∩ B'  এবং  (A ∩ B)' = A' ∪ B'"
+        ),
+        QuestionItem(
+            id = "q_flash_math_alg",
+            classId = "class_8",
+            subjectId = "math",
+            chapterId = "ch_math_c8_alg",
+            topicId = "topic_identities",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "Algebraic Cube Formulae: (a + b)³ and a³ - b³",
+            promptBn = "বীজগণিতীয় ঘনের সূত্র: (a + b)³ এবং a³ - b³",
+            explanationEn = "(a + b)³ = a³ + 3a²b + 3ab² + b³\na³ - b³ = (a - b)(a² + ab + b²)",
+            explanationBn = "(a + b)³ = a³ + 3a²b + 3ab² + b³\na³ - b³ = (a - b)(a² + ab + b²)"
+        ),
+        QuestionItem(
+            id = "q_flash_phy_motion",
+            classId = "class_10",
+            subjectId = "physics",
+            chapterId = "ch_phy_motion",
+            topicId = "topic_kinematics",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.MEDIUM,
+            promptEn = "Four Equations of Uniform Acceleration",
+            promptBn = "সুষম ত্বরণে গতির চারটি সমীকরণ কী কী?",
+            explanationEn = "1) v = u + at\n2) s = ((u + v)/2) · t\n3) s = ut + ½at²\n4) v² = u² + 2as",
+            explanationBn = "১) v = u + at\n২) s = ((u + v)/2) · t\n৩) s = ut + ½at²\n৪) v² = u² + 2as"
+        ),
+        QuestionItem(
+            id = "q_flash_chem_iso",
+            classId = "class_10",
+            subjectId = "chemistry",
+            chapterId = "ch_chem_atom",
+            topicId = "topic_isotopes",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "What are the 3 isotopes of Hydrogen and their neutron counts?",
+            promptBn = "হাইড্রোজেনের ৩টি আইসোটোপ ও তাদের নিউট্রন সংখ্যা কত?",
+            explanationEn = "Protium (¹H): 0 neutrons\nDeuterium (²H): 1 neutron\nTritium (³H): 2 neutrons",
+            explanationBn = "প্রোটিয়াম (¹H): ০টি নিউট্রন\nডিউটেরিয়াম (²H): ১টি নিউট্রন\nট্রিটিয়াম (³H): ২টি নিউট্রন"
+        ),
+        QuestionItem(
+            id = "q_flash_chem_shell",
+            classId = "class_10",
+            subjectId = "chemistry",
+            chapterId = "ch_chem_atom",
+            topicId = "topic_isotopes",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "Maximum Electron Capacity in Shell n (Bohr-Bury Rule)",
+            promptBn = "বোর-বারি নীতি অনুযায়ী n-তম শক্তিস্তরে সর্বোচ্চ ইলেকট্রন সংখ্যা কত?",
+            explanationEn = "Max electrons = 2n² (K=2, L=8, M=18, N=32).",
+            explanationBn = "সর্বোচ্চ ইলেকট্রন = 2n² (K=২, L=৮, M=১৮, N=৩২)।"
+        ),
+        QuestionItem(
+            id = "q_flash_bio_cell",
+            classId = "class_10",
+            subjectId = "biology",
+            chapterId = "ch_bio_cell",
+            topicId = "topic_organelles",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "3 Key Differences Between Plant and Animal Cells",
+            promptBn = "উদ্ভিদ ও প্রাণী কোষের ৩টি প্রধান পার্থক্য কী?",
+            explanationEn = "Plant cells have cellulose cell walls, plastids (chloroplasts), and large central vacuoles; animal cells generally have centrosomes and lack cell walls.",
+            explanationBn = "উদ্ভিদ কোষে সেলুলোজ কোষপ্রাচীর, প্লাস্টিড ও বড় কোষগহ্বর থাকে; প্রাণী কোষে কোষপ্রাচীর ও প্লাস্টিড থাকে না কিন্তু সেন্ট্রোসোম থাকে।"
+        ),
+        QuestionItem(
+            id = "q_flash_eng_voice",
+            classId = "class_10",
+            subjectId = "english",
+            chapterId = "ch_eng_grammar",
+            topicId = "topic_voice",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "Passive Voice Rule for Present Continuous Tense",
+            promptBn = "Present Continuous Tense-কে Passive Voice করার নিয়ম কী?",
+            explanationEn = "Object becomes Subject + am/is/are + being + V3 (past participle) + by + Agent.",
+            explanationBn = "Object-কে Subject + am/is/are + being + V3 + by + Subject-এর Object রূপ।"
+        ),
+        QuestionItem(
+            id = "q_flash_ban_somas",
+            classId = "class_10",
+            subjectId = "bangla",
+            chapterId = "ch_ban_byakoron",
+            topicId = "topic_somas",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.MEDIUM,
+            promptEn = "বাংলা সমাস প্রধানত কয় প্রকার ও কী কী?",
+            promptBn = "বাংলা সমাস প্রধানত কয় প্রকার ও কী কী?",
+            explanationEn = "প্রধানত ৬ প্রকার: দ্বন্দ্ব, কর্মধারয়, তৎপুরুষ, বহুব্রীহি, দ্বিগু ও অব্যয়ীভাব।",
+            explanationBn = "প্রধানত ৬ প্রকার: দ্বন্দ্ব, কর্মধারয়, তৎপুরুষ, বহুব্রীহি, দ্বিগু ও অব্যয়ীভাব।"
+        ),
+        QuestionItem(
+            id = "q_flash_ict_html",
+            classId = "class_10",
+            subjectId = "ict",
+            chapterId = "ch_ict_web",
+            topicId = "topic_html_tags",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "Ordered List vs Unordered List Tags in HTML",
+            promptBn = "HTML-এ Ordered ও Unordered List তৈরি করতে কোন ট্যাগ লাগে?",
+            explanationEn = "<ol>...</ol> creates numbered lists; <ul>...</ul> creates bulleted lists; <li> defines each list item.",
+            explanationBn = "<ol> সংখ্যাযুক্ত তালিকা ও <ul> বুলেট তালিকা তৈরি করে; প্রতিটি আইটেমের জন্য <li> ব্যবহৃত হয়।"
+        ),
+        QuestionItem(
+            id = "q_flash_sci_heat",
+            classId = "class_7",
+            subjectId = "gen_science",
+            chapterId = "ch_sci_c7_heat",
+            topicId = "topic_heat",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "Celsius, Fahrenheit & Kelvin Conversion Formula",
+            promptBn = "সেলসিয়াস, ফারেনহাইট ও কেলভিন স্কেলের সম্পর্কের সূত্র কী?",
+            explanationEn = "C / 5 = (F - 32) / 9 = (K - 273) / 5",
+            explanationBn = "C / 5 = (F - 32) / 9 = (K - 273) / 5"
+        ),
+        QuestionItem(
+            id = "q_flash_bgs_lib",
+            classId = "class_10",
+            subjectId = "social_studies",
+            chapterId = "ch_bgs_lib",
+            topicId = "topic_liberation",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "Key Milestones of Bangladesh's Liberation: 1966, 1969, 17 Apr 1971",
+            promptBn = "মুক্তিযুদ্ধের গুরুত্বপূর্ণ তারিখ: ১৯৬৬, ১৯৬৯, ১৭ এপ্রিল ১৯৭১",
+            explanationEn = "1966: Six-Point Demand • 1969: Mass Uprising • 17 Apr 1971: Mujibnagar Government Oath.",
+            explanationBn = "১৯৬৬: ছয় দফা • ১৯৬৯: গণ-অভ্যুত্থান • ১৭ এপ্রিল ১৯৭১: মুজিবনগর সরকারের শপথ গ্রহণ।"
+        ),
+        QuestionItem(
+            id = "q_flash_gk_bd",
+            classId = "class_10",
+            subjectId = "gk",
+            chapterId = "ch_gk_bd",
+            topicId = "topic_rivers",
+            type = QuestionType.FLASHCARD,
+            difficulty = QuestionDifficulty.EASY,
+            promptEn = "How many administrative divisions and districts are in Bangladesh?",
+            promptBn = "বাংলাদেশে কয়টি প্রশাসনিক বিভাগ ও কয়টি জেলা রয়েছে?",
+            explanationEn = "8 Administrative Divisions and 64 Districts.",
+            explanationBn = "৮টি প্রশাসনিক বিভাগ এবং ৬৪টি জেলা।"
         )
     )
 

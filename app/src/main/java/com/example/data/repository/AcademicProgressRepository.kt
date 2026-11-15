@@ -332,6 +332,95 @@ class AcademicProgressRepository(
         )
     }
 
+    suspend fun recordPomodoroSession(
+        userId: String,
+        subjectId: String,
+        focusedMinutes: Int,
+        isOnline: Boolean
+    ): Result<Int> {
+        val mins = focusedMinutes.coerceAtLeast(1)
+        val xp = (mins * 2).coerceIn(10, 80)
+        val idempotencyKey = "pomodoro_${subjectId}_${mins}m_${System.currentTimeMillis()}"
+        return recordActivityWithIdempotency(
+            userId = userId,
+            recordType = "pomodoro",
+            refId = "pomodoro_${subjectId}_${mins}m",
+            subjectId = subjectId,
+            chapterId = null,
+            topicId = null,
+            score = mins.toDouble(),
+            totalMarks = mins.toDouble(),
+            accuracy = 1.0,
+            xpAwarded = xp,
+            idempotencyKey = idempotencyKey,
+            summary = "Focused Study ($mins min)",
+            isOnline = isOnline
+        )
+    }
+
+    suspend fun recordFlashcardDeckSession(
+        userId: String,
+        subjectId: String,
+        reviewedCount: Int,
+        masteredCount: Int,
+        isOnline: Boolean
+    ): Result<Int> {
+        val reviewed = reviewedCount.coerceAtLeast(1)
+        val mastered = masteredCount.coerceIn(0, reviewed)
+        val xp = (10 + mastered * 3).coerceIn(10, 90)
+        val accuracy = (mastered.toDouble() / reviewed.toDouble()).coerceIn(0.0, 1.0)
+        val idempotencyKey = "flashcard_${subjectId}_${System.currentTimeMillis()}"
+        return recordActivityWithIdempotency(
+            userId = userId,
+            recordType = "flashcard",
+            refId = "flashcards_$subjectId",
+            subjectId = subjectId,
+            chapterId = null,
+            topicId = null,
+            score = mastered.toDouble(),
+            totalMarks = reviewed.toDouble(),
+            accuracy = accuracy,
+            xpAwarded = xp,
+            idempotencyKey = idempotencyKey,
+            summary = "Flashcard Deck ($mastered/$reviewed mastered)",
+            isOnline = isOnline
+        )
+    }
+
+    suspend fun completeDailyChallenge(
+        userId: String,
+        subjectId: String,
+        correctCount: Int,
+        totalQuestions: Int,
+        score: Double,
+        totalMarks: Double,
+        summary: String,
+        isOnline: Boolean
+    ): Result<Int> {
+        val todayKey = AuthAndProfileRepository.currentDailyChallengeDateKey()
+        val yesterdayKey = AuthAndProfileRepository.yesterdayDailyChallengeDateKey()
+        val xp = (30 + correctCount * 5).coerceIn(30, 120)
+        val accuracy = if (totalQuestions > 0) (correctCount.toDouble() / totalQuestions.toDouble()).coerceIn(0.0, 1.0) else 0.0
+        val idempotencyKey = "daily_challenge_$todayKey"
+        return recordActivityWithIdempotency(
+            userId = userId,
+            recordType = "daily_challenge",
+            refId = idempotencyKey,
+            subjectId = subjectId,
+            chapterId = null,
+            topicId = null,
+            score = score,
+            totalMarks = totalMarks,
+            accuracy = accuracy,
+            xpAwarded = xp,
+            idempotencyKey = idempotencyKey,
+            summary = summary,
+            isOnline = isOnline,
+            dailyChallengeTodayKey = todayKey,
+            dailyChallengeYesterdayKey = yesterdayKey
+        )
+    }
+
     private suspend fun recordActivityWithIdempotency(
         userId: String,
         recordType: String,
@@ -345,7 +434,9 @@ class AcademicProgressRepository(
         xpAwarded: Int,
         idempotencyKey: String,
         summary: String,
-        isOnline: Boolean
+        isOnline: Boolean,
+        dailyChallengeTodayKey: String? = null,
+        dailyChallengeYesterdayKey: String? = null
     ): Result<Int> {
         val safeDocId = idempotencyKey.replace(Regex("[^a-zA-Z0-9_\\-]"), "_").take(120)
         if (userId == GuestDataRepository.GUEST_UID) {
@@ -405,13 +496,30 @@ class AcademicProgressRepository(
             val profileRef = db.collection("public_profiles").document(userId)
             val ledgerRef = db.collection("users").document(userId)
                 .collection("xp_ledger").document("xp_$safeDocId")
+            val lbRef = db.collection("leaderboard_entries").document(userId)
 
             val coinBonus = (xpAwarded / 3).coerceAtLeast(1)
             val profileSnap = profileRef.get().await()
+            val lbSnap = lbRef.get().await()
             val oldXp = profileSnap.getLong("totalXp") ?: 0L
             val newXp = oldXp + xpAwarded
             val newLevel = (newXp / 100L) + 1L
             val newTitle = StudyQuestStrings.levelTitle(newLevel.toInt(), AppLanguage.ENGLISH)
+
+            val oldStreak = profileSnap.getLong("streakCount") ?: 0L
+            val lastDateKey = profileSnap.getString("lastChallengeDateKey")
+            val updatedStreak = when {
+                dailyChallengeTodayKey == null -> oldStreak
+                lastDateKey == dailyChallengeTodayKey -> oldStreak
+                lastDateKey == dailyChallengeYesterdayKey -> oldStreak + 1L
+                else -> 1L
+            }
+
+            val weekKey = AuthAndProfileRepository.currentWeeklyPeriodKey()
+            val oldWeekly = if (lbSnap.getString("weekKey") == weekKey) lbSnap.getLong("weeklyPoints") ?: 0L else 0L
+            val oldSeasonal = lbSnap.getLong("seasonalPoints") ?: oldXp
+            val compRating = lbSnap.getLong("competitionRating") ?: (profileSnap.getLong("competitionRating") ?: 1000L)
+            val rankTier = lbSnap.getString("rankTier") ?: (profileSnap.getString("rankTier") ?: "Bronze")
 
             val batch = db.batch()
             batch.set(
@@ -445,15 +553,40 @@ class AcademicProgressRepository(
                     "createdAt" to FieldValue.serverTimestamp()
                 )
             )
-            batch.update(
-                profileRef,
+            val profileUpdates = mutableMapOf<String, Any>(
+                "totalXp" to newXp,
+                "overallLevel" to newLevel,
+                "levelTitle" to newTitle,
+                "coins" to FieldValue.increment(coinBonus.toLong()),
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            if (dailyChallengeTodayKey != null) {
+                profileUpdates["streakCount"] = updatedStreak
+                profileUpdates["lastChallengeDateKey"] = dailyChallengeTodayKey
+            }
+            batch.update(profileRef, profileUpdates)
+            batch.set(
+                lbRef,
                 mapOf(
-                    "totalXp" to newXp,
-                    "overallLevel" to newLevel,
-                    "levelTitle" to newTitle,
-                    "coins" to FieldValue.increment(coinBonus.toLong()),
+                    "userId" to userId,
+                    "displayName" to (profileSnap.getString("displayName") ?: "Scholar"),
+                    "studyQuestId" to (profileSnap.getString("studyQuestId") ?: "SQ-100000"),
+                    "avatarId" to (profileSnap.getString("avatarId") ?: "owl_classic"),
+                    "frameId" to profileSnap.getString("frameId"),
+                    "classId" to (profileSnap.getString("classId") ?: "class_10"),
+                    "subjectId" to subjectId,
+                    "seasonId" to "season_2026_11",
+                    "weekKey" to weekKey,
+                    "weeklyPoints" to (oldWeekly + xpAwarded.toLong()),
+                    "seasonalPoints" to (oldSeasonal + xpAwarded.toLong()),
+                    "competitionRating" to compRating,
+                    "rankTier" to rankTier,
+                    "optInNational" to (profileSnap.getBoolean("optInNationalLeaderboard") ?: false),
+                    "matchesPlayed" to (lbSnap.getLong("matchesPlayed") ?: 0L),
+                    "matchesWon" to (lbSnap.getLong("matchesWon") ?: 0L),
+                    "streakCount" to updatedStreak,
                     "updatedAt" to FieldValue.serverTimestamp()
-                )
+                ).filterValues { it != null }
             )
             batch.commit().await()
 
@@ -484,8 +617,8 @@ class AcademicProgressRepository(
     private suspend fun incrementQuestProgress(userId: String, recordType: String) {
         val questId = when (recordType) {
             "lesson" -> "q_daily_lesson"
-            "practice" -> "q_daily_practice"
-            "exam" -> "q_weekly_exam"
+            "practice", "flashcard", "pomodoro" -> "q_daily_practice"
+            "exam", "daily_challenge" -> "q_weekly_exam"
             else -> return
         }
         val ref = db.collection("users").document(userId).collection("quests").document(questId)
@@ -677,7 +810,7 @@ class AcademicProgressRepository(
 
     fun computeWeakTopics(records: List<LearningRecordDoc>): List<WeakTopicStat> {
         val grouped = records
-            .filter { !it.topicId.isNullOrBlank() && (it.recordType == "practice" || it.recordType == "exam") }
+            .filter { !it.topicId.isNullOrBlank() && it.recordType in listOf("practice", "exam", "daily_challenge") }
             .groupBy { it.subjectId to it.topicId!! }
 
         return grouped.mapNotNull { (key, list) ->
@@ -700,10 +833,10 @@ class AcademicProgressRepository(
     fun computeSubjectAnalytics(records: List<LearningRecordDoc>): List<SubjectAnalyticsSummary> {
         return records.groupBy { it.subjectId }.map { (subjectId, list) ->
             val lessons = list.count { it.recordType == "lesson" }
-            val practices = list.count { it.recordType == "practice" }
-            val exams = list.count { it.recordType == "exam" }
+            val practices = list.count { it.recordType in listOf("practice", "flashcard", "pomodoro") }
+            val exams = list.count { it.recordType in listOf("exam", "daily_challenge") }
             val xp = list.sumOf { it.xpAwarded }
-            val graded = list.filter { it.recordType == "practice" || it.recordType == "exam" }
+            val graded = list.filter { it.recordType in listOf("practice", "exam", "daily_challenge", "flashcard") }
             val avgAcc = if (graded.isNotEmpty()) graded.map { it.accuracy }.average() else 0.0
             SubjectAnalyticsSummary(
                 subjectId = subjectId,

@@ -517,6 +517,7 @@ class CompetitionRepository(
                         "optInNational" to profile.optInNationalLeaderboard,
                         "matchesPlayed" to (oldPlayed + 1L),
                         "matchesWon" to (oldWon + if (won) 1L else 0L),
+                        "streakCount" to profile.streakCount,
                         "updatedAt" to FieldValue.serverTimestamp()
                     ).filterValues { it != null }
                 )
