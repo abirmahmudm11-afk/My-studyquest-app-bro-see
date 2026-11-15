@@ -1,0 +1,704 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- HARDENED GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isBootstrappedOwner() {
+      return isSignedIn() &&
+        ('email' in request.auth.token) &&
+        request.auth.token.email == 'abirmahmudm116@gmail.com' &&
+        ('email_verified' in request.auth.token) &&
+        request.auth.token.email_verified == true;
+    }
+
+    function hasAdminDoc() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.active == true;
+    }
+
+    function isAdmin() {
+      return isBootstrappedOwner() || hasAdminDoc();
+    }
+
+    function adminRole() {
+      return isBootstrappedOwner()
+        ? 'owner'
+        : (hasAdminDoc() ? get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.role : 'none');
+    }
+
+    function isContentStaff() {
+      return isAdmin() && adminRole() in ['owner', 'administrator', 'content_editor', 'academic_reviewer'];
+    }
+
+    function isModeratorStaff() {
+      return isAdmin() && adminRole() in ['owner', 'administrator', 'moderator'];
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // --- VALIDATION BLUEPRINTS ---
+    function isValidPublicProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.studyQuestId is string && data.studyQuestId.size() >= 4 && data.studyQuestId.size() <= 24 &&
+        data.username is string && data.username.size() >= 3 && data.username.size() <= 32 &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+        data.avatarId is string && data.avatarId.size() >= 1 && data.avatarId.size() <= 40 &&
+        (!('frameId' in data) || data.frameId == null || (data.frameId is string && data.frameId.size() <= 40)) &&
+        (!('titleBadge' in data) || data.titleBadge == null || (data.titleBadge is string && data.titleBadge.size() <= 40)) &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.curriculumVersion in ['bangla', 'english'] &&
+        data.overallLevel is int && data.overallLevel >= 1 && data.overallLevel <= 100 &&
+        (!('levelTitle' in data) || data.levelTitle == null || (data.levelTitle is string && data.levelTitle.size() <= 40)) &&
+        data.totalXp is int && data.totalXp >= 0 &&
+        data.coins is int && data.coins >= 0 &&
+        (!('competitionRating' in data) || (data.competitionRating is int && data.competitionRating >= 0 && data.competitionRating <= 10000)) &&
+        (!('rankTier' in data) || data.rankTier in ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master']) &&
+        (!('optInNationalLeaderboard' in data) || data.optInNationalLeaderboard is bool) &&
+        (!('showOnlineStatus' in data) || data.showOnlineStatus is bool) &&
+        (!('isOnline' in data) || data.isOnline is bool) &&
+        (!('onboardingCompleted' in data) || data.onboardingCompleted is bool) &&
+        (!('selectedSubjects' in data) || (data.selectedSubjects is list && data.selectedSubjects.size() <= 20 && (data.selectedSubjects.size() == 0 || data.selectedSubjects[0] is string)));
+    }
+
+    function isValidPrivateAccountInfo(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        (!('email' in data) || data.email == null || (data.email is string && data.email.size() <= 120)) &&
+        (!('ageBracket' in data) || data.ageBracket == null || (data.ageBracket is string && data.ageBracket.size() <= 32)) &&
+        (!('guardianConsentStatus' in data) || data.guardianConsentStatus == null || (data.guardianConsentStatus is string && data.guardianConsentStatus.size() <= 32)) &&
+        data.accountStatus in ['active', 'deletion_requested', 'anonymized'];
+    }
+
+    function isValidUserPreferences(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.uiLanguage in ['bn', 'en'] &&
+        data.questionLanguage in ['bn', 'en'] &&
+        (!('darkMode' in data) || data.darkMode is bool) &&
+        (!('reducedMotion' in data) || data.reducedMotion is bool) &&
+        (!('soundEnabled' in data) || data.soundEnabled is bool) &&
+        (!('quietHoursEnabled' in data) || data.quietHoursEnabled is bool) &&
+        (!('dailyGoalXp' in data) || (data.dailyGoalXp is int && data.dailyGoalXp >= 10 && data.dailyGoalXp <= 2000)) &&
+        (!('weeklyGoalMinutes' in data) || (data.weeklyGoalMinutes is int && data.weeklyGoalMinutes >= 15 && data.weeklyGoalMinutes <= 5000));
+    }
+
+    function isValidLearningRecord(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.recordType in ['lesson', 'practice', 'exam', 'bookmark', 'revision'] &&
+        data.refId is string && data.refId.size() >= 1 && data.refId.size() <= 128 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.idempotencyKey is string && data.idempotencyKey.size() >= 1 && data.idempotencyKey.size() <= 160 &&
+        (!('chapterId' in data) || data.chapterId == null || (data.chapterId is string && data.chapterId.size() <= 64)) &&
+        (!('topicId' in data) || data.topicId == null || (data.topicId is string && data.topicId.size() <= 64)) &&
+        (!('score' in data) || data.score is number) &&
+        (!('totalMarks' in data) || data.totalMarks is number) &&
+        (!('accuracy' in data) || data.accuracy is number) &&
+        (!('xpAwarded' in data) || (data.xpAwarded is int && data.xpAwarded >= 0 && data.xpAwarded <= 500)) &&
+        (!('summary' in data) || data.summary == null || (data.summary is string && data.summary.size() <= 500));
+    }
+
+    function isValidXpTransaction(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.sourceType is string && data.sourceType.size() >= 1 && data.sourceType.size() <= 40 &&
+        data.sourceId is string && data.sourceId.size() >= 1 && data.sourceId.size() <= 128 &&
+        data.xpDelta is int && data.xpDelta >= 0 && data.xpDelta <= 500 &&
+        data.coinDelta is int && data.coinDelta >= -5000 && data.coinDelta <= 500 &&
+        data.idempotencyKey is string && data.idempotencyKey.size() >= 1 && data.idempotencyKey.size() <= 160;
+    }
+
+    function isValidUserQuest(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.questId is string && data.questId.size() >= 1 && data.questId.size() <= 64 &&
+        data.questType in ['daily', 'weekly', 'subject', 'chapter', 'special'] &&
+        data.progress is int && data.progress >= 0 && data.progress <= 1000 &&
+        data.target is int && data.target >= 1 && data.target <= 1000 &&
+        data.completed is bool &&
+        data.claimed is bool &&
+        data.periodKey is string && data.periodKey.size() >= 1 && data.periodKey.size() <= 32 &&
+        (!('xpReward' in data) || (data.xpReward is int && data.xpReward >= 0 && data.xpReward <= 500)) &&
+        (!('coinReward' in data) || (data.coinReward is int && data.coinReward >= 0 && data.coinReward <= 500));
+    }
+
+    function isValidStudyPlanItem(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.planType in ['daily', 'weekly', 'exam_countdown', 'chapter_goal'] &&
+        data.completed is bool &&
+        (!('targetDateEpochMs' in data) || data.targetDateEpochMs is int) &&
+        (!('minutesPerDay' in data) || (data.minutesPerDay is int && data.minutesPerDay >= 5 && data.minutesPerDay <= 720));
+    }
+
+    function isValidUserNotification(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 400 &&
+        data.read is bool &&
+        (!('actionRoute' in data) || data.actionRoute == null || (data.actionRoute is string && data.actionRoute.size() <= 120));
+    }
+
+    function isValidAcademicContent(data) {
+      return data.contentType in ['lesson', 'question', 'exam_template'] &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.titleEn is string && data.titleEn.size() >= 1 && data.titleEn.size() <= 200 &&
+        data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 200 &&
+        data.status in ['draft', 'source_verification', 'academic_review', 'language_review', 'approved', 'published'] &&
+        data.authorUid is string && data.authorUid.size() >= 1 && data.authorUid.size() <= 128 &&
+        data.version is int && data.version >= 1 && data.version <= 1000 &&
+        (!('curriculumVersion' in data) || data.curriculumVersion is string && data.curriculumVersion.size() <= 32) &&
+        (!('chapterId' in data) || data.chapterId == null || (data.chapterId is string && data.chapterId.size() <= 64)) &&
+        (!('topicId' in data) || data.topicId == null || (data.topicId is string && data.topicId.size() <= 64)) &&
+        (!('sourceAttribution' in data) || data.sourceAttribution == null || (data.sourceAttribution is string && data.sourceAttribution.size() <= 200)) &&
+        (!('payloadJson' in data) || data.payloadJson == null || (data.payloadJson is string && data.payloadJson.size() <= 16000));
+    }
+
+    function isValidFriendRequest(data) {
+      return data.fromUid is string && data.fromUid.size() >= 1 && data.fromUid.size() <= 128 &&
+        data.toUid is string && data.toUid.size() >= 1 && data.toUid.size() <= 128 &&
+        data.fromUid != data.toUid &&
+        data.fromDisplayName is string && data.fromDisplayName.size() >= 1 && data.fromDisplayName.size() <= 60 &&
+        data.toDisplayName is string && data.toDisplayName.size() >= 1 && data.toDisplayName.size() <= 60 &&
+        data.status in ['pending', 'accepted', 'declined', 'cancelled', 'expired'] &&
+        data.pairKey is string && data.pairKey.size() >= 3 && data.pairKey.size() <= 260 &&
+        (!('fromStudyQuestId' in data) || data.fromStudyQuestId == null || (data.fromStudyQuestId is string && data.fromStudyQuestId.size() <= 24)) &&
+        (!('toStudyQuestId' in data) || data.toStudyQuestId == null || (data.toStudyQuestId is string && data.toStudyQuestId.size() <= 24));
+    }
+
+    function isValidFriendship(data) {
+      return data.memberUids is list && data.memberUids.size() == 2 &&
+        data.memberUids[0] is string && data.memberUids[1] is string &&
+        data.memberUids[0] != data.memberUids[1] &&
+        data.pairKey is string && data.pairKey.size() >= 3 && data.pairKey.size() <= 260 &&
+        (!('mutedByUids' in data) || (data.mutedByUids is list && data.mutedByUids.size() <= 2));
+    }
+
+    function isValidBlockedUser(data) {
+      return data.blockerUid is string && data.blockerUid.size() >= 1 && data.blockerUid.size() <= 128 &&
+        data.blockedUid is string && data.blockedUid.size() >= 1 && data.blockedUid.size() <= 128 &&
+        data.blockerUid != data.blockedUid &&
+        data.pairKey is string && data.pairKey.size() >= 3 && data.pairKey.size() <= 260;
+    }
+
+    function isValidConversation(data) {
+      return data.type in ['direct', 'group'] &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 50 &&
+        data.memberUids[0] is string &&
+        (!('name' in data) || data.name == null || (data.name is string && data.name.size() <= 80)) &&
+        (!('avatarId' in data) || data.avatarId == null || (data.avatarId is string && data.avatarId.size() <= 40)) &&
+        (!('invitedUids' in data) || (data.invitedUids is list && data.invitedUids.size() <= 50)) &&
+        (!('mutedByUids' in data) || (data.mutedByUids is list && data.mutedByUids.size() <= 50)) &&
+        (!('lastMessagePreview' in data) || data.lastMessagePreview == null || (data.lastMessagePreview is string && data.lastMessagePreview.size() <= 200));
+    }
+
+    function isValidChatMessage(data) {
+      return data.senderUid is string && data.senderUid.size() >= 1 && data.senderUid.size() <= 128 &&
+        data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 60 &&
+        data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 50 &&
+        data.text is string && data.text.size() >= 1 && data.text.size() <= 1000 &&
+        data.deliveryStatus in ['sending', 'sent', 'delivered', 'read', 'failed'] &&
+        (!('replyToId' in data) || data.replyToId == null || (data.replyToId is string && data.replyToId.size() <= 128)) &&
+        (!('replyPreview' in data) || data.replyPreview == null || (data.replyPreview is string && data.replyPreview.size() <= 160)) &&
+        (!('quizInviteId' in data) || data.quizInviteId == null || (data.quizInviteId is string && data.quizInviteId.size() <= 128)) &&
+        (!('readByUids' in data) || (data.readByUids is list && data.readByUids.size() <= 50));
+    }
+
+    function isValidMatchRequest(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.difficulty in ['easy', 'medium', 'hard', 'mixed'] &&
+        data.status in ['waiting', 'matched', 'cancelled', 'expired'] &&
+        (!('matchId' in data) || data.matchId == null || (data.matchId is string && data.matchId.size() <= 128));
+    }
+
+    function isValidMatch(data) {
+      return data.mode in ['quick_battle', 'friend_challenge', 'private_room', 'group_battle', 'tournament'] &&
+        data.hostUid is string && data.hostUid.size() >= 1 && data.hostUid.size() <= 128 &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.difficulty in ['easy', 'medium', 'hard', 'mixed'] &&
+        data.status in ['waiting', 'matching', 'found', 'lobby', 'ready', 'live', 'completed', 'cancelled', 'expired', 'abandoned', 'disputed'] &&
+        data.playerUids is list && data.playerUids.size() >= 1 && data.playerUids.size() <= 16 &&
+        data.questionIds is list && data.questionIds.size() >= 1 && data.questionIds.size() <= 50 &&
+        data.questionCount is int && data.questionCount >= 1 && data.questionCount <= 50 &&
+        data.durationSeconds is int && data.durationSeconds >= 30 && data.durationSeconds <= 3600 &&
+        (!('roomCode' in data) || data.roomCode == null || (data.roomCode is string && data.roomCode.size() <= 16)) &&
+        (!('invitedUids' in data) || (data.invitedUids is list && data.invitedUids.size() <= 16)) &&
+        (!('readyUids' in data) || (data.readyUids is list && data.readyUids.size() <= 16)) &&
+        (!('winnerUid' in data) || data.winnerUid == null || (data.winnerUid is string && data.winnerUid.size() <= 128));
+    }
+
+    function isValidMatchSubmission(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.matchId is string && data.matchId.size() >= 1 && data.matchId.size() <= 128 &&
+        data.questionId is string && data.questionId.size() >= 1 && data.questionId.size() <= 128 &&
+        data.selectedIndex is int && data.selectedIndex >= -1 && data.selectedIndex <= 10 &&
+        data.isCorrect is bool &&
+        data.responseTimeMs is int && data.responseTimeMs >= 0 && data.responseTimeMs <= 300000 &&
+        data.pointsAwarded is int && data.pointsAwarded >= 0 && data.pointsAwarded <= 100;
+    }
+
+    function isValidLeaderboardEntry(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+        data.studyQuestId is string && data.studyQuestId.size() >= 4 && data.studyQuestId.size() <= 24 &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.seasonId is string && data.seasonId.size() >= 1 && data.seasonId.size() <= 32 &&
+        data.weekKey is string && data.weekKey.size() >= 1 && data.weekKey.size() <= 32 &&
+        data.weeklyPoints is int && data.weeklyPoints >= 0 &&
+        data.seasonalPoints is int && data.seasonalPoints >= 0 &&
+        data.competitionRating is int && data.competitionRating >= 0 && data.competitionRating <= 10000 &&
+        data.rankTier in ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master'] &&
+        data.optInNational is bool &&
+        (!('subjectId' in data) || data.subjectId == null || (data.subjectId is string && data.subjectId.size() <= 64)) &&
+        (!('avatarId' in data) || data.avatarId == null || (data.avatarId is string && data.avatarId.size() <= 40)) &&
+        (!('frameId' in data) || data.frameId == null || (data.frameId is string && data.frameId.size() <= 40));
+    }
+
+    function isValidTournament(data) {
+      return data.titleEn is string && data.titleEn.size() >= 1 && data.titleEn.size() <= 120 &&
+        data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 120 &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.status in ['registration', 'qualification', 'semifinals', 'finals', 'completed'] &&
+        data.participantUids is list && data.participantUids.size() <= 128 &&
+        data.maxParticipants is int && data.maxParticipants >= 2 && data.maxParticipants <= 128 &&
+        data.rewardCoins is int && data.rewardCoins >= 0 && data.rewardCoins <= 5000;
+    }
+
+    function isValidModerationCase(data) {
+      return data.reporterUid is string && data.reporterUid.size() >= 1 && data.reporterUid.size() <= 128 &&
+        data.targetType in ['user', 'message', 'group', 'question', 'match'] &&
+        data.targetId is string && data.targetId.size() >= 1 && data.targetId.size() <= 128 &&
+        data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 120 &&
+        data.status in ['open', 'triaged', 'resolved', 'dismissed', 'appealed'] &&
+        (!('details' in data) || data.details == null || (data.details is string && data.details.size() <= 1000)) &&
+        (!('assignedModeratorUid' in data) || data.assignedModeratorUid == null || (data.assignedModeratorUid is string && data.assignedModeratorUid.size() <= 128)) &&
+        (!('decisionNote' in data) || data.decisionNote == null || (data.decisionNote is string && data.decisionNote.size() <= 1000)) &&
+        (!('appealText' in data) || data.appealText == null || (data.appealText is string && data.appealText.size() <= 1000));
+    }
+
+    // --- 1. PUBLIC PROFILES (Non-PII Directory) ---
+    match /public_profiles/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if isSignedIn();
+      allow create: if isOwner(userId) && isValidId(userId) &&
+        incoming().userId == request.auth.uid &&
+        incoming().keys().hasAll(['userId', 'studyQuestId', 'username', 'displayName', 'avatarId', 'classId', 'curriculumVersion', 'overallLevel', 'totalXp', 'coins', 'createdAt', 'updatedAt']) &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidPublicProfile(incoming());
+      allow update: if (isOwner(userId) || isAdmin()) && isValidId(userId) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidPublicProfile(incoming());
+      allow delete: if (isOwner(userId) || isAdmin()) && isValidId(userId);
+    }
+
+    // --- 2. USER-SCOPED PRIVATE SUBCOLLECTIONS ---
+    match /users/{userId}/private/{docId} {
+      allow get: if isOwner(userId) && isValidId(docId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(docId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidPrivateAccountInfo(incoming());
+      allow update: if isOwner(userId) && isValidId(docId) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidPrivateAccountInfo(incoming());
+      allow delete: if isOwner(userId) && isValidId(docId);
+    }
+
+    match /users/{userId}/preferences/{docId} {
+      allow get: if isOwner(userId) && isValidId(docId);
+      allow list: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidId(docId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidUserPreferences(incoming());
+      allow delete: if isOwner(userId) && isValidId(docId);
+    }
+
+    match /users/{userId}/learning_records/{recordId} {
+      allow get: if isOwner(userId) && isValidId(recordId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(recordId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidLearningRecord(incoming());
+      allow update: if isOwner(userId) && isValidId(recordId) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidLearningRecord(incoming());
+      allow delete: if isOwner(userId) && isValidId(recordId);
+    }
+
+    match /users/{userId}/xp_ledger/{txId} {
+      allow get: if isOwner(userId) && isValidId(txId);
+      allow list: if isOwner(userId);
+      // Append-only idempotent XP ledger: updates/deletes forbidden from client
+      allow create: if isOwner(userId) && isValidId(txId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) &&
+        isValidXpTransaction(incoming());
+      allow update, delete: if false;
+    }
+
+    match /users/{userId}/quests/{questId} {
+      allow get: if isOwner(userId) && isValidId(questId);
+      allow list: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidId(questId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidUserQuest(incoming());
+      allow delete: if isOwner(userId) && isValidId(questId);
+    }
+
+    match /users/{userId}/study_plans/{planId} {
+      allow get: if isOwner(userId) && isValidId(planId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(planId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidStudyPlanItem(incoming());
+      allow update: if isOwner(userId) && isValidId(planId) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidStudyPlanItem(incoming());
+      allow delete: if isOwner(userId) && isValidId(planId);
+    }
+
+    match /users/{userId}/notifications/{notifId} {
+      allow get: if isOwner(userId) && isValidId(notifId);
+      allow list: if isOwner(userId);
+      allow create: if (isOwner(userId) || isAdmin()) && isValidId(notifId) &&
+        incoming().userId == userId &&
+        isValidTimestamp(incoming().createdAt) &&
+        isValidUserNotification(incoming());
+      allow update: if isOwner(userId) && isValidId(notifId) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidUserNotification(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isOwner(userId) && isValidId(notifId);
+    }
+
+    // --- 3. ACADEMIC CONTENT & EDITORIAL PIPELINE ---
+    match /academic_content/{contentId} {
+      allow get: if isSignedIn() && isValidId(contentId) &&
+        (resource.data.status == 'published' || isContentStaff());
+      allow list: if isSignedIn() &&
+        (resource.data.status == 'published' || isContentStaff());
+      allow create: if isContentStaff() && isValidId(contentId) &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidAcademicContent(incoming());
+      allow update: if isContentStaff() && isValidId(contentId) &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidAcademicContent(incoming());
+      allow delete: if isAdmin() && isValidId(contentId);
+    }
+
+    // --- 4. SOCIAL: FRIEND REQUESTS, FRIENDSHIPS, BLOCKS ---
+    match /friend_requests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) &&
+        (existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid);
+      allow list: if isSignedIn() &&
+        (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(requestId) &&
+        incoming().fromUid == request.auth.uid &&
+        incoming().status == 'pending' &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidFriendRequest(incoming());
+      allow update: if isSignedIn() && isValidId(requestId) &&
+        existing().status == 'pending' &&
+        incoming().fromUid == existing().fromUid &&
+        incoming().toUid == existing().toUid &&
+        incoming().pairKey == existing().pairKey &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidFriendRequest(incoming()) &&
+        (
+          (request.auth.uid == existing().toUid && incoming().status in ['accepted', 'declined']) ||
+          (request.auth.uid == existing().fromUid && incoming().status == 'cancelled')
+        ) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(requestId) &&
+        (existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid);
+    }
+
+    match /friendships/{friendshipId} {
+      allow get: if isSignedIn() && isValidId(friendshipId) &&
+        request.auth.uid in existing().memberUids;
+      allow list: if isSignedIn() &&
+        request.auth.uid in resource.data.memberUids;
+      allow create: if isSignedIn() && isValidId(friendshipId) &&
+        request.auth.uid in incoming().memberUids &&
+        isValidTimestamp(incoming().createdAt) &&
+        isValidFriendship(incoming());
+      allow update: if isSignedIn() && isValidId(friendshipId) &&
+        request.auth.uid in existing().memberUids &&
+        incoming().memberUids == existing().memberUids &&
+        incoming().pairKey == existing().pairKey &&
+        incoming().createdAt == existing().createdAt &&
+        isValidFriendship(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['mutedByUids']);
+      allow delete: if isSignedIn() && isValidId(friendshipId) &&
+        request.auth.uid in existing().memberUids;
+    }
+
+    match /blocked_users/{blockId} {
+      allow get: if isSignedIn() && isValidId(blockId) &&
+        existing().blockerUid == request.auth.uid;
+      allow list: if isSignedIn() &&
+        resource.data.blockerUid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(blockId) &&
+        incoming().blockerUid == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) &&
+        isValidBlockedUser(incoming());
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(blockId) &&
+        existing().blockerUid == request.auth.uid;
+    }
+
+    // --- 5. PRIVATE MESSAGING & STUDY GROUPS ---
+    match /conversations/{conversationId} {
+      allow get: if isSignedIn() && isValidId(conversationId) &&
+        (request.auth.uid in existing().memberUids ||
+         ('invitedUids' in existing() && request.auth.uid in existing().invitedUids));
+      allow list: if isSignedIn() &&
+        (request.auth.uid in resource.data.memberUids ||
+         ('invitedUids' in resource.data && request.auth.uid in resource.data.invitedUids));
+      allow create: if isSignedIn() && isValidId(conversationId) &&
+        incoming().ownerId == request.auth.uid &&
+        request.auth.uid in incoming().memberUids &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidConversation(incoming());
+      allow update: if isSignedIn() && isValidId(conversationId) &&
+        isValidTimestamp(incoming().updatedAt) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().type == existing().type &&
+        isValidConversation(incoming()) && (
+          // Member sending message / updating preview / muting / leaving group
+          (request.auth.uid in existing().memberUids &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['lastMessagePreview', 'lastMessageAt', 'updatedAt', 'mutedByUids', 'memberUids', 'invitedUids', 'ownerId', 'name'])) ||
+          // Invited user accepting group invitation
+          ('invitedUids' in existing() && request.auth.uid in existing().invitedUids &&
+           request.auth.uid in incoming().memberUids &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'invitedUids', 'updatedAt']))
+        );
+      allow delete: if isSignedIn() && isValidId(conversationId) &&
+        existing().ownerId == request.auth.uid;
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(messageId) &&
+          request.auth.uid in existing().memberUids;
+        allow list: if isSignedIn() &&
+          request.auth.uid in resource.data.memberUids;
+        allow create: if isSignedIn() && isValidId(messageId) &&
+          incoming().senderUid == request.auth.uid &&
+          request.auth.uid in incoming().memberUids &&
+          exists(/databases/$(database)/documents/conversations/$(conversationId)) &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.memberUids &&
+          isValidTimestamp(incoming().createdAt) &&
+          isValidChatMessage(incoming());
+        allow update: if isSignedIn() && isValidId(messageId) &&
+          request.auth.uid in existing().memberUids &&
+          incoming().senderUid == existing().senderUid &&
+          incoming().memberUids == existing().memberUids &&
+          incoming().text == existing().text &&
+          incoming().createdAt == existing().createdAt &&
+          isValidChatMessage(incoming()) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['reactions', 'deliveryStatus', 'readByUids']);
+        allow delete: if isSignedIn() && isValidId(messageId) &&
+          existing().senderUid == request.auth.uid;
+      }
+    }
+
+    // --- 6. MULTIPLAYER & LEADERBOARDS ---
+    match /match_requests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId);
+      allow list: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || resource.data.status == 'waiting');
+      allow create: if isSignedIn() && isValidId(requestId) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'waiting' &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidMatchRequest(incoming());
+      allow update: if isSignedIn() && isValidId(requestId) &&
+        existing().status == 'waiting' &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidMatchRequest(incoming()) &&
+        (
+          (request.auth.uid == existing().userId && incoming().status in ['cancelled', 'expired', 'matched']) ||
+          (incoming().status == 'matched' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'matchId', 'updatedAt']))
+        );
+      allow delete: if isSignedIn() && isValidId(requestId) &&
+        existing().userId == request.auth.uid;
+    }
+
+    match /matches/{matchId} {
+      allow get: if isSignedIn() && isValidId(matchId) &&
+        (request.auth.uid in existing().playerUids ||
+         ('invitedUids' in existing() && request.auth.uid in existing().invitedUids) ||
+         existing().mode == 'private_room' ||
+         isAdmin());
+      allow list: if isSignedIn() &&
+        (request.auth.uid in resource.data.playerUids ||
+         ('invitedUids' in resource.data && request.auth.uid in resource.data.invitedUids) ||
+         resource.data.mode == 'private_room');
+      allow create: if isSignedIn() && isValidId(matchId) &&
+        incoming().hostUid == request.auth.uid &&
+        request.auth.uid in incoming().playerUids &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidMatch(incoming());
+      allow update: if isSignedIn() && isValidId(matchId) &&
+        incoming().hostUid == existing().hostUid &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidMatch(incoming()) && (
+          isAdmin() ||
+          (
+            // Terminal State Locking: completed/cancelled/abandoned matches cannot be mutated by players
+            !(existing().status in ['completed', 'cancelled', 'abandoned']) && (
+              // Invited or room-code joiner entering lobby
+              (incoming().diff(existing()).affectedKeys().hasOnly(['playerUids', 'readyUids', 'status', 'updatedAt']) &&
+               request.auth.uid in incoming().playerUids) ||
+              // Active player updating ready state, startTime, scores, or completion
+              (request.auth.uid in existing().playerUids &&
+               incoming().diff(existing()).affectedKeys().hasOnly(['readyUids', 'status', 'startTime', 'scores', 'winnerUid', 'updatedAt']))
+            )
+          )
+        );
+      allow delete: if isAdmin() && isValidId(matchId);
+
+      match /submissions/{submissionId} {
+        allow get: if isSignedIn() && isValidId(submissionId) &&
+          (existing().userId == request.auth.uid || isAdmin());
+        allow list: if isSignedIn() &&
+          (resource.data.userId == request.auth.uid || isAdmin());
+        // Append-only verified submission; duplicate submission prevented by deterministic docId (${uid}_${questionId})
+        allow create: if isSignedIn() && isValidId(submissionId) &&
+          incoming().userId == request.auth.uid &&
+          exists(/databases/$(database)/documents/matches/$(matchId)) &&
+          request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.playerUids &&
+          isValidTimestamp(incoming().submittedAt) &&
+          isValidMatchSubmission(incoming());
+        allow update, delete: if false;
+      }
+    }
+
+    match /leaderboard_entries/{entryId} {
+      allow get: if isSignedIn() && isValidId(entryId);
+      allow list: if isSignedIn();
+      allow create: if (isOwner(entryId) || isAdmin()) && isValidId(entryId) &&
+        incoming().userId == entryId &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidLeaderboardEntry(incoming());
+      allow update: if (isOwner(entryId) || isAdmin()) && isValidId(entryId) &&
+        incoming().userId == existing().userId &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidLeaderboardEntry(incoming());
+      allow delete: if isAdmin() && isValidId(entryId);
+    }
+
+    match /tournaments/{tournamentId} {
+      allow get: if isSignedIn() && isValidId(tournamentId);
+      allow list: if isSignedIn();
+      allow create: if isAdmin() && isValidId(tournamentId) &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidTournament(incoming());
+      allow update: if isSignedIn() && isValidId(tournamentId) &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidTournament(incoming()) && (
+          isAdmin() ||
+          (existing().status == 'registration' &&
+           request.auth.uid in incoming().participantUids &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['participantUids', 'updatedAt']))
+        );
+      allow delete: if isAdmin() && isValidId(tournamentId);
+    }
+
+    // --- 7. MODERATION, ADMIN STUDIO & SYSTEM SETTINGS ---
+    match /moderation_cases/{caseId} {
+      allow get: if isSignedIn() && isValidId(caseId) &&
+        (existing().reporterUid == request.auth.uid || isModeratorStaff());
+      allow list: if isSignedIn() &&
+        (resource.data.reporterUid == request.auth.uid || isModeratorStaff());
+      allow create: if isSignedIn() && isValidId(caseId) &&
+        incoming().reporterUid == request.auth.uid &&
+        incoming().status == 'open' &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidModerationCase(incoming());
+      allow update: if isSignedIn() && isValidId(caseId) &&
+        incoming().reporterUid == existing().reporterUid &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidModerationCase(incoming()) && (
+          isModeratorStaff() ||
+          (existing().reporterUid == request.auth.uid &&
+           incoming().status == 'appealed' &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'appealText', 'updatedAt']))
+        );
+      allow delete: if isAdmin() && isValidId(caseId);
+    }
+
+    match /admin_users/{uid} {
+      allow get: if (isOwner(uid) || isAdmin()) && isValidId(uid);
+      allow list: if isAdmin();
+      allow create, update, delete: if isBootstrappedOwner() && isValidId(uid);
+    }
+
+    match /audit_logs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin() && isValidId(logId) &&
+        incoming().actorUid == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt);
+      allow update, delete: if false;
+    }
+
+    match /system_settings/{settingId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isAdmin() && isValidId(settingId) &&
+        isValidTimestamp(incoming().updatedAt);
+      allow delete: if isBootstrappedOwner() && isValidId(settingId);
+    }
+  }
+}

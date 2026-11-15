@@ -1,0 +1,388 @@
+package com.example.ui.viewmodel
+
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.core.AppLanguage
+import com.example.core.unwrapFirestoreMessage
+import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.local.CachedLessonEntity
+import com.example.data.local.LocalBookmarkEntity
+import com.example.data.local.LocalRevisionEntity
+import com.example.data.model.ExamTemplate
+import com.example.data.model.LearningRecordDoc
+import com.example.data.model.QuestionItem
+import com.example.data.model.QuestionType
+import com.example.data.model.StudyLesson
+import com.example.data.model.StudyPlanDoc
+import com.example.data.repository.AcademicProgressRepository
+import com.example.data.repository.AiDoubtSolverRepository
+import com.example.data.repository.GuestDataRepository
+import com.example.data.repository.SubjectAnalyticsSummary
+import com.example.data.repository.WeakTopicStat
+import com.google.firebase.firestore.FirebaseFirestoreException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+sealed interface AiDoubtUiState {
+    data object Idle : AiDoubtUiState
+    data object Loading : AiDoubtUiState
+    data class Streaming(val text: String) : AiDoubtUiState
+    data class Success(val text: String) : AiDoubtUiState
+    data class Error(val message: String) : AiDoubtUiState
+}
+
+data class AssessmentResultSummary(
+    val title: String,
+    val isExam: Boolean,
+    val correctCount: Int,
+    val wrongCount: Int,
+    val skippedCount: Int,
+    val score: Double,
+    val totalMarks: Double,
+    val negativeDeduction: Double,
+    val xpEarned: Int,
+    val includesCqSelfAssessment: Boolean
+)
+
+class LearnAndExamViewModel(
+    private val currentUserId: String,
+    private val academicRepo: AcademicProgressRepository,
+    private val aiRepo: AiDoubtSolverRepository
+) : ViewModel() {
+
+    val learningRecords: StateFlow<List<LearningRecordDoc>> = academicRepo.observeLearningRecords(currentUserId)
+        .catch { error ->
+            val fsErr = generateSequence(error) { it.cause }.filterIsInstance<FirebaseFirestoreException>().firstOrNull()
+            if (fsErr == null && error is CancellationException) throw error
+            Log.w(TAG, "Learning records stream error", fsErr ?: error)
+            emit(emptyList())
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val studyPlans: StateFlow<List<StudyPlanDoc>> = academicRepo.observeStudyPlans(currentUserId)
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val mergedQuestions: StateFlow<List<QuestionItem>> = if (currentUserId == GuestDataRepository.GUEST_UID) {
+        flowOf(BangladeshCurriculumCatalog.questions)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), BangladeshCurriculumCatalog.questions)
+    } else {
+        academicRepo.observePublishedCloudContent()
+            .map { academicRepo.mergeQuestionBank(it) }
+            .catch { emit(BangladeshCurriculumCatalog.questions) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), BangladeshCurriculumCatalog.questions)
+    }
+
+    val cachedLessons: StateFlow<List<CachedLessonEntity>> = academicRepo.observeCachedLessons()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val bookmarks: StateFlow<List<LocalBookmarkEntity>> = academicRepo.observeBookmarks()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val revisions: StateFlow<List<LocalRevisionEntity>> = academicRepo.observeRevisions()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val pendingSyncCount: StateFlow<Int> = academicRepo.observePendingSyncCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), 0)
+
+    val weakTopics: StateFlow<List<WeakTopicStat>> = learningRecords
+        .map { academicRepo.computeWeakTopics(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val subjectAnalytics: StateFlow<List<SubjectAnalyticsSummary>> = learningRecords
+        .map { academicRepo.computeSubjectAnalytics(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    private val _aiState = MutableStateFlow<AiDoubtUiState>(AiDoubtUiState.Idle)
+    val aiState: StateFlow<AiDoubtUiState> = _aiState.asStateFlow()
+
+    private val _statusBanner = MutableStateFlow<String?>(null)
+    val statusBanner: StateFlow<String?> = _statusBanner.asStateFlow()
+
+    private val _lastAssessmentResult = MutableStateFlow<AssessmentResultSummary?>(null)
+    val lastAssessmentResult: StateFlow<AssessmentResultSummary?> = _lastAssessmentResult.asStateFlow()
+
+    private val _examRemainingSeconds = MutableStateFlow(0)
+    val examRemainingSeconds: StateFlow<Int> = _examRemainingSeconds.asStateFlow()
+    private var examTimerJob: Job? = null
+
+    fun clearBanner() {
+        _statusBanner.value = null
+    }
+
+    fun clearAssessmentResult() {
+        _lastAssessmentResult.value = null
+    }
+
+    fun resetAiDoubtState() {
+        _aiState.value = AiDoubtUiState.Idle
+    }
+
+    fun downloadChapterOffline(chapterId: String) {
+        viewModelScope.launch {
+            val res = academicRepo.downloadChapterForOffline(chapterId)
+            res.onSuccess { count ->
+                _statusBanner.value = "Downloaded $count items for offline study"
+            }
+            res.onFailure {
+                _statusBanner.value = it.localizedMessage ?: "Download failed"
+            }
+        }
+    }
+
+    fun completeLesson(lesson: StudyLesson, isOnline: Boolean, onXpEarned: (Int) -> Unit = {}) {
+        viewModelScope.launch {
+            val res = academicRepo.recordLessonCompleted(currentUserId, lesson, isOnline)
+            res.onSuccess { xp ->
+                if (xp > 0) onXpEarned(xp)
+            }
+            res.onFailure {
+                _statusBanner.value = unwrapFirestoreMessage(it, "Could not save lesson")
+            }
+        }
+    }
+
+    fun toggleBookmark(question: QuestionItem, isMistake: Boolean = false) {
+        viewModelScope.launch {
+            val existing = bookmarks.value.any { it.questionId == question.id }
+            if (existing) {
+                academicRepo.removeBookmark(question.id)
+            } else {
+                academicRepo.toggleBookmark(question, isMistake = isMistake)
+            }
+        }
+    }
+
+    fun addToRevision(question: QuestionItem) {
+        viewModelScope.launch {
+            academicRepo.addToRevisionQueue(question, markWrong = false)
+            _statusBanner.value = "Added to Spaced Repetition queue"
+        }
+    }
+
+    fun reviewRevisionItem(itemId: String, quality: Int) {
+        viewModelScope.launch {
+            academicRepo.reviewSpacedRepetitionItem(itemId, quality)
+        }
+    }
+
+    fun startExamTimer(durationSeconds: Int, onTimeExpired: () -> Unit) {
+        examTimerJob?.cancel()
+        _examRemainingSeconds.value = durationSeconds
+        examTimerJob = viewModelScope.launch {
+            while (_examRemainingSeconds.value > 0) {
+                delay(1000L)
+                _examRemainingSeconds.value = _examRemainingSeconds.value - 1
+            }
+            onTimeExpired()
+        }
+    }
+
+    fun stopExamTimer() {
+        examTimerJob?.cancel()
+        examTimerJob = null
+    }
+
+    fun submitPracticeOrExam(
+        title: String,
+        questions: List<QuestionItem>,
+        selectedIndicesByQuestion: Map<String, Set<Int>>,
+        textAnswersByQuestion: Map<String, String>,
+        cqSelfScoresByQuestion: Map<String, Double>,
+        template: ExamTemplate?,
+        isOnline: Boolean,
+        onXpEarned: (Int) -> Unit = {}
+    ) {
+        stopExamTimer()
+        viewModelScope.launch {
+            var correctCount = 0
+            var wrongCount = 0
+            var skippedCount = 0
+            var earnedMarks = 0.0
+            var totalMarks = 0.0
+            var hasCq = false
+
+            for (q in questions) {
+                totalMarks += q.marks.toDouble()
+                when (q.type) {
+                    QuestionType.SINGLE_MCQ, QuestionType.TRUE_FALSE, QuestionType.MULTI_MCQ -> {
+                        val picked = selectedIndicesByQuestion[q.id] ?: emptySet()
+                        if (picked.isEmpty()) {
+                            skippedCount++
+                        } else if (picked == q.correctOptionIndices.toSet()) {
+                            correctCount++
+                            earnedMarks += q.marks.toDouble()
+                        } else {
+                            wrongCount++
+                            academicRepo.addToRevisionQueue(q, markWrong = true)
+                            academicRepo.toggleBookmark(q, isMistake = true)
+                        }
+                    }
+                    QuestionType.CREATIVE_CQ -> {
+                        hasCq = true
+                        val selfScore = cqSelfScoresByQuestion[q.id]
+                        if (selfScore == null) {
+                            skippedCount++
+                        } else {
+                            earnedMarks += selfScore.coerceIn(0.0, q.marks.toDouble())
+                            if (selfScore >= q.marks * 0.5) correctCount++ else wrongCount++
+                        }
+                    }
+                    QuestionType.FLASHCARD -> {
+                        val flipped = selectedIndicesByQuestion[q.id]?.isNotEmpty() == true
+                        if (flipped) {
+                            correctCount++
+                            earnedMarks += q.marks.toDouble()
+                        } else skippedCount++
+                    }
+                    else -> {
+                        val txt = textAnswersByQuestion[q.id]?.trim().orEmpty()
+                        if (txt.isBlank()) {
+                            skippedCount++
+                        } else if (q.acceptableTextAnswers.any { it.equals(txt, ignoreCase = true) } ||
+                            q.correctOptionIndices.isEmpty() && txt.length >= 2
+                        ) {
+                            correctCount++
+                            earnedMarks += q.marks.toDouble()
+                        } else {
+                            wrongCount++
+                            academicRepo.addToRevisionQueue(q, markWrong = true)
+                        }
+                    }
+                }
+            }
+
+            val negRate = template?.negativeMarkingPerWrong ?: 0.0
+            val negDeduction = wrongCount * negRate
+            val finalScore = (earnedMarks - negDeduction).coerceAtLeast(0.0)
+            val firstQ = questions.firstOrNull()
+            val subjectId = firstQ?.subjectId ?: template?.subjectIds?.firstOrNull() ?: "math"
+
+            val res = academicRepo.recordPracticeOrExamSession(
+                userId = currentUserId,
+                recordType = if (template != null) "exam" else "practice",
+                refId = template?.id ?: "practice_${subjectId}_${questions.size}",
+                subjectId = subjectId,
+                chapterId = firstQ?.chapterId,
+                topicId = firstQ?.topicId,
+                correctCount = correctCount,
+                totalQuestions = questions.size,
+                score = finalScore,
+                totalMarks = totalMarks.coerceAtLeast(1.0),
+                summary = title,
+                isOnline = isOnline
+            )
+            val xpEarned = res.getOrNull() ?: 0
+            if (xpEarned > 0) onXpEarned(xpEarned)
+
+            _lastAssessmentResult.value = AssessmentResultSummary(
+                title = title,
+                isExam = template != null,
+                correctCount = correctCount,
+                wrongCount = wrongCount,
+                skippedCount = skippedCount,
+                score = finalScore,
+                totalMarks = totalMarks,
+                negativeDeduction = negDeduction,
+                xpEarned = xpEarned,
+                includesCqSelfAssessment = hasCq
+            )
+        }
+    }
+
+    fun createStudyPlan(
+        title: String,
+        subjectId: String,
+        planType: String,
+        daysAhead: Int,
+        minutesPerDay: Long
+    ) {
+        viewModelScope.launch {
+            val targetMs = System.currentTimeMillis() + daysAhead.coerceAtLeast(1) * 86_400_000L
+            val res = academicRepo.createStudyPlan(
+                userId = currentUserId,
+                title = title,
+                subjectId = subjectId,
+                planType = planType,
+                targetDateEpochMs = targetMs,
+                minutesPerDay = minutesPerDay
+            )
+            res.onFailure { _statusBanner.value = unwrapFirestoreMessage(it, "Could not create plan") }
+        }
+    }
+
+    fun toggleStudyPlan(plan: StudyPlanDoc) {
+        viewModelScope.launch {
+            academicRepo.toggleStudyPlanCompleted(currentUserId, plan)
+        }
+    }
+
+    fun deleteStudyPlan(planId: String) {
+        viewModelScope.launch {
+            academicRepo.deleteStudyPlan(currentUserId, planId)
+        }
+    }
+
+    fun askAiDoubtSolver(
+        questionPrompt: String,
+        studentQuestion: String,
+        classId: String,
+        subjectName: String,
+        language: AppLanguage
+    ) {
+        viewModelScope.launch {
+            _aiState.value = AiDoubtUiState.Loading
+            try {
+                val enabled = aiRepo.isAiSolverEnabled()
+                if (!enabled) {
+                    _aiState.value = AiDoubtUiState.Error(
+                        if (language == AppLanguage.BANGLA) "অ্যাডমিন দ্বারা AI Doubt Solver সাময়িকভাবে বন্ধ আছে।"
+                        else "AI Doubt Solver is currently paused by StudyQuest Admins."
+                    )
+                    return@launch
+                }
+                var latest = ""
+                aiRepo.streamDoubtExplanation(
+                    questionPrompt = questionPrompt,
+                    studentQuestion = studentQuestion,
+                    classId = classId,
+                    subjectName = subjectName,
+                    language = language
+                ).collect { chunk ->
+                    latest = chunk
+                    _aiState.value = AiDoubtUiState.Streaming(chunk)
+                }
+                if (latest.isNotBlank()) {
+                    _aiState.value = AiDoubtUiState.Success(latest)
+                } else {
+                    _aiState.value = AiDoubtUiState.Error("Empty response from AI tutor.")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "AI Doubt Solver ViewModel error", e)
+                _aiState.value = AiDoubtUiState.Error(e.localizedMessage ?: "AI tutor error.")
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        examTimerJob?.cancel()
+    }
+
+    companion object {
+        private const val TAG = "LearnExamVM"
+    }
+}

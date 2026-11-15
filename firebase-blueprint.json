@@ -1,0 +1,445 @@
+{
+  "entities": {
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Non-PII student identity for discovery, friends, leaderboards, and multiplayer.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "studyQuestId": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "avatarId": { "type": "string" },
+        "frameId": { "type": "string" },
+        "titleBadge": { "type": "string" },
+        "classId": { "type": "string" },
+        "curriculumVersion": { "type": "string", "enum": ["bangla", "english"] },
+        "overallLevel": { "type": "integer" },
+        "levelTitle": { "type": "string" },
+        "totalXp": { "type": "integer" },
+        "coins": { "type": "integer" },
+        "competitionRating": { "type": "integer" },
+        "rankTier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master"] },
+        "optInNationalLeaderboard": { "type": "boolean" },
+        "showOnlineStatus": { "type": "boolean" },
+        "isOnline": { "type": "boolean" },
+        "onboardingCompleted": { "type": "boolean" },
+        "selectedSubjects": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "studyQuestId", "username", "displayName", "avatarId", "classId", "curriculumVersion", "overallLevel", "totalXp", "coins", "createdAt", "updatedAt"]
+    },
+    "PrivateAccountInfo": {
+      "title": "PrivateAccountInfo",
+      "description": "Owner-only private account data including email, guardian consent, and deletion status.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "ageBracket": { "type": "string" },
+        "guardianConsentStatus": { "type": "string" },
+        "accountStatus": { "type": "string", "enum": ["active", "deletion_requested", "anonymized"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "accountStatus", "createdAt", "updatedAt"]
+    },
+    "UserPreferences": {
+      "title": "UserPreferences",
+      "description": "Owner-only language, accessibility, motion, audio, and notification preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "uiLanguage": { "type": "string", "enum": ["bn", "en"] },
+        "questionLanguage": { "type": "string", "enum": ["bn", "en"] },
+        "darkMode": { "type": "boolean" },
+        "reducedMotion": { "type": "boolean" },
+        "soundEnabled": { "type": "boolean" },
+        "quietHoursEnabled": { "type": "boolean" },
+        "dailyGoalXp": { "type": "integer" },
+        "weeklyGoalMinutes": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "uiLanguage", "questionLanguage", "updatedAt"]
+    },
+    "LearningRecord": {
+      "title": "LearningRecord",
+      "description": "Owner-only persisted lesson completion, practice session, mock exam attempt, bookmark, or revision state.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "recordType": { "type": "string", "enum": ["lesson", "practice", "exam", "bookmark", "revision"] },
+        "refId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "topicId": { "type": "string" },
+        "score": { "type": "number" },
+        "totalMarks": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "xpAwarded": { "type": "integer" },
+        "idempotencyKey": { "type": "string" },
+        "summary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "recordType", "refId", "subjectId", "idempotencyKey", "createdAt", "updatedAt"]
+    },
+    "XpTransaction": {
+      "title": "XpTransaction",
+      "description": "Append-only XP and Coin transaction ledger entry with idempotency key.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "sourceType": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "xpDelta": { "type": "integer" },
+        "coinDelta": { "type": "integer" },
+        "idempotencyKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "sourceType", "sourceId", "xpDelta", "coinDelta", "idempotencyKey", "createdAt"]
+    },
+    "UserQuest": {
+      "title": "UserQuest",
+      "description": "Student quest progress and reward claim state.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "questId": { "type": "string" },
+        "questType": { "type": "string", "enum": ["daily", "weekly", "subject", "chapter", "special"] },
+        "progress": { "type": "integer" },
+        "target": { "type": "integer" },
+        "completed": { "type": "boolean" },
+        "claimed": { "type": "boolean" },
+        "xpReward": { "type": "integer" },
+        "coinReward": { "type": "integer" },
+        "periodKey": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "questId", "questType", "progress", "target", "completed", "claimed", "periodKey", "updatedAt"]
+    },
+    "StudyPlanItem": {
+      "title": "StudyPlanItem",
+      "description": "Student routine, target, or exam countdown.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "planType": { "type": "string", "enum": ["daily", "weekly", "exam_countdown", "chapter_goal"] },
+        "targetDateEpochMs": { "type": "integer" },
+        "minutesPerDay": { "type": "integer" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "subjectId", "planType", "completed", "createdAt", "updatedAt"]
+    },
+    "UserNotification": {
+      "title": "UserNotification",
+      "description": "In-app notification record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "category": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "read": { "type": "boolean" },
+        "actionRoute": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "category", "title", "body", "read", "createdAt"]
+    },
+    "AcademicContent": {
+      "title": "AcademicContent",
+      "description": "Admin-managed Bangladesh curriculum lesson, question, or exam template.",
+      "type": "object",
+      "properties": {
+        "contentType": { "type": "string", "enum": ["lesson", "question", "exam_template"] },
+        "classId": { "type": "string" },
+        "curriculumVersion": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "topicId": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "titleBn": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "source_verification", "academic_review", "language_review", "approved", "published"] },
+        "authorUid": { "type": "string" },
+        "sourceAttribution": { "type": "string" },
+        "version": { "type": "integer" },
+        "payloadJson": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["contentType", "classId", "subjectId", "titleEn", "titleBn", "status", "authorUid", "version", "createdAt", "updatedAt"]
+    },
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "description": "Friend discovery request between two students.",
+      "type": "object",
+      "properties": {
+        "fromUid": { "type": "string" },
+        "toUid": { "type": "string" },
+        "fromDisplayName": { "type": "string" },
+        "fromStudyQuestId": { "type": "string" },
+        "toDisplayName": { "type": "string" },
+        "toStudyQuestId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined", "cancelled", "expired"] },
+        "pairKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fromUid", "toUid", "fromDisplayName", "toDisplayName", "status", "pairKey", "createdAt", "updatedAt"]
+    },
+    "Friendship": {
+      "title": "Friendship",
+      "description": "Accepted mutual friendship enabling private messaging and challenges.",
+      "type": "object",
+      "properties": {
+        "memberUids": { "type": "array" },
+        "pairKey": { "type": "string" },
+        "mutedByUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["memberUids", "pairKey", "createdAt"]
+    },
+    "BlockedUser": {
+      "title": "BlockedUser",
+      "description": "User block record preventing messaging and invites.",
+      "type": "object",
+      "properties": {
+        "blockerUid": { "type": "string" },
+        "blockedUid": { "type": "string" },
+        "pairKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["blockerUid", "blockedUid", "pairKey", "createdAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "1-on-1 friend chat or invitation-based private Study Group.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["direct", "group"] },
+        "name": { "type": "string" },
+        "avatarId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "invitedUids": { "type": "array" },
+        "mutedByUids": { "type": "array" },
+        "lastMessagePreview": { "type": "string" },
+        "lastMessageAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "ownerId", "memberUids", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Persistent text message inside a friend chat or Study Group.",
+      "type": "object",
+      "properties": {
+        "senderUid": { "type": "string" },
+        "senderName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "text": { "type": "string" },
+        "replyToId": { "type": "string" },
+        "replyPreview": { "type": "string" },
+        "reactions": { "type": "object" },
+        "quizInviteId": { "type": "string" },
+        "deliveryStatus": { "type": "string", "enum": ["sending", "sent", "delivered", "read", "failed"] },
+        "readByUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderUid", "senderName", "memberUids", "text", "deliveryStatus", "createdAt"]
+    },
+    "MatchRequest": {
+      "title": "MatchRequest",
+      "description": "Quick Battle matchmaking queue ticket.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "classId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "difficulty": { "type": "string" },
+        "status": { "type": "string", "enum": ["waiting", "matched", "cancelled", "expired"] },
+        "matchId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "classId", "subjectId", "difficulty", "status", "createdAt", "updatedAt"]
+    },
+    "Match": {
+      "title": "Match",
+      "description": "Live multiplayer 1v1, friend challenge, private room, or group battle.",
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["quick_battle", "friend_challenge", "private_room", "group_battle", "tournament"] },
+        "roomCode": { "type": "string" },
+        "hostUid": { "type": "string" },
+        "classId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "difficulty": { "type": "string" },
+        "status": { "type": "string", "enum": ["waiting", "matching", "found", "lobby", "ready", "live", "completed", "cancelled", "expired", "abandoned", "disputed"] },
+        "playerUids": { "type": "array" },
+        "invitedUids": { "type": "array" },
+        "readyUids": { "type": "array" },
+        "questionIds": { "type": "array" },
+        "questionCount": { "type": "integer" },
+        "durationSeconds": { "type": "integer" },
+        "scores": { "type": "object" },
+        "winnerUid": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["mode", "hostUid", "classId", "subjectId", "difficulty", "status", "playerUids", "questionIds", "questionCount", "durationSeconds", "createdAt", "updatedAt"]
+    },
+    "MatchSubmission": {
+      "title": "MatchSubmission",
+      "description": "Individual question answer submission within a live match.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "matchId": { "type": "string" },
+        "questionId": { "type": "string" },
+        "selectedIndex": { "type": "integer" },
+        "isCorrect": { "type": "boolean" },
+        "responseTimeMs": { "type": "integer" },
+        "pointsAwarded": { "type": "integer" },
+        "submittedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "matchId", "questionId", "selectedIndex", "isCorrect", "responseTimeMs", "pointsAwarded", "submittedAt"]
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Separated competition leaderboard entry for weekly, seasonal, class, subject, and opt-in national rankings.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "studyQuestId": { "type": "string" },
+        "avatarId": { "type": "string" },
+        "frameId": { "type": "string" },
+        "classId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "seasonId": { "type": "string" },
+        "weekKey": { "type": "string" },
+        "weeklyPoints": { "type": "integer" },
+        "seasonalPoints": { "type": "integer" },
+        "competitionRating": { "type": "integer" },
+        "rankTier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master"] },
+        "optInNational": { "type": "boolean" },
+        "matchesPlayed": { "type": "integer" },
+        "matchesWon": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "studyQuestId", "classId", "seasonId", "weekKey", "weeklyPoints", "seasonalPoints", "competitionRating", "rankTier", "optInNational", "updatedAt"]
+    },
+    "Tournament": {
+      "title": "Tournament",
+      "description": "Structured StudyQuest tournament listing and participant bracket state.",
+      "type": "object",
+      "properties": {
+        "titleEn": { "type": "string" },
+        "titleBn": { "type": "string" },
+        "classId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "status": { "type": "string", "enum": ["registration", "qualification", "semifinals", "finals", "completed"] },
+        "participantUids": { "type": "array" },
+        "maxParticipants": { "type": "integer" },
+        "rewardCoins": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["titleEn", "titleBn", "classId", "subjectId", "status", "participantUids", "maxParticipants", "rewardCoins", "createdAt", "updatedAt"]
+    },
+    "ModerationCase": {
+      "title": "ModerationCase",
+      "description": "Safety report for message, user, group, question, or match dispute.",
+      "type": "object",
+      "properties": {
+        "reporterUid": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["user", "message", "group", "question", "match"] },
+        "targetId": { "type": "string" },
+        "reason": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "triaged", "resolved", "dismissed", "appealed"] },
+        "assignedModeratorUid": { "type": "string" },
+        "decisionNote": { "type": "string" },
+        "appealText": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reporterUid", "targetType", "targetId", "reason", "status", "createdAt", "updatedAt"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Role-based staff authorization record for Admin Studio.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner", "administrator", "content_editor", "academic_reviewer", "moderator", "support_staff"] },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "active", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable administrative or moderation audit log.",
+      "type": "object",
+      "properties": {
+        "actorUid": { "type": "string" },
+        "action": { "type": "string" },
+        "targetType": { "type": "string" },
+        "targetId": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["actorUid", "action", "targetType", "targetId", "createdAt"]
+    },
+    "SystemSettings": {
+      "title": "SystemSettings",
+      "description": "Global platform feature toggles and season metadata.",
+      "type": "object",
+      "properties": {
+        "aiSolverEnabled": { "type": "boolean" },
+        "currentSeasonId": { "type": "string" },
+        "seasonNameEn": { "type": "string" },
+        "seasonNameBn": { "type": "string" },
+        "weeklyResetTz": { "type": "string" },
+        "updatedByUid": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["aiSolverEnabled", "currentSeasonId", "seasonNameEn", "seasonNameBn", "weeklyResetTz", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/public_profiles/{userId}": { "schema": { "$ref": "#/entities/PublicProfile" }, "description": "Non-PII student profile directory" },
+    "/users/{userId}/private/{docId}": { "schema": { "$ref": "#/entities/PrivateAccountInfo" }, "description": "Owner-only PII & deletion metadata" },
+    "/users/{userId}/preferences/{docId}": { "schema": { "$ref": "#/entities/UserPreferences" }, "description": "Owner-only language/theme/notification prefs" },
+    "/users/{userId}/learning_records/{recordId}": { "schema": { "$ref": "#/entities/LearningRecord" }, "description": "Owner-only study/exam/bookmark/revision records" },
+    "/users/{userId}/xp_ledger/{txId}": { "schema": { "$ref": "#/entities/XpTransaction" }, "description": "Owner-only idempotent XP/Coin ledger" },
+    "/users/{userId}/quests/{questId}": { "schema": { "$ref": "#/entities/UserQuest" }, "description": "Owner-only quest progress" },
+    "/users/{userId}/study_plans/{planId}": { "schema": { "$ref": "#/entities/StudyPlanItem" }, "description": "Owner-only study planner items" },
+    "/users/{userId}/notifications/{notifId}": { "schema": { "$ref": "#/entities/UserNotification" }, "description": "Owner-only in-app notifications" },
+    "/academic_content/{contentId}": { "schema": { "$ref": "#/entities/AcademicContent" }, "description": "Published & editorial Bangladesh curriculum content" },
+    "/friend_requests/{requestId}": { "schema": { "$ref": "#/entities/FriendRequest" }, "description": "Friend discovery requests" },
+    "/friendships/{friendshipId}": { "schema": { "$ref": "#/entities/Friendship" }, "description": "Mutual accepted friendships" },
+    "/blocked_users/{blockId}": { "schema": { "$ref": "#/entities/BlockedUser" }, "description": "User block records" },
+    "/conversations/{conversationId}": { "schema": { "$ref": "#/entities/Conversation" }, "description": "Friend chats and private study groups" },
+    "/conversations/{conversationId}/messages/{messageId}": { "schema": { "$ref": "#/entities/ChatMessage" }, "description": "Messages in friend chats and study groups" },
+    "/match_requests/{requestId}": { "schema": { "$ref": "#/entities/MatchRequest" }, "description": "Quick battle matchmaking tickets" },
+    "/matches/{matchId}": { "schema": { "$ref": "#/entities/Match" }, "description": "Live multiplayer matches and private rooms" },
+    "/matches/{matchId}/submissions/{submissionId}": { "schema": { "$ref": "#/entities/MatchSubmission" }, "description": "Verified match answer submissions" },
+    "/leaderboard_entries/{entryId}": { "schema": { "$ref": "#/entities/LeaderboardEntry" }, "description": "Weekly, seasonal, class, subject, and opt-in national leaderboard rows" },
+    "/tournaments/{tournamentId}": { "schema": { "$ref": "#/entities/Tournament" }, "description": "Structured StudyQuest tournaments" },
+    "/moderation_cases/{caseId}": { "schema": { "$ref": "#/entities/ModerationCase" }, "description": "Safety reports and moderation workflow" },
+    "/admin_users/{uid}": { "schema": { "$ref": "#/entities/AdminUser" }, "description": "Role-based Admin Studio authorization" },
+    "/audit_logs/{logId}": { "schema": { "$ref": "#/entities/AuditLog" }, "description": "Immutable administrative audit logs" },
+    "/system_settings/{settingId}": { "schema": { "$ref": "#/entities/SystemSettings" }, "description": "Global platform configuration" }
+  }
+}

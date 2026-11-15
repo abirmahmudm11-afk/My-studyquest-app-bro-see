@@ -1,0 +1,6 @@
+{
+  "name": "StudyQuest",
+  "description": "Bangladesh-first educational mobile platform for Classes 6-10 & SSC with structured lessons, Question Bank, Quick Practice, Mock Exams, Friends, Study Groups, Live Multiplayer, Leaderboards, and AI Doubt Solver.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

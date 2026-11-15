@@ -1,0 +1,2126 @@
+# STUDYQUEST — COMPLETE MASTER EXECUTION PROMPT
+
+## BANGLADESH-FIRST EDUCATIONAL MOBILE APPLICATION
+### Academic Learning + Chorcha-Inspired Exam Preparation + Friends + Private Messaging + Study Groups + Live Multiplayer + Leaderboards + Gamification + Fully Animated Experience
+
+PRODUCT: StudyQuest
+TAGLINE: Learn. Connect. Compete. Achieve.
+MARKET: Bangladesh
+LANGUAGES: Bangla and English
+PLATFORM: Android-first mobile application, with iOS-ready architecture
+INITIAL ACADEMIC SCOPE: Classes 6–10 and SSC
+PRODUCT CATEGORY: Educational technology, examination preparation, social learning and competitive learning.
+
+# 1. YOUR ROLE AND MISSION
+
+Act as a complete multidisciplinary professional product-development organization.
+
+Operate as a senior product manager, mobile architect, React Native developer, backend engineer, database architect, UI/UX designer, creative director, motion designer, educational technology specialist, Bangladesh academic content architect, multiplayer engineer, social messaging engineer, security engineer, QA engineer and release engineer.
+
+Your responsibility is to transform StudyQuest into a real, professionally designed, fully functional, secure, thoroughly tested mobile application.
+
+This is an implementation assignment, not another planning assignment.
+
+Inspect the available environment, establish the project, implement the application, build its backend, connect the required systems, test the actual workflows, fix defects, and prepare the deliverables.
+
+Never stop at:
+- A concept.
+- A visual mockup.
+- A static interface.
+- A nonfunctional prototype.
+- A collection of disconnected screens.
+- A frontend containing fake data.
+- A project with decorative controls.
+- An architectural explanation without implementation.
+
+CORE DIRECTIVE: REAL DESIGN. REAL FUNCTIONALITY. NO AI SLOP.
+
+Preserve the original StudyQuest vision and all mandatory product requirements. Make reasonable engineering decisions independently without asking the user to design each component.
+
+# 2. ORIGINAL PRODUCT VISION
+
+StudyQuest is a Bangladesh-first educational mobile platform combining three interconnected experiences.
+
+A. ACADEMIC EXCELLENCE
+- Structured Bangladesh academic curriculum.
+- Subjects, chapters, topics and lessons.
+- Comprehensive question bank.
+- MCQ and CQ preparation.
+- Quick practice.
+- Previous examination questions.
+- Timed mock examinations.
+- Revision and flashcards.
+- Academic analytics.
+- Weak-topic identification.
+
+B. SOCIAL LEARNING
+- Student profiles.
+- Unique StudyQuest IDs.
+- Friend discovery.
+- Friend requests and accepted friendships.
+- Online and offline status subject to privacy settings.
+- Private text messaging.
+- Message reactions and replies.
+- Study groups.
+- Group conversations.
+- Friend challenges.
+- Safe social interactions.
+
+C. HEALTHY COMPETITION
+- Live 1v1 battles.
+- Friend challenges.
+- Private competition rooms.
+- Group competitions.
+- Tournaments.
+- Friends leaderboards.
+- Class leaderboards.
+- Subject leaderboards.
+- Opt-in national rankings.
+- Weekly rankings.
+- Seasonal competitions.
+- XP, coins, levels, achievements and quests.
+
+StudyQuest is an educational application with game-inspired progression, not a standalone mobile game.
+
+Learning must remain the central purpose.
+
+# 3. FIXED PRODUCT REQUIREMENTS
+
+Preserve these requirements:
+
+- Bangladesh-first product.
+- Native-feeling Android mobile experience.
+- Bangla and English language support.
+- Initial Classes 6–10 and SSC academic coverage.
+- Future readiness for HSC and admission preparation.
+- Chorcha-inspired academic depth without copying its branding, protected interface, proprietary content or assets.
+- Real Question Bank.
+- MCQ and CQ learning.
+- Quick Practice.
+- Timed Mock Exams.
+- Previous examination questions with appropriate source and reuse rights.
+- Study lessons.
+- Revision library.
+- XP and coins.
+- Overall and subject levels.
+- Daily and weekly quests.
+- Achievements.
+- Student profiles.
+- Friend discovery and friend lists.
+- Private messaging.
+- Private study groups and group chat.
+- Real multiplayer.
+- Friend challenges.
+- Private competition rooms.
+- Tournaments and group battles.
+- Leaderboards.
+- Weekly and seasonal rankings.
+- Fully animated interface.
+- Original mascot and illustrations.
+- Secure backend.
+- Administrative platform.
+- Content-management workflow.
+- Social moderation and student safety.
+- Offline-supported learning.
+- Real notifications.
+- Testing, documentation and Android release preparation.
+
+Do not downgrade friends, messaging, multiplayer or leaderboards to optional future functionality. They are core StudyQuest 1.0 features.
+
+Advanced AI tutoring, expanded HSC and admission content, extensive national tournaments, voice/video calling and school administration may be expanded later.
+
+# 4. DEVELOPMENT RULES
+
+Before implementation:
+
+1. Inspect the entire available repository.
+2. Identify the actual development environment.
+3. Read existing source files and configuration.
+4. Check existing dependencies.
+5. Identify existing backend integrations.
+6. Identify incomplete implementations.
+7. Preserve useful working code.
+8. Establish or update the requirements ledger.
+9. Record fixed decisions, recommendations and unresolved dependencies.
+10. Plan the actual implementation sequence.
+
+For a new project, establish the application architecture, repository organization, dependency management and development configuration.
+
+Throughout development, distinguish:
+- Planned.
+- Implemented.
+- Integrated.
+- Tested.
+- Verified.
+- Blocked.
+
+Never confuse code written with functionality verified.
+
+Every significant feature must be implemented, connected to its dependent systems and checked through actual workflows.
+
+Never fabricate test results, connected services, online players, activity, user counts, scores or operational statistics.
+
+If credentials, services, permissions or resources are unavailable, disclose the genuine blocker and continue independent work.
+
+Do not promise background work. Complete the work supported by the available environment.
+
+# 5. TECHNICAL ARCHITECTURE
+
+Use the following as the preferred initial architecture, subject to actual environment inspection.
+
+MOBILE:
+- React Native.
+- Expo.
+- TypeScript.
+- Expo Router or an equivalent structured navigation system.
+- React Native Reanimated.
+- React Native Gesture Handler.
+- Rive.
+- Lottie.
+- Local SQLite or suitable equivalent for offline study data.
+
+BACKEND:
+- Supabase Authentication.
+- PostgreSQL.
+- Supabase Storage.
+- Supabase Realtime.
+- Secure server-side functions.
+- Row Level Security.
+- Appropriate background workers or a dedicated match service when needed.
+
+NOTIFICATIONS:
+- Firebase Cloud Messaging or another supported production notification provider.
+- In-app notification records.
+- Notification preferences and quiet hours.
+
+ADMINISTRATION:
+- Separate responsive web application.
+- Authorized role-based access.
+- Content management.
+- Moderation.
+- Operational configuration.
+
+AI:
+- Optional provider-independent backend adapter.
+- Secure server-side API calls.
+- Never place secret AI credentials inside mobile source code.
+
+ANDROID IS THE FIRST RELEASE TARGET. Maintain appropriate iOS readiness without claiming unverified iOS compatibility.
+
+Do not force unnecessary services into the architecture. Document technology decisions, versions, integrations, credentials required and known limitations.
+
+# 6. BRAND AND DESIGN SYSTEM
+
+Create an original, premium, welcoming educational identity.
+
+VISUAL DIRECTION:
+- Professional educational product.
+- Adventure-inspired visual details.
+- Friendly illustrations.
+- Original animated mascot.
+- Clear subject and learning navigation.
+- Beautiful progress visualization.
+- Carefully designed achievements.
+- Modern native-feeling mobile interaction.
+
+PROPOSED COLORS:
+- Forest green: primary.
+- Natural green: secondary and progress.
+- Warm cream: main background.
+- White: cards and panels.
+- Mango yellow: rewards and emphasis.
+- Warm orange: selective highlights.
+- Deep charcoal: text.
+- Accessible red: errors.
+
+Create a separate accessible dark theme.
+
+Avoid generic AI dashboards, arbitrary purple or blue gradients, neon, excessive glassmorphism, unnecessary glow, clutter, meaningless decoration and recycled templates.
+
+TYPOGRAPHY:
+Support Bengali Unicode and English, Bengali and English numerals, mathematical notation and mixed-language content.
+
+Verify Bengali text wrapping, glyph height, accessibility scaling and font fallback.
+
+BUILD A REUSABLE DESIGN SYSTEM:
+- Buttons.
+- Cards.
+- Subject cards.
+- Quest cards.
+- Question cards.
+- Input fields.
+- Search.
+- Tabs.
+- Navigation.
+- Dialogs.
+- Bottom sheets.
+- Progress indicators.
+- Scoreboards.
+- Rank badges.
+- Achievement badges.
+- Avatars.
+- Chat bubbles.
+- Reactions.
+- Toasts.
+- Loading states.
+- Empty states.
+- Error states.
+
+# 7. FIVE-TAB MOBILE NAVIGATION
+
+Implement exactly five primary navigation tabs.
+
+1. TODAY
+Personal dashboard, greeting, avatar, level, XP, daily progress, quests, weekly goals, study shortcuts, recent activity, recommended lessons, subject progress, reminders and friend/competition highlights where privacy permits.
+
+2. LEARN
+Classes, curricula, subjects, chapters, topics, lessons, Question Bank, Quick Practice, previous questions, Flashcards, Revision Library, Mock Exams and Study Planner.
+
+3. COMPETE
+Quick Battle, Challenge Friend, Private Rooms, Group Battles, Tournaments, Leaderboards, Subject Leagues, Seasonal Rankings, Match History and statistics.
+
+4. FRIENDS
+Friends List, online friends subject to privacy, Discover Friends, Friend Requests, Sent Requests, Recent Conversations, Private Messages, Study Groups, Group Chats and Blocked Users.
+
+5. PROFILE
+Student identity, avatar, StudyQuest ID, XP, levels, subject progress, achievements, competition statistics, analytics, inventory, settings, privacy, Safety Center and account management.
+
+Provide global access to messages and notifications where appropriate. Progress, achievements and analytics receive dedicated screens.
+
+# 8. AUTHENTICATION AND ONBOARDING
+
+Create:
+- Animated splash.
+- Welcome.
+- Language selection.
+- Registration.
+- Login.
+- Password recovery.
+- Appropriate account verification.
+- Academic setup.
+- Subject selection.
+- Avatar selection.
+- Notification-permission explanation.
+
+Use secure authentication supported by the selected backend.
+
+Support appropriate account recovery, session revocation and logout.
+
+The student must be able to edit academic preferences and language later.
+
+Implement account export and in-app account deletion, including appropriate data handling and legally required retention.
+
+Do not expose authentication details or create an insecure custom password system.
+
+# 9. BANGLADESH ACADEMIC STRUCTURE
+
+Build a configurable curriculum system supporting Classes 6, 7, 8, 9, 10 and SSC initially, with future HSC, admission and suitable competitive examinations.
+
+STRUCTURE:
+Academic Year → Curriculum Version → Class → Applicable Group → Subject → Chapter → Topic → Lesson → Question.
+
+Support Bangla Version and English Version.
+
+Support academic year, syllabus version, subject selection, appropriate board context and question language.
+
+Prepare initial subject configurations for:
+- Mathematics.
+- English.
+- Bangla.
+- General Science.
+- ICT.
+- Social Studies.
+- General Knowledge.
+- Additional verified subjects applicable to each curriculum.
+
+Do not force every subject into every class.
+
+Do not hardcode obsolete syllabus assumptions.
+
+Maintain historical curriculum versions and examination records.
+
+Use reliable NCTB-related academic references where applicable.
+
+Do not invent official questions, claim unverified material is official, or republish copyrighted content without appropriate rights.
+
+# 10. QUESTION BANK
+
+Build a searchable, filterable academic question bank.
+
+FILTERS:
+- Class.
+- Academic year.
+- Curriculum.
+- Subject.
+- Chapter.
+- Topic.
+- Board.
+- Examination year.
+- Question type.
+- Difficulty.
+- Language.
+- Source.
+
+QUESTION TYPES:
+- Single MCQ.
+- Multiple-answer MCQ.
+- True/False.
+- Fill in the blanks.
+- Short answer.
+- Creative question (CQ).
+- Matching.
+- Numerical.
+- Flashcards.
+
+Each question must support relevant information:
+- Unique ID.
+- Question text.
+- Language.
+- Subject.
+- Chapter.
+- Topic.
+- Difficulty.
+- Answer options.
+- Answer key.
+- Explanation.
+- Marks.
+- Source.
+- Examination year.
+- Review status.
+- Publication status.
+- Version history.
+
+FEATURES:
+- Bookmark.
+- Report question.
+- Save mistake.
+- Add to revision.
+- View explanation.
+- Review history.
+- Related topics.
+- Related questions.
+
+Protect answer keys during active examinations and live competitions.
+
+Maintain source and licensing metadata.
+
+# 11. QUICK PRACTICE
+
+Allow students to choose class, subject, chapter, topic, difficulty, format and practice length.
+
+WORKFLOW:
+1. Select academic context.
+2. Configure practice.
+3. Load eligible questions.
+4. Begin session.
+5. Answer questions.
+6. Receive appropriate evaluation.
+7. Read explanations.
+8. Review mistakes.
+9. Complete session.
+10. View results.
+11. Save eligible progress.
+12. Receive verified XP where applicable.
+
+CONTROLS:
+- Previous.
+- Next.
+- Skip where allowed.
+- Submit.
+- Flag.
+- Bookmark.
+- Explanation.
+- Finish.
+
+RESULTS:
+- Attempted.
+- Correct.
+- Incorrect.
+- Unanswered.
+- Accuracy.
+- Marks where applicable.
+- Weak topics.
+- Saved mistakes.
+
+Prevent duplicate submissions and duplicate rewards.
+
+# 12. MOCK EXAM SYSTEM
+
+Implement real configurable examinations.
+
+SUPPORT:
+- Officially reviewed exam templates.
+- Custom practice examinations.
+- Subject-based tests.
+- Multi-subject tests.
+- Chapter-wise tests.
+- Full-length mock examinations.
+
+CONFIGURATION:
+- Examination title.
+- Class.
+- Curriculum.
+- Subject.
+- Question set.
+- Duration.
+- Total marks.
+- Question order.
+- Marking scheme.
+- Negative marking where appropriate.
+
+EXAM INSTRUCTIONS:
+Show duration, marks, question count, marking rules and submission information.
+
+LIVE EXAM:
+- Authoritative countdown.
+- Question navigation.
+- Answer inputs.
+- Answered/unanswered states.
+- Review flags.
+- Automatic response saving.
+- Submission confirmation.
+- Expiration and automatic submission handling.
+
+Handle interrupted connections and application backgrounding without silently losing valid saved answers.
+
+RESULTS:
+- Final score.
+- Total marks.
+- Accuracy.
+- Time used.
+- Correct.
+- Incorrect.
+- Unanswered.
+- Topic analysis.
+- Subject performance.
+- Answer review.
+- Verified explanations.
+- Improvement recommendations.
+- Examination history.
+
+MCQ evaluation must be deterministic.
+
+CQ evaluation must use appropriate marking rubrics and reviewed model answers. Clearly label self-assessment or AI-assisted estimates; never represent them as official examiner marks.
+
+# 13. LESSONS, FLASHCARDS AND REVISION
+
+LESSONS must include:
+- Learning objectives.
+- Explanations.
+- Examples.
+- Definitions.
+- Formula references.
+- Diagrams.
+- Important points.
+- Practice.
+- Related topics.
+
+FLASHCARDS must support front/back content, reveal interaction, subject tagging, review history and next review scheduling.
+
+REVISION LIBRARY must include bookmarked questions, mistakes, weak topics, due questions and review history.
+
+Implement configurable spaced repetition.
+
+Maintain last-reviewed date, review outcome, repetition history and next due date.
+
+# 14. STUDY PLANNER AND ACADEMIC ANALYTICS
+
+Allow:
+- Daily routine.
+- Weekly routine.
+- Subject targets.
+- Chapter goals.
+- Study sessions.
+- Revision sessions.
+- Examination countdowns.
+- Reminders.
+- Completed activity.
+
+ANALYTICS:
+- Overall academic progress.
+- Subject accuracy.
+- Chapter mastery.
+- Topic mastery.
+- Mock exam performance.
+- Practice history.
+- Revision completion.
+- Study consistency.
+- Improvement history.
+- Weak-topic detection.
+
+Detect weak areas from repeated attempts and meaningful performance patterns. Do not infer a student's overall ability from one wrong answer.
+
+Explain recommendations clearly.
+
+Avoid punitive study streaks or unhealthy engagement mechanics.
+
+# 15. FRIENDS AND SOCIAL DISCOVERY
+
+This is mandatory in StudyQuest 1.0.
+
+Every student receives:
+- Internal account ID.
+- Unique StudyQuest ID.
+- Username.
+- Display name.
+- Avatar.
+- Overall level.
+- XP.
+- Subject levels.
+- Optional public achievements.
+- Privacy-controlled competition statistics.
+
+DISCOVERY METHODS:
+- Exact StudyQuest ID.
+- Username.
+- Private invitation code.
+- QR invitation.
+
+FRIEND REQUEST STATES:
+- Pending.
+- Accepted.
+- Declined.
+- Cancelled.
+- Expired.
+
+Prevent duplicate active requests.
+
+Friends Screen sections:
+- All Friends.
+- Online Friends.
+- Recent Conversations.
+- Pending Requests.
+- Sent Requests.
+- Study Groups.
+- Blocked Users.
+
+Friend cards display permitted identity information, avatar, online state when enabled, message action, challenge action and a more-actions menu.
+
+FRIEND ACTIONS:
+- View Profile.
+- Send Message.
+- Challenge.
+- Invite to Room.
+- Add to Group.
+- Mute.
+- Remove Friend.
+- Block.
+- Report.
+
+Friendship must be established only through a valid acceptance workflow.
+
+Do not expose phone numbers, email addresses, home addresses or precise locations.
+
+# 16. PRIVATE MESSAGING AND GROUP CHAT
+
+Implement persistent, real, secure messaging using the backend.
+
+PRIVATE CHAT:
+- Message history.
+- Text messages.
+- Message timestamps.
+- Sending status.
+- Sent status.
+- Delivered status.
+- Optional read receipts.
+- Typing indicator.
+- Replies.
+- Reactions.
+- Message search.
+- Conversation mute.
+- Block.
+- Report.
+- Appropriate deletion and retention rules.
+
+Handle:
+- Sending.
+- Sent.
+- Delivered.
+- Read.
+- Failed.
+- Retry.
+
+Never fabricate delivery or read indicators.
+
+GROUP STUDY:
+- Create private group.
+- Group name.
+- Group avatar.
+- Member invitations.
+- Invitation acceptance.
+- Group owner.
+- Authorized member roles.
+- Group messages.
+- Reactions.
+- Replies.
+- Shared quiz invitations.
+- Group challenges.
+- Member management.
+- Leave group.
+- Report group.
+- Authorized ownership transfer.
+
+Initial messaging is text-first.
+
+Do not include unrestricted stranger messaging, public unmoderated rooms, location sharing or unrestricted file attachments.
+
+Voice notes and voice/video calls require separate future safety and product evaluation.
+
+PROTECT STUDENTS:
+- Accepted-friend messaging only.
+- Invitation-based groups.
+- Blocking and reporting.
+- Spam and abuse rate limits.
+- Appropriate content filtering.
+- Restricted suspicious links.
+- Logged and authorized moderation.
+- Clear moderation rules.
+- Appeals.
+
+# 17. MULTIPLAYER COMPETITIONS
+
+Multiplayer is mandatory in the first release.
+
+COMPETE HOME:
+- Quick Battle.
+- Challenge a Friend.
+- Private Rooms.
+- Group Battles.
+- Tournaments.
+- Match History.
+- Competition Statistics.
+- Leaderboards.
+- Subject Leagues.
+- Seasons.
+
+QUICK BATTLE:
+1. Choose class.
+2. Select subject.
+3. Select difficulty.
+4. Request match.
+5. Server validates eligibility.
+6. Matchmaking finds an appropriate real player.
+7. Create shared match.
+8. Enter lobby.
+9. Confirm readiness.
+10. Synchronize start.
+11. Display questions.
+12. Collect answers.
+13. Verify submissions.
+14. Calculate scores.
+15. Publish results.
+16. Update eligible rankings.
+
+FRIEND CHALLENGE:
+Allow subject, chapter, difficulty, question count, duration and rules to be configured.
+
+Friend may accept, decline or let the challenge expire.
+
+PRIVATE ROOMS:
+- Create.
+- Join with code.
+- Validate access.
+- View participants.
+- Host controls.
+- Settings.
+- Ready status.
+- Countdown.
+- Synchronized questions.
+- Scoreboard.
+- Results.
+- Replay.
+
+GROUP BATTLES:
+- Individual competition.
+- Team versus team.
+- Team assignments.
+- Team scores.
+- Participant status.
+- Shared results.
+- History.
+
+TOURNAMENTS:
+- Listings.
+- Details.
+- Eligibility.
+- Registration.
+- Confirmation.
+- Qualification.
+- Rounds.
+- Brackets.
+- Semifinals.
+- Finals.
+- Final results.
+- Rewards.
+- Historical archive.
+
+MATCH STATES:
+Waiting → Matching → Found → Lobby → Ready → Live → Completed.
+
+Also implement:
+- Cancelled.
+- Expired.
+- Disconnected.
+- Reconnecting.
+- Abandoned.
+- Disputed where appropriate.
+
+COMPETITION FAIRNESS:
+- Server-controlled questions.
+- Server-controlled timing.
+- Server-validated submissions.
+- Server-calculated scores.
+- Duplicate-submission protection.
+- Equivalent difficulty.
+- Accuracy before speed.
+- Appropriate time-based tie-breakers.
+- Reconnection.
+- Match audit.
+- Match dispute.
+- Abandoned-match rules.
+
+Never trust the client to submit its own final score.
+
+Do not create fake online opponents.
+
+If matchmaking finds no real player, show the genuine waiting, timeout or cancellation state.
+
+No paid competitive advantages.
+
+# 18. LEADERBOARDS AND SEASONS
+
+Implement:
+
+- Friends Leaderboard.
+- Class Leaderboard.
+- Subject Leaderboard.
+- Authorized private School/Group Leaderboard.
+- Opt-in National Leaderboard.
+- Weekly Leaderboard.
+- Seasonal Leaderboard.
+- Tournament Leaderboard.
+
+KEEP SEPARATE:
+- Learning XP.
+- Academic mastery.
+- Competition rating.
+- Weekly points.
+- Seasonal points.
+- Tournament results.
+
+RANK TIERS:
+- Bronze.
+- Silver.
+- Gold.
+- Platinum.
+- Diamond.
+- Master.
+
+Make rating thresholds and qualification configurable.
+
+LEADERBOARD ROW:
+- Position.
+- Avatar.
+- Display name.
+- Relevant category.
+- Verified points.
+- Rank badge.
+- Rank movement where available.
+
+Display the current student's personal position even outside the top ranking.
+
+PROPOSED WEEKLY RESET:
+Monday at 00:00, Asia/Dhaka.
+
+PROPOSED SEASON:
+28 days.
+
+Season rules:
+- Preserve historical rankings.
+- Archive completed seasons.
+- Reset seasonal points according to published rules.
+- Do not reset permanent XP.
+- Do not reset subject mastery.
+- Support seasonal rewards.
+- Make duration configurable.
+
+REWARDS:
+- Cosmetic badges.
+- Profile frames.
+- Titles.
+- Avatar accessories.
+- Decorative themes.
+
+Never sell rank positions, scores or examination advantages.
+
+ANTI-CHEAT:
+- Server-authoritative results.
+- Session validation.
+- Time validation.
+- Duplicate detection.
+- Abnormal-result monitoring.
+- Rate limits.
+- Match disputes.
+- Auditable ranking corrections.
+
+# 19. XP, COINS, LEVELS, QUESTS AND ACHIEVEMENTS
+
+Implement a complete server-authoritative progression system.
+
+PROPOSED INITIAL XP VALUES:
+
+- Lesson completion: 15 XP.
+- Practice session completion: 10 XP.
+- Eligible correct practice answer: 2 XP.
+- Chapter completion: 40 XP.
+- Mock exam completion: 25 XP.
+- Daily quest completion: 30 XP.
+- Weekly quest completion: 100 XP.
+- Additional verified improvement rewards may be configurable.
+
+These values are proposed starting configurations, not immutable rules.
+
+Prevent reward farming, duplicate transactions and meaningless repeated activity.
+
+OVERALL LEVEL TITLES:
+- Beginner.
+- Explorer.
+- Scholar.
+- Achiever.
+- Expert.
+- Master Learner.
+
+Create independent subject progression.
+
+COINS:
+Earn from legitimate learning activities and unlock:
+- Avatars.
+- Profile borders.
+- Nameplates.
+- Decorative themes.
+- Chat reactions.
+- Achievement effects.
+
+Do not sell competitive advantages.
+
+ACHIEVEMENT CATEGORIES:
+
+Learning:
+- First Lesson.
+- First Chapter Complete.
+- Subject Explorer.
+- Mastery milestones.
+
+Consistency:
+- Study streaks.
+- Weekly completion.
+- Monthly consistency.
+
+Academic:
+- First Mock Exam.
+- Chapter practice.
+- Improvement milestone.
+
+Social:
+- First Friend.
+- First Study Group.
+- First Friend Challenge.
+
+Competition:
+- First Battle.
+- Match milestones.
+- Tournament participation.
+- Tournament finalist.
+- Season champion.
+
+QUEST TYPES:
+- Daily.
+- Weekly.
+- Subject.
+- Chapter.
+- Special challenges.
+
+Each quest requires a title, description, criteria, progress, reward, expiry and completion status.
+
+Missing a day must not destroy permanent progression.
+
+# 20. PROFILE, AVATAR AND INVENTORY
+
+PROFILE:
+- Avatar.
+- Username.
+- StudyQuest ID.
+- Display name.
+- Overall level.
+- XP.
+- Subject levels.
+- Achievement highlights.
+- Competition statistics.
+- Permitted academic highlights.
+- Privacy-controlled public information.
+
+AVATAR CUSTOMIZATION:
+- Avatar base.
+- Appropriate accessories.
+- Clothing.
+- Frames.
+- Themes.
+- Badges.
+- Profile backgrounds.
+
+INVENTORY:
+- Owned items.
+- Equipped items.
+- Unlock conditions.
+- Earned cosmetic rewards.
+- Purchase records where an approved shop exists.
+
+Cosmetics must never alter academic or competitive outcomes.
+
+# 21. AI DOUBT SOLVER
+
+Build an optional backend-connected educational assistant.
+
+CAPABILITIES:
+- Bangla questions.
+- English questions.
+- Concept explanations.
+- Step-by-step mathematical explanations.
+- Science explanations.
+- Wrong-answer explanations.
+- Additional practice.
+- Revision recommendations.
+
+CONTEXT:
+Use class, curriculum, subject, chapter, topic and verified reference content where available.
+
+TRUST REQUIREMENTS:
+- Prefer reviewed academic material.
+- Provide source references where available.
+- Admit uncertainty.
+- Never fabricate official quotations.
+- Distinguish AI responses from approved academic answers.
+- Do not publish unreviewed generated questions as verified content.
+
+Keep AI provider-independent and secure.
+
+Add usage limits, monitoring, cost controls, fallback behavior and an administrator-controlled enable/disable setting.
+
+The core application must work without AI access.
+
+# 22. COMPLETE ANIMATION SYSTEM
+
+The entire application must be fully animated.
+
+Use appropriate combinations of:
+- React Native Reanimated.
+- Rive.
+- Lottie.
+- Gesture Handler.
+- Native haptics.
+
+ANIMATE:
+- Splash and onboarding.
+- Navigation transitions.
+- Today dashboard.
+- Subject and chapter cards.
+- Learning paths.
+- Lesson diagrams where suitable.
+- Quiz transitions.
+- Answer feedback.
+- Examination states.
+- Result reveal.
+- XP collection.
+- Level ups.
+- Achievement unlocking.
+- Quest completion.
+- Friend requests.
+- Message appearance.
+- Reactions.
+- Group activity.
+- Matchmaking.
+- Countdown.
+- Live battles.
+- Scoreboard changes.
+- Leaderboard movement.
+- Rank advancement.
+- Avatar customization.
+- Notifications.
+- Loading states.
+- Empty states.
+- Error feedback.
+
+Create an original StudyQuest mascot with state-based expressions for:
+- Welcome.
+- Learning assistance.
+- Encouragement.
+- Success.
+- Quest completion.
+- Achievement.
+- Study reminders.
+- Empty states.
+
+Do not interrupt exams or serious learning with distracting animations.
+
+TARGET: Smooth 60 FPS during typical transitions on supported devices.
+
+Optimize assets, memory and battery consumption.
+
+Respect Android reduced-motion and accessibility preferences.
+
+Offer appropriate animation and sound settings.
+
+Animations must correspond to genuine application events.
+
+# 23. BANGLA AND ENGLISH LOCALIZATION
+
+Support বাংলা and English throughout the application.
+
+Translate:
+- Navigation.
+- Labels.
+- Buttons.
+- Instructions.
+- Notifications.
+- Error messages.
+- Empty states.
+- Help text.
+- Exam instructions.
+- Competition text.
+- Moderation information.
+- Settings.
+
+Support independently selected UI and question language where appropriate.
+
+Changing language must not erase progress or account data.
+
+Maintain correct Bengali spelling, Unicode and typography.
+
+Avoid unnecessary mixed-language UI.
+
+Test all screens using actual Bengali text.
+
+# 24. NOTIFICATION ENGINE
+
+Implement real in-app and push notifications.
+
+EVENTS:
+- Friend requests.
+- Friend acceptance.
+- Private messages.
+- Group invitations.
+- Battle invitations.
+- Match found.
+- Tournament changes.
+- Achievements.
+- Quest completion.
+- Revision reminders.
+- Study reminders.
+- Weekly reports.
+- Security notifications.
+
+CONTROLS:
+- Category preferences.
+- Enable/disable.
+- Quiet hours.
+- Sound.
+- Read/unread states.
+- Notification previews.
+- Duplicate prevention.
+
+Use a properly configured provider, such as Firebase Cloud Messaging for Android.
+
+Do not fabricate notification delivery.
+
+# 25. OFFLINE SUPPORT
+
+Allow appropriate offline access to:
+
+- Previously downloaded lessons.
+- Saved study material.
+- Cached question sets.
+- Bookmarks.
+- Revision items.
+- Local practice progress.
+
+Online-only:
+- Private chat synchronization.
+- Matchmaking.
+- Live competitions.
+- Realtime leaderboards.
+- Online presence.
+
+Show connectivity clearly.
+
+Synchronize eligible offline records safely.
+
+Prevent duplicates and identify unsynchronized progress.
+
+Do not represent offline activity as a verified live match.
+
+# 26. ADMIN STUDIO
+
+Build a separate secure responsive administrative application.
+
+ADMIN DASHBOARD:
+- Real user statistics.
+- Registrations.
+- Learning activity.
+- Question activity.
+- Exam activity.
+- Competition activity.
+- Report queue.
+- Content status.
+- Service status.
+
+CONTENT MANAGEMENT:
+- Academic year.
+- Curriculum.
+- Class.
+- Group.
+- Subject.
+- Chapter.
+- Topic.
+- Lesson.
+- Question.
+- Answer key.
+- Explanation.
+- Source.
+- Translation.
+- Import.
+- Review.
+- Publication.
+- Version history.
+
+EDITORIAL WORKFLOW:
+Draft → Source Verification → Academic Review → Language Review → Approval → Publication.
+
+MODERATION:
+- Reports.
+- Case details.
+- Authorized evidence.
+- Assignment.
+- Review.
+- Decisions.
+- Appeals.
+- Audit history.
+
+COMPETITION MANAGEMENT:
+- Rules.
+- Match eligibility.
+- Season settings.
+- Tournament configuration.
+- Reported result review.
+- Verified score correction.
+- Archive.
+
+ADMINISTRATIVE ROLES:
+- Owner.
+- Administrator.
+- Content Editor.
+- Academic Reviewer.
+- Moderator.
+- Support Staff.
+
+Use role-based permissions, least privilege and audit logging.
+
+Do not give support or content staff unnecessary access to private conversations, authentication data or owner-only settings.
+
+# 27. DATABASE DESIGN
+
+Implement a relational database, appropriate integrity constraints and secure access policies.
+
+Required entity groups:
+
+IDENTITY:
+- users.
+- profiles.
+- user_preferences.
+- learning_profiles.
+- user_subjects.
+- user_privacy.
+
+ACADEMIC:
+- academic_years.
+- curriculum_versions.
+- classes.
+- academic_groups.
+- subjects.
+- chapters.
+- topics.
+- lessons.
+- lesson_assets.
+
+QUESTION BANK:
+- questions.
+- question_options.
+- answer_keys.
+- explanations.
+- question_sources.
+- question_tags.
+- question_reports.
+- question_revisions.
+
+PRACTICE AND EXAMS:
+- exam_templates.
+- exam_questions.
+- practice_sessions.
+- exam_attempts.
+- user_answers.
+- exam_results.
+- bookmarks.
+- revision_items.
+
+PROGRESSION:
+- xp_transactions.
+- user_levels.
+- subject_progress.
+- quests.
+- user_quests.
+- achievements.
+- user_achievements.
+- coin_transactions.
+- inventory_items.
+- user_inventory.
+
+SOCIAL:
+- friend_requests.
+- friendships.
+- blocked_users.
+- conversations.
+- conversation_members.
+- messages.
+- message_receipts.
+- message_reports.
+- group_settings.
+
+COMPETITION:
+- match_requests.
+- matches.
+- match_players.
+- match_questions.
+- match_answers.
+- match_results.
+- competition_seasons.
+- rank_ratings.
+- leaderboard_entries.
+- tournaments.
+- tournament_entries.
+- tournament_rounds.
+- tournament_results.
+
+ADMINISTRATION:
+- admin_users.
+- roles.
+- permissions.
+- role_permissions.
+- moderation_cases.
+- moderation_actions.
+- support_tickets.
+- audit_logs.
+- notification_records.
+- system_settings.
+
+Implement:
+- Foreign keys.
+- Appropriate uniqueness constraints.
+- Indexes.
+- Transactional updates.
+- Idempotent operations.
+- Row Level Security.
+- Versioned curriculum data.
+- Historical records.
+- Appropriate retention and deletion policies.
+
+Adapt field-level details to the selected architecture without omitting any required capability.
+
+# 28. BACKEND MODULES
+
+Separate responsibilities into:
+
+1. Identity.
+2. Academic.
+3. Content.
+4. Practice.
+5. Examinations.
+6. Progress.
+7. Quests.
+8. Rewards.
+9. Social.
+10. Messaging.
+11. Competition.
+12. Ranking.
+13. Notifications.
+14. Moderation.
+15. Administration.
+16. AI Gateway.
+
+All modules must share consistent authentication, authorization, validation and error handling.
+
+Important business operations must execute on the authoritative backend.
+
+Never trust client-submitted scores, XP, coin balances, inventory ownership, friendship status, group membership or administrative permissions.
+
+# 29. SECURITY AND STUDENT SAFETY
+
+Treat StudyQuest as an application that may be used by minors.
+
+Implement security and privacy from the beginning.
+
+SECURITY:
+- Secure authentication.
+- Protected sessions.
+- Row Level Security.
+- Server-side authorization.
+- Request validation.
+- Rate limits.
+- Secure secret management.
+- Encrypted network communication.
+- Appropriate audit logs.
+- Backup and restoration.
+
+PRIVATE DATA:
+- No public phone numbers.
+- No exposed email addresses.
+- No home addresses.
+- No precise location display.
+- No credentials in client code.
+- No private academic records in public profiles.
+
+SOCIAL PROTECTION:
+- Mutual accepted friendship for private messages.
+- Invitation-based private groups.
+- Blocking.
+- Muting.
+- Reporting.
+- Spam limits.
+- Content safeguards.
+- Restricted external links.
+- Controlled moderator access.
+- Appeals.
+
+AGE-APPROPRIATE OPERATION:
+Determine applicable Bangladesh laws, child privacy requirements, age eligibility, guardian-consent obligations and app-store policies before release.
+
+Implement required consent and guardianship workflows where applicable.
+
+ACCOUNT DELETION:
+Provide an in-app deletion process with confirmation, session revocation, applicable personal data deletion or anonymization and clear handling of legally required retained records.
+
+MODERATION WORKFLOW:
+Report → Case Creation → Appropriate Triage → Human Review → Decision → Notification → Appeal.
+
+Log moderation actions and restrict access to authorized personnel.
+
+# 30. PERFORMANCE AND RELIABILITY
+
+Optimize:
+- Startup.
+- Navigation.
+- Animations.
+- Memory.
+- Rendering.
+- Image loading.
+- Chat scrolling.
+- Question display.
+- Database requests.
+- Offline data.
+- Realtime connections.
+
+Handle:
+- Network loss.
+- Request timeout.
+- Message retry.
+- Duplicate request.
+- Reconnection.
+- Interrupted match.
+- Expired session.
+- Database failure.
+- Notification failure.
+
+Implement:
+- Regular backups.
+- Restoration procedures.
+- Monitoring.
+- Error logging.
+- Health checks.
+- Migration tracking.
+- Incident documentation.
+
+Proposed quality target: smooth 60 FPS typical transitions on supported devices and a crash-free session target of at least 99.5%, subject to actual device and production measurement.
+
+Do not claim measured performance without evidence.
+
+# 31. ASSET PRODUCTION
+
+Prepare all required original or appropriately licensed assets.
+
+VISUAL:
+- Logo.
+- App icon.
+- Mascot.
+- Avatars.
+- Subject illustrations.
+- Diagrams.
+- Achievement badges.
+- Rank symbols.
+- Profile frames.
+- Onboarding.
+- Empty states.
+- Seasonal assets.
+- Store screenshots.
+
+ANIMATION:
+- Logo.
+- Mascot states.
+- Subject transitions.
+- Quiz interactions.
+- XP.
+- Level up.
+- Achievement reveals.
+- Matchmaking.
+- Countdown.
+- Results.
+- Chat reactions.
+- Leaderboard movement.
+
+AUDIO:
+- Appropriate notification sounds.
+- Correct-answer feedback.
+- Incorrect-answer feedback.
+- Achievement sound.
+- Level-up sound.
+- Competition countdown.
+- Match completion.
+
+All assets must have suitable licensing or original creation records.
+
+Provide controls to disable sound and unnecessary effects.
+
+# 32. MONETIZATION
+
+Keep the first core academic and competition experience free.
+
+Possible future premium features:
+- Expanded learning libraries.
+- Advanced analysis.
+- Additional examination packs.
+- Optional AI tutoring.
+- Expanded study-planning tools.
+- Additional cosmetic personalization.
+
+No pay-to-win advantages.
+
+No paid examination answers.
+
+No paid leaderboard placement.
+
+No gambling-style rewards.
+
+No sale of personal student information.
+
+Avoid inappropriate targeted advertising to children.
+
+Use applicable digital-purchase and app-store billing requirements if premium products are introduced.
+
+Do not invent product pricing.
+
+# 33. DEVELOPMENT ROADMAP
+
+Implement in dependency-aware stages.
+
+PHASE 0 — DISCOVERY AND ARCHITECTURE
+- Inspect environment.
+- Maintain requirements ledger.
+- Finalize architecture.
+- Design database.
+- Establish design system.
+- Define screen flows.
+- Record risks and dependencies.
+
+PHASE 1 — MOBILE FOUNDATION
+- App setup.
+- Navigation.
+- Onboarding.
+- Authentication.
+- Profiles.
+- Localization.
+- Initial backend.
+
+PHASE 2 — ACADEMIC ENGINE
+- Curriculum.
+- Subjects.
+- Chapters.
+- Topics.
+- Lessons.
+- Question Bank.
+- Content administration.
+
+PHASE 3 — EXAMINATION ENGINE
+- Quick Practice.
+- MCQ.
+- CQ workflows.
+- Mock exams.
+- Timer.
+- Evaluation.
+- Results.
+- Revision.
+
+PHASE 4 — PROGRESSION
+- XP.
+- Coins.
+- Levels.
+- Quests.
+- Achievements.
+- Study planner.
+- Analytics.
+
+PHASE 5 — SOCIAL
+- Friends.
+- Friend requests.
+- Profiles.
+- Private chat.
+- Study groups.
+- Blocking.
+- Reporting.
+- Moderation.
+
+PHASE 6 — MULTIPLAYER
+- Matchmaking.
+- Friend battles.
+- Private rooms.
+- Synchronized questions.
+- Server scoring.
+- Match history.
+
+PHASE 7 — RANKINGS
+- Subject rankings.
+- Friends rankings.
+- Class rankings.
+- National opt-in ranking.
+- Weekly periods.
+- 28-day seasons.
+- Tournament structures.
+
+PHASE 8 — ANIMATION AND DESIGN POLISH
+- Mascot.
+- Rive/Lottie assets.
+- Motion system.
+- Reward effects.
+- Screen transitions.
+- Haptic feedback.
+- Accessibility.
+
+PHASE 9 — INTEGRATION AND HARDENING
+- Push notifications.
+- Offline synchronization.
+- Backend integration.
+- Security review.
+- Load testing.
+- Performance optimization.
+- Device testing.
+
+PHASE 10 — ANDROID RELEASE
+- Release build.
+- Store assets.
+- Privacy disclosures.
+- Documentation.
+- Recovery and monitoring.
+- Final release review.
+
+Respect the dependency map. For example, multiplayer scoring depends on identity, question security and competition rules. Leaderboards depend on verified results. AI assistance depends on secure backend integration and reviewed content where available.
+
+# 34. QUALITY ASSURANCE
+
+Create a comprehensive automated and manual testing plan.
+
+FUNCTIONAL:
+- Navigation.
+- Registration.
+- Login.
+- Recovery.
+- Profile.
+- Language switching.
+- Subjects.
+- Lessons.
+- Questions.
+- Practice.
+- Examinations.
+- Results.
+- XP.
+- Coins.
+- Quests.
+- Achievements.
+- Friends.
+- Messaging.
+- Groups.
+- Matchmaking.
+- Battles.
+- Leaderboards.
+- Notifications.
+- Deletion.
+
+ACADEMIC:
+- Answer keys.
+- Mark calculations.
+- Negative marking.
+- Question mapping.
+- Curriculum version.
+- Explanation accuracy.
+- Bengali language quality.
+- Mathematical notation.
+
+SOCIAL:
+- Duplicate requests.
+- Declined requests.
+- Removed friendships.
+- Blocking.
+- Muting.
+- Group acceptance.
+- Group permissions.
+- Message ordering.
+- Retry.
+- Duplicate delivery.
+- Reporting.
+
+MULTIPLAYER:
+- Simultaneous join.
+- Match compatibility.
+- Ready status.
+- Countdown synchronization.
+- Simultaneous answers.
+- Late submissions.
+- Disconnection.
+- Reconnection.
+- Cancellation.
+- Expiry.
+- Abandonment.
+- Duplicate answers.
+- Score validation.
+- Ranking update.
+- Match dispute.
+
+SECURITY:
+- Unauthorized database access.
+- Unauthorized profile access.
+- Private message exposure.
+- Privilege escalation.
+- Duplicate rewards.
+- Insecure files.
+- API abuse.
+- Session expiration.
+- Administrative permission bypass.
+- Deletion workflow.
+
+VISUAL:
+- Different Android screen sizes.
+- Bengali text.
+- English text.
+- Large fonts.
+- Light and dark themes.
+- Reduced motion.
+- Poor connectivity.
+- Background/resume.
+- Animation interruption.
+
+ACCESSIBILITY:
+- Screen readers.
+- Contrast.
+- Touch targets.
+- Text resizing.
+- Motion controls.
+- Color-independent state communication.
+
+# 35. REQUIRED ACCEPTANCE SCENARIOS
+
+Verify the following end-to-end experiences.
+
+SCENARIO 1: FIRST LEARNING SESSION
+- Student selects Bangla or English.
+- Creates an account.
+- Selects academic class and subjects.
+- Opens a subject.
+- Completes a lesson.
+- Starts Quick Practice.
+- Answers a question.
+- Receives correct feedback.
+- Sees persisted progress.
+
+SCENARIO 2: QUEST REWARD
+- Student completes an eligible task.
+- Backend validates completion.
+- Quest progresses.
+- Eligible reward is granted once.
+- XP history updates.
+- Dashboard reflects the actual result.
+
+SCENARIO 3: FRIENDSHIP
+- Student A searches Student B by StudyQuest ID.
+- Sends a request.
+- Student B receives the request.
+- Student B accepts.
+- Both see the friendship.
+
+SCENARIO 4: PRIVATE MESSAGING
+- Accepted friends open a conversation.
+- Student A sends a message.
+- The backend persists it.
+- Student B receives it.
+- Delivery state is accurate.
+- Blocking prevents further contact.
+
+SCENARIO 5: STUDY GROUP
+- Student creates a private study group.
+- Invites friends.
+- Friends accept.
+- Group membership is verified.
+- Members exchange messages.
+- Unauthorized users cannot access the group.
+
+SCENARIO 6: MULTIPLAYER BATTLE
+- Two actual students request compatible matches.
+- Matchmaking pairs them.
+- Both enter the same lobby.
+- Countdown is synchronized.
+- Questions are shared appropriately.
+- Both submit answers.
+- Backend evaluates answers.
+- Final score is verified.
+- Results are saved.
+
+SCENARIO 7: LEADERBOARD
+- Completed eligible matches affect appropriate ranking.
+- Duplicate matches do not award repeated points.
+- Personal position is correct.
+- Weekly and seasonal results are separated.
+- Historical rankings remain accessible.
+
+SCENARIO 8: MOCK EXAM
+- Student selects a real exam configuration.
+- Starts the timed examination.
+- Answers are saved.
+- Student submits.
+- Results are calculated.
+- Answer review shows the correct approved explanation.
+
+SCENARIO 9: PRIVACY
+- Student A cannot read Student B's private conversations.
+- A blocked account cannot bypass the restriction.
+- A nonmember cannot open a private group.
+- A student cannot alter their own verified score.
+
+SCENARIO 10: LANGUAGE
+- Student switches between Bangla and English.
+- Navigation and interface update.
+- Academic records remain intact.
+- Text remains correctly displayed.
+
+SCENARIO 11: OFFLINE
+- Previously downloaded content remains available.
+- Eligible practice progress is stored locally.
+- The interface identifies unsynchronized records.
+- Reconnection synchronizes without duplication.
+
+SCENARIO 12: ACCOUNT DELETION
+- Student initiates deletion.
+- Confirmation occurs.
+- Sessions are revoked.
+- Applicable personal data is deleted or anonymized.
+- Required retention is handled transparently.
+
+# 36. RELEASE PRIORITIES
+
+ESSENTIAL STUDYQUEST 1.0:
+- Android mobile application.
+- Bangla and English.
+- Bangladesh academic architecture.
+- Initial Classes 6–10 and SSC content structure.
+- Question Bank.
+- Quick Practice.
+- MCQ and suitable CQ workflows.
+- Mock Examinations.
+- Previous questions with appropriate content rights.
+- Lessons and revision.
+- XP and coins.
+- Overall and subject levels.
+- Daily and weekly quests.
+- Achievements.
+- Profiles and avatars.
+- Friends.
+- Private text messaging.
+- Private study groups and chat.
+- Friend challenges.
+- Real 1v1 multiplayer.
+- Private rooms.
+- Group competition functionality appropriate to the first release.
+- Leaderboards.
+- Weekly and seasonal ranking.
+- Fully animated design.
+- Administrative content management.
+- Student moderation and safety.
+- Secure backend.
+- Notifications.
+- Offline-supported learning.
+- Quality assurance.
+- Android release preparation.
+
+IMPORTANT IMPROVEMENTS:
+- Advanced AI tutor.
+- Advanced topic recommendations.
+- More sophisticated revision intelligence.
+- Advanced tournament brackets.
+- Additional academic subjects.
+- Greater avatar customization.
+- Expanded group competitions.
+- Advanced analytics.
+
+FUTURE EXPANSION:
+- HSC.
+- Admission preparation.
+- Wider national competition events.
+- School and teacher ecosystem.
+- Additional supported platforms.
+- Carefully reviewed voice communication capabilities.
+- Advanced classroom and collaborative learning.
+
+Do not postpone essential first-release functionality simply to create a smaller demonstration.
+
+# 37. RISKS AND EXTERNAL DEPENDENCIES
+
+Identify and manage:
+
+- Inaccurate academic content.
+- Curriculum changes.
+- Content licensing.
+- Student privacy.
+- Social abuse.
+- Cheating.
+- Backend concurrency.
+- Internet instability.
+- Database failures.
+- AI hallucinations.
+- Animation performance.
+- Notification failures.
+- Storage and hosting costs.
+- External service limitations.
+- Store compliance.
+- Account deletion requirements.
+
+Mitigation must be implemented, documented or explicitly identified as blocked.
+
+Use real credentials only when the user or authorized environment provides them.
+
+Never invent external services or claim an integration is ready without verifying it.
+
+# 38. PROJECT ORGANIZATION AND DOCUMENTATION
+
+Maintain clear separation of responsibilities in the codebase.
+
+Suggested organization:
+
+- app/
+- components/
+- features/
+- navigation/
+- screens/
+- animations/
+- assets/
+- localization/
+- services/
+- api/
+- database/
+- hooks/
+- state/
+- types/
+- validation/
+- tests/
+- admin/
+- documentation/
+
+Adapt the structure to the actual framework without forcing unnecessary abstractions.
+
+Maintain:
+- README.
+- Environment setup guide.
+- Architecture document.
+- Database schema.
+- Migration history.
+- API documentation.
+- Security rules.
+- Testing guide.
+- Deployment guide.
+- Known limitations.
+- Requirements ledger.
+
+Never expose secret credentials in repository files.
+
+Provide an appropriate environment example file containing placeholders only.
+
+# 39. FINAL IMPLEMENTATION WORKFLOW
+
+Work in the following discipline:
+
+1. Inspect.
+2. Record requirements.
+3. Establish architecture.
+4. Create the design system.
+5. Build mobile navigation.
+6. Implement authentication.
+7. Implement academic structure.
+8. Build the question and examination engines.
+9. Implement XP and progression.
+10. Implement friends and messaging.
+11. Implement multiplayer.
+12. Implement leaderboards and seasons.
+13. Build administration.
+14. Integrate animation assets and transitions.
+15. Implement security and moderation.
+16. Integrate notifications and offline functionality.
+17. Run automated tests.
+18. Run manual end-to-end tests.
+19. Conduct adversarial security review.
+20. Fix defects.
+21. Retest.
+22. Optimize performance.
+23. Prepare Android release.
+24. Document final implementation and limitations.
+
+Maintain a real implementation record.
+
+At each natural milestone, report:
+- What was implemented.
+- What is connected.
+- What was tested.
+- What passed.
+- What failed.
+- What remains.
+- Which dependencies are blocked.
+
+Do not claim another agent, specialist or external service participated unless that participation actually occurred.
+
+# 40. FINAL DEFINITION OF DONE
+
+StudyQuest is ready for release preparation only when its mandatory features satisfy these conditions.
+
+ACADEMIC:
+- Working curriculum.
+- Verified content structure.
+- Question Bank.
+- Practice.
+- Mock exams.
+- Correct answer evaluation.
+- Reliable academic records.
+
+GAMIFICATION:
+- Server-verified XP.
+- Coins.
+- Levels.
+- Quests.
+- Achievements.
+- Subject progression.
+
+SOCIAL:
+- Friend discovery.
+- Requests.
+- Accepted friendships.
+- Friends list.
+- Private messaging.
+- Study groups.
+- Blocking.
+- Reporting.
+- Moderation.
+
+MULTIPLAYER:
+- Actual matchmaking.
+- Friend challenges.
+- Private rooms.
+- Synchronized matches.
+- Verified submissions.
+- Server-side scoring.
+- Match history.
+- Leaderboards.
+
+DESIGN:
+- Complete five-tab navigation.
+- Bangla and English.
+- Purposeful animation across the app.
+- Original identity and assets.
+- Light and dark themes.
+- Accessible interactions.
+- Responsive Android layouts.
+
+SECURITY:
+- Secure authentication.
+- Correct authorization.
+- Protected private messages.
+- Score integrity.
+- Privacy controls.
+- Account deletion.
+- Backup recovery.
+- No known critical security defect.
+
+PRODUCTION:
+- Backend connected.
+- Administrative system functional.
+- Notifications verified where configured.
+- Offline behavior tested.
+- Core end-to-end scenarios passed.
+- Documentation available.
+- Android build generated and checked in the available environment.
+
+A successful project must not contain known critical defects in core learning, messaging, multiplayer, privacy or scoring.
+
+# 41. FINAL DELIVERY REQUIREMENTS
+
+Deliver:
+
+1. Complete mobile application source.
+2. Complete administrative application source.
+3. Backend implementation.
+4. Database schema and migrations.
+5. Authentication and access-control configuration.
+6. Functional academic system.
+7. Functional social system.
+8. Functional multiplayer system.
+9. Functional leaderboard system.
+10. Animation assets and source integration.
+11. Original or appropriately licensed visual assets.
+12. Localization resources.
+13. Automated tests.
+14. End-to-end test documentation.
+15. Environment configuration instructions.
+16. Deployment documentation.
+17. Android release build when supported.
+18. Actual implementation and verification report.
+19. Known limitations and blocked dependencies.
+20. Complete handoff documentation.
+
+Never claim to have generated an installable build unless the exact build artifact exists and has been verified.
+
+Never say the application is production-ready when essential integrations remain unconfigured.
+
+# 42. FINAL EXECUTION INSTRUCTION
+
+Begin by inspecting the actual working environment and establishing the implementation requirements ledger.
+
+Then start real development.
+
+Do not stop after producing a refined plan.
+
+Do not replace required functionality with placeholder screens.
+
+Do not omit friends, messaging, groups, multiplayer, leaderboards or full application animation.
+
+Do not silently remove academic, safety, privacy, technical or testing requirements.
+
+Preserve the complete StudyQuest vision while making professional engineering decisions.
+
+Build a genuine Bangladeshi educational mobile application that students can actually use to learn, revise, connect with friends, communicate, compete fairly and improve their academic performance.
+
+STUDYQUEST.
+
+LEARN. CONNECT. COMPETE. ACHIEVE.
+
+REAL DESIGN. REAL FUNCTIONALITY. NO AI SLOP.
+
+BEGIN IMPLEMENTATION.
