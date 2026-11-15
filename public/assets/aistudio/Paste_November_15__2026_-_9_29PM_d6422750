@@ -1,0 +1,2981 @@
+# STUDYQUEST — COMPLETE MASTER EXECUTION PROMPT
+## EXISTING APP ENHANCEMENT • COMPLETE LEARNING ECOSYSTEM • SUBSCRIPTION SYSTEM • AI • ANIMATED VIDEO • SOCIAL LEARNING
+
+YOUR MISSION
+
+Act as a senior multidisciplinary product and engineering team consisting of:
+
+- Product Architect
+- Android Architect
+- Kotlin Engineer
+- Jetpack Compose UI Engineer
+- Firebase Backend Engineer
+- Database Architect
+- AI Integration Engineer
+- Educational Technology Specialist
+- Video Generation Engineer
+- Subscription and Billing Engineer
+- UX/UI Designer
+- Animation Designer
+- Security Engineer
+- Privacy Specialist
+- Quality Assurance Engineer
+- Performance Engineer
+- Technical Writer
+
+Your mission is to inspect, improve, implement, integrate, test, and deliver the existing StudyQuest application as a complete professional educational platform.
+
+This is an EXISTING PROJECT ENHANCEMENT.
+
+Do not create an unrelated application.
+Do not replace the existing app without a documented technical reason.
+Do not discard existing working functionality.
+Do not erase existing user data.
+Do not change established branding or product identity unnecessarily.
+
+The objective is to combine every original StudyQuest feature, every additional requirement, and every necessary supporting system into one coherent application.
+
+CORE STANDARD:
+
+REAL DESIGN.
+REAL FUNCTIONALITY.
+REAL LEARNING.
+REAL AI.
+REAL ANIMATED VIDEOS.
+REAL SUBSCRIPTIONS.
+REAL BILLING VERIFICATION.
+REAL COST CONTROL.
+REAL SECURITY.
+NO FAKE FEATURES.
+NO FAKE STATISTICS.
+NO HIDDEN CHARGES.
+NO UNNECESSARY REBUILDING.
+NO LOST REQUIREMENTS.
+
+============================================================
+1. EXISTING PROJECT INSPECTION — MANDATORY FIRST STAGE
+============================================================
+
+Before modifying anything, thoroughly inspect the existing project.
+
+The established project technology is:
+
+- Native Android.
+- Kotlin.
+- Jetpack Compose.
+- Room for local persistence and caching.
+- Existing Firebase architecture.
+- Existing authentication.
+- Existing cloud data and services.
+
+Do not automatically replace this technology stack.
+
+Inspect:
+
+1. Complete project and module structure.
+2. Existing Gradle configuration.
+3. Kotlin architecture.
+4. Jetpack Compose screens.
+5. Navigation system.
+6. ViewModels and state management.
+7. Repositories and data sources.
+8. Room database entities.
+9. Database migrations.
+10. Firebase configuration.
+11. Authentication and account recovery.
+12. Firestore or Realtime Database structures, whichever the project actually uses.
+13. Cloud Functions or backend operations.
+14. Existing security rules.
+15. Existing notification implementation.
+16. Existing user profile and preferences.
+17. Existing design system.
+18. Existing animations.
+19. Existing tests.
+20. Existing integrations and external dependencies.
+
+Create an inventory that separates:
+
+A. Already implemented and working.
+B. Partially implemented.
+C. Designed but not functional.
+D. Missing.
+E. Broken.
+F. Waiting for external configuration.
+
+Preserve all unrelated functioning features.
+
+Never replace an existing database structure merely because a new structure appears easier. Extend and migrate the existing architecture safely.
+
+If an existing feature already satisfies a requirement, preserve and improve it instead of creating a duplicate.
+
+============================================================
+2. REQUIREMENT OWNERSHIP AND ZERO REQUIREMENT LOSS
+============================================================
+
+Treat all requirements in this prompt as important.
+
+Maintain an internal requirements ledger with identifiers.
+
+Separate:
+
+A. Explicit user requirements.
+B. Additional user requirements.
+C. Approved product improvements.
+D. Supporting technical requirements.
+E. Optional future recommendations.
+F. External configuration dependencies.
+
+Do not turn optional recommendations into mandatory requirements without a clear reason.
+
+Do not remove a user requirement silently.
+
+Do not shorten a detailed feature into a vague label.
+
+Preserve:
+
+- Feature names.
+- Special system names.
+- Screen names.
+- Function names.
+- Numerical values.
+- Prices.
+- Durations.
+- Allowances.
+- Categories.
+- Interactions.
+- Conditions.
+- Dependencies.
+- Restrictions.
+- Expected behavior.
+- Design requirements.
+- Quality requirements.
+
+If two decisions conflict, identify the conflict and preserve the latest explicit decision.
+
+The latest StudyQuest decisions in this prompt take priority over earlier contradictory draft values.
+
+============================================================
+3. PRODUCT IDENTITY
+============================================================
+
+Product name: STUDYQUEST
+
+Product category:
+Gamified educational platform and student learning community.
+
+Primary purpose:
+
+Help students learn, practise, understand subjects, complete assignments, take examinations, build consistent study habits, earn achievements, participate in competitions, connect with friends safely, use AI learning assistants, and create and watch animated educational videos.
+
+Initial supported classes:
+
+- Class 6.
+- Class 7.
+- Class 8.
+- Class 9.
+- Class 10.
+
+The class system must be configurable so additional classes can be added later.
+
+StudyQuest must be one connected educational ecosystem rather than a collection of unrelated screens.
+
+A student should be able to use core learning functionality without purchasing a subscription.
+
+Paid subscriptions are optional additions that provide additional capacity, remove advertisements, and provide more storage, AI usage, video-generation capacity, and other clearly explained benefits.
+
+============================================================
+4. COMPLETE ONBOARDING AND FIRST-TIME EXPERIENCE
+============================================================
+
+Implement the following onboarding journey.
+
+SCREEN 1: WelcomeScreen
+
+Introduce StudyQuest and explain its major capabilities:
+
+- Study timer.
+- Study goals.
+- XP and levels.
+- Achievements.
+- Assignments.
+- Examinations.
+- Leaderboards.
+- Friends.
+- Educational community.
+- AI learning tools.
+- Animated video library.
+- Animated video creation.
+- Personal learning statistics.
+
+SCREEN 2: AuthenticationScreen
+
+Preserve existing authentication.
+
+Support the authentication methods already configured in the existing project.
+
+Provide:
+
+- Sign up.
+- Sign in.
+- Password recovery.
+- Account recovery.
+- Existing supported guest functionality.
+
+Never invent a working authentication provider when one is not configured.
+
+SCREEN 3: StudentProfileSetupScreen
+
+Let students select:
+
+- Class.
+- Subjects.
+- Curriculum or board where supported.
+- Preferred language.
+- Display name.
+- Avatar.
+- Optional learning interests.
+
+Only collect information genuinely needed by the product.
+
+SCREEN 4: LearningPreferencesScreen
+
+Allow students to optionally configure:
+
+- Preferred study duration.
+- Reminder preferences.
+- Preferred subjects.
+- Learning interests.
+- Language.
+- Accessibility settings.
+
+SCREEN 5: WelcomePlanSelectionScreen
+
+This is a mandatory part of the first-time experience.
+
+After profile and class setup, display the complete StudyQuest plan catalogue before opening the normal dashboard.
+
+IMPORTANT DEFAULT BEHAVIOR:
+
+- Automatically select Free StudyQuest for an eligible new account.
+- Clearly explain what Free includes.
+- Make the Free Plan easy to continue with.
+- Do not require a payment method.
+- Do not automatically activate a paid plan.
+- Do not activate a free trial without informed consent.
+- Do not hide the Free option.
+- Do not force payment before access to core learning.
+- Allow the student to compare paid plans voluntarily.
+
+Provide an obvious action:
+
+"Continue with Free Plan"
+
+If the account is a returning account with a previously verified paid entitlement, restore that entitlement rather than automatically downgrading it.
+
+SCREEN 6: HomeDashboardScreen
+
+After the student finishes onboarding, opens Free, or completes an explicitly verified purchase, open the main dashboard.
+
+Create these functions:
+
+completeOnboarding()
+saveStudentProfile()
+saveLearningPreferences()
+getOnboardingStatus()
+activateFreePlan()
+restoreExistingEntitlements()
+navigateToHomeDashboard()
+
+============================================================
+5. SUBSCRIPTION SYSTEM — COMPLETE PRODUCT REQUIREMENT
+============================================================
+
+Feature identity:
+
+QUEST PLAN STORE
+
+Core screen:
+
+SubscriptionSelectionScreen
+
+Other subscription screens:
+
+- WelcomePlanSelectionScreen.
+- AIServiceSelectionScreen.
+- VideoUpgradeScreen.
+- StoragePlanScreen.
+- MyPlansScreen.
+- ProfileSettingsScreen.
+- PurchaseHistoryScreen.
+- SubscriptionDetailsScreen.
+
+THIS SECTION IS ONE OF THE MOST IMPORTANT PARTS OF THE PROJECT.
+
+The previous product plan did not sufficiently explain the actual benefits of each subscription.
+
+You must implement the complete subscription catalogue below with its exact intended distinctions.
+
+Do not produce seven plan cards with vague phrases such as "more features."
+
+Each plan must display exactly what it provides.
+
+There are seven primary plans.
+
+PRICES ARE IN BANGLADESHI TAKA (BDT).
+
+------------------------------------------------------------
+5.1 FREE STUDYQUEST
+------------------------------------------------------------
+
+Price: ৳0.
+
+Identity:
+The full basic StudyQuest learning experience.
+
+Free is not a dummy plan and must not be intentionally crippled to force students to purchase.
+
+Included functionality:
+
+A. Core study:
+- Full Focus Room.
+- All normal focus timer presets.
+- Custom timer.
+- Pomodoro.
+- Break manager.
+- Study history.
+- Basic-to-standard study analytics.
+- Subject-based study tracking.
+- Personal study streaks.
+
+B. Learning:
+- Personal goals.
+- Normal assignments.
+- Examination practice.
+- Available class-based challenges.
+- Leaderboard participation.
+- XP earning.
+- Level progression.
+- Full achievement collection.
+- Profile management.
+- Educational community access.
+- Friend requests.
+- Safe friend messaging.
+- Notifications.
+
+C. Educational video access:
+- Browse the available educational video library.
+- Watch available videos for the student's class.
+- Browse available subjects.
+- Search videos.
+- View subtitles where provided.
+- Save videos to permitted collections.
+- Resume video progress.
+
+IMPORTANT:
+Do not hide the entire educational video library behind paid subscriptions.
+
+Students on Free must be able to access the published educational video library, subject to normal content and access permissions.
+
+The subscription difference applies primarily to how many additional videos a student may GENERATE.
+
+D. AI:
+- Access the available AI tools.
+- Receive 20 StudyQuest AI credits per monthly cycle.
+- Use supported low-cost learning tasks.
+- View AI usage history.
+- See the remaining allowance.
+
+E. Video generation:
+- Receive 1 basic short-video creation credit per monthly cycle.
+- Use the defined standard video-generation format.
+- View generated videos.
+- Manage video history.
+
+F. Storage:
+- 2 GB included personal storage.
+
+G. Advertising:
+- Limited, age-appropriate advertisements only where legally and platform-policy permitted.
+- Do not interrupt focus sessions.
+- Do not interrupt examinations.
+- Do not interrupt video playback.
+- Do not use deceptive ad placements.
+- Disable ads if an appropriate compliant advertising configuration is unavailable.
+
+Free must remain genuinely useful.
+
+Do not artificially disable core education features.
+
+------------------------------------------------------------
+5.2 STUDYQUEST PLUS
+------------------------------------------------------------
+
+Price: ৳79/month.
+
+Identity:
+The ad-free study improvement plan.
+
+This plan is for students who want a cleaner experience and more learning capacity without needing the largest AI or video allowance.
+
+Included:
+
+A. Everything in Free.
+
+B. Advertisements:
+- Completely ad-free experience.
+- No banner advertisements.
+- No interstitial advertisements.
+- No advertisement interruption in any screen.
+- No advertising during video playback.
+
+C. Storage:
+- 5 GB included personal storage.
+
+D. AI:
+- 50 StudyQuest AI credits per monthly cycle.
+- Access to the same core AI learning tools.
+- Larger allowance than Free.
+
+E. Animated video generation:
+- 2 basic short-video creation credits per monthly cycle.
+
+F. Additional benefits:
+- Expanded study analytics.
+- More saved learning collections.
+- Additional profile customization.
+- Additional study-history convenience.
+
+Do not make this plan a meaningless advertisement-removal-only product.
+
+Its extra allowances and convenience features must work.
+
+------------------------------------------------------------
+5.3 VIDEO PASS
+------------------------------------------------------------
+
+Price: ৳99/month.
+
+Identity:
+The animated educational video plan.
+
+Its main purpose is additional video-generation capacity.
+
+Included:
+
+A. Everything in Free.
+
+B. Completely ad-free experience.
+
+C. Storage:
+- 5 GB included.
+
+D. AI:
+- 30 StudyQuest AI credits per monthly cycle.
+
+E. Video generation:
+- 5 basic short-video creation credits per monthly cycle.
+- Access to supported video creation styles.
+- More video-generation capacity than Free.
+- Expanded generation history.
+- More saved video projects.
+
+F. Video experience:
+- Browse the entire available educational video library.
+- Watch videos without a subscription-only content lock.
+- Save and resume lessons.
+- Use available subtitles.
+- Create additional animated educational videos using included credits.
+
+Do not incorrectly imply that purchasing Video Pass is required to watch existing published educational videos.
+
+------------------------------------------------------------
+5.4 STUDYQUEST AI
+------------------------------------------------------------
+
+Price: ৳150/month.
+
+Identity:
+The standalone owner-funded AI learning plan.
+
+This exact product must always cost ৳150/month wherever it appears.
+
+Included:
+
+A. Everything in Free.
+
+B. Completely ad-free experience.
+
+C. Storage:
+- 5 GB included.
+
+D. AI allowance:
+- 100 StudyQuest AI credits per monthly cycle.
+
+E. AI tool access:
+
+QuestTutor.
+QuickExplain.
+ChapterSummarizer.
+NotesToFlashcards.
+SmartQuizMaker.
+QuestionExplainer.
+StudyPlanBuilder.
+EnglishCoach.
+ConceptExplorer.
+DocumentLearningAssistant.
+RevisionAssistant.
+MistakeAnalyzer.
+
+F. AI history:
+- Save permitted results.
+- Browse recent AI sessions.
+- Reopen saved explanations.
+- View remaining AI credits.
+- View usage history.
+
+G. Video:
+- 2 basic short-video creation credits per monthly cycle.
+
+H. Convenience:
+- No separate third-party AI provider account required.
+- No API key required from the student.
+- No separate provider invoice to the student.
+- One StudyQuest subscription with a clearly defined allowance.
+
+WHO PAYS?
+
+StudyQuest uses the owner's privately configured AI provider account.
+
+StudyQuest pays the provider from its own account.
+
+The student pays only the displayed StudyQuest subscription amount.
+
+No hidden additional request fees.
+
+No automatic top-ups.
+
+No silent extra charges.
+
+The allowance must be visible.
+
+If it runs out, explain that the included monthly allowance has been used.
+
+Never advertise unlimited AI under this plan.
+
+CRITICAL PRICE CONSISTENCY RULE:
+
+StudyQuest AI must always display ৳150/month.
+
+This exact price must appear in:
+
+- AI selection.
+- Welcome plan selection.
+- General subscription selection.
+- Profile.
+- Profile settings.
+- My Plans.
+- Purchase confirmation.
+- Any AI upgrade card.
+
+A bundle that contains StudyQuest AI grants its AI entitlement directly. Never charge a second ৳150 for the same entitlement.
+
+------------------------------------------------------------
+5.5 SCHOLAR BUNDLE
+------------------------------------------------------------
+
+Price: ৳229/month.
+
+Identity:
+The balanced combined student subscription.
+
+This is the combined option for a student who wants more AI, more videos, and more storage in one plan.
+
+Included:
+
+A. Everything in Free.
+
+B. Completely ad-free.
+
+C. Storage:
+- 15 GB personal storage.
+
+D. StudyQuest AI:
+- 140 AI credits per monthly cycle.
+- All core StudyQuest AI tools.
+- AI history and saved results.
+
+E. Animated video:
+- 6 basic short-video creation credits per monthly cycle.
+- Full access to the available educational video library.
+- Expanded video history.
+- More saved video projects.
+
+F. Study improvements:
+- Expanded analytics.
+- Additional saved collections.
+- More learning-resource capacity.
+- Expanded profile customization.
+
+G. Plan convenience:
+- One combined subscription.
+- No separate StudyQuest AI subscription required.
+- No duplicate charge for included entitlements.
+
+------------------------------------------------------------
+5.6 CREATOR BUNDLE
+------------------------------------------------------------
+
+Price: ৳329/month.
+
+Identity:
+The larger AI and animated-video package.
+
+Designed for students who regularly use AI learning tools and create educational videos.
+
+Included:
+
+A. Everything in Free.
+
+B. Completely ad-free.
+
+C. Storage:
+- 30 GB personal storage.
+
+D. AI:
+- 250 StudyQuest AI credits per monthly cycle.
+- All core AI tools.
+- Expanded document-processing allowance.
+- More AI history and saved results.
+
+E. Video:
+- 10 basic short-video creation credits per monthly cycle.
+- Expanded supported animation options.
+- More saved video projects.
+- Larger video history capacity.
+- More generation capacity than Scholar Bundle.
+
+F. Additional features:
+- Expanded study analytics.
+- More learning collections.
+- Greater saved-project allowance.
+- Additional profile showcase options.
+
+Do not promise priority processing unless the actual configured provider supports it.
+
+------------------------------------------------------------
+5.7 COMPLETE MAX
+------------------------------------------------------------
+
+Price: ৳449/month.
+
+Identity:
+The largest combined StudyQuest subscription.
+
+This is the maximum-capacity plan, not a decorative premium badge.
+
+Included:
+
+A. Everything in Free.
+
+B. Completely ad-free.
+
+C. Storage:
+- 50 GB personal storage.
+
+D. AI:
+- 400 StudyQuest AI credits per monthly cycle.
+- All available StudyQuest AI learning tools.
+- The highest standard included document-processing allowance.
+- Expanded saved AI history.
+- Highest AI allowance in the primary subscription catalogue.
+
+E. Video:
+- 15 basic short-video creation credits per monthly cycle.
+- Full available educational video library access.
+- Expanded animation options where supported.
+- Highest included video-generation allowance.
+- Expanded project and video-history storage.
+
+F. Study experience:
+- Expanded analytics.
+- Larger saved learning collections.
+- Additional study-resource capacity.
+- Full profile customization options.
+
+G. Ad experience:
+- No advertisements in any application screen.
+
+H. Bundle convenience:
+- AI, videos, and storage included in one subscription.
+- No duplicate charges for included benefits.
+
+Do not call the plan unlimited.
+
+Clearly show the included allowances and explain how they renew.
+
+------------------------------------------------------------
+5.8 PLAN COMPARISON TABLE
+------------------------------------------------------------
+
+Implement this exact initial plan catalogue:
+
+Plan                  Price       Storage     AI credits    Video credits    Ads
+
+Free                  ৳0          2 GB        20            1                Limited permitted ads
+StudyQuest Plus       ৳79         5 GB        50            2                None
+Video Pass            ৳99         5 GB        30            5                None
+StudyQuest AI         ৳150        5 GB        100           2                None
+Scholar Bundle        ৳229        15 GB       140           6                None
+Creator Bundle        ৳329        30 GB       250           10               None
+Complete Max          ৳449        50 GB       400           15               None
+
+All values are monthly entitlements unless specifically described as one-time.
+
+The educational video library remains accessible to all plan levels. Plan differences primarily change creation capacity.
+
+The core StudyQuest learning systems remain available to every plan.
+
+------------------------------------------------------------
+5.9 MONTHLY CREDIT RULES
+------------------------------------------------------------
+
+Create an internal usage-credit system.
+
+AI credits represent standardized internal usage, not a promise that every request has identical provider costs.
+
+Different operations may consume different credits according to real provider costs and complexity.
+
+Example credit categories:
+
+- Short explanation: low credit cost.
+- Simple question: low credit cost.
+- Flashcards: low-to-medium cost.
+- Practice quiz: medium cost.
+- Chapter summary: medium cost.
+- Document analysis: higher cost.
+- Advanced model request: higher cost.
+- Long generation: cost-based.
+
+Calculate actual credit usage from the configured provider and model.
+
+Video credits represent the permitted generation job and output specification.
+
+Functions:
+
+calculateAIRequestCredits()
+reserveAIRequestCredits()
+settleAIRequestCredits()
+restoreFailedAIRequestCredits()
+getMonthlyAICreditBalance()
+getAIRequestHistory()
+getMonthlyVideoCredits()
+reserveVideoCredit()
+completeVideoCredit()
+restoreFailedVideoCredit()
+getVideoCreditHistory()
+
+Monthly included credits renew at the subscription renewal period.
+
+Unused included monthly credits expire at the end of that period unless a specific published rollover policy is deliberately configured.
+
+Never hide expiration behavior.
+
+If the service fails after a credit has been reserved, apply the defined refund or credit-restoration rules.
+
+------------------------------------------------------------
+5.10 SUBSCRIPTION EXPIRATION
+------------------------------------------------------------
+
+When a paid subscription expires:
+
+- Verify its actual billing state.
+- Change entitlements.
+- Return the account to Free.
+- Preserve user accounts.
+- Preserve XP.
+- Preserve badges.
+- Preserve study history.
+- Preserve exam history.
+- Preserve assignment records.
+- Preserve competition records.
+- Preserve friendships.
+- Preserve messages subject to retention policy.
+- Preserve permitted saved learning results.
+- Protect storage through a documented grace period.
+- Explain which paid allowances have ended.
+
+Never delete a student's educational history simply because the subscription ended.
+
+============================================================
+6. STORAGE ADD-ONS — NOT FIXED TO THE PREVIOUS EXAMPLE
+============================================================
+
+The previously mentioned 100 GB and 200 GB figures were EXAMPLES, not fixed mandatory requirements.
+
+Choose and implement these separate add-on products:
+
+10 GB Storage Add-on: ৳49/month.
+25 GB Storage Add-on: ৳99/month.
+50 GB Storage Add-on: ৳179/month.
+
+These are additional capacities, not replacement subscriptions.
+
+They can be attached to an eligible existing StudyQuest subscription.
+
+Included plan storage:
+
+Free: 2 GB.
+StudyQuest Plus: 5 GB.
+Video Pass: 5 GB.
+StudyQuest AI: 5 GB.
+Scholar Bundle: 15 GB.
+Creator Bundle: 30 GB.
+Complete Max: 50 GB.
+
+Add-on capacity must stack correctly.
+
+Example:
+
+A user with 15 GB included in Scholar Bundle who purchases a 10 GB add-on has a combined allowance of 25 GB.
+
+Do not double-count storage.
+
+Functions:
+
+getStorageUsage()
+getStorageQuota()
+getRemainingStorage()
+getStorageAddons()
+purchaseStorageAddon()
+applyVerifiedStorageEntitlement()
+uploadStudyFile()
+validateUploadedFile()
+deleteStudyFile()
+restoreEligibleDeletedFile()
+checkStorageQuota()
+calculateStorageOperatingCost()
+
+Display:
+
+- Total allowance.
+- Used capacity.
+- Remaining capacity.
+- Documents.
+- Saved lessons.
+- Video projects.
+- Large files.
+- Storage warnings.
+- Add-on details.
+- Expiration information.
+
+Account downgrade must never silently delete data.
+
+============================================================
+7. VIDEO BOOST — ৳20 ONE-TIME PRODUCT
+============================================================
+
+Product name:
+
+VIDEO BOOST
+
+Price:
+
+৳20 one-time.
+
+Entitlement:
+
+One additional basic short-video creation credit.
+
+Define the output clearly:
+
+- Up to 60 seconds.
+- Standard supported resolution.
+- One selected supported language.
+- Standard narration where available.
+- Standard educational animation style.
+
+The exact supported output must be verified with the real video provider before sales begin.
+
+This product grants one additional creation credit, not unlimited video generation.
+
+Do not silently add a recurring subscription.
+
+Do not automatically purchase more credits.
+
+Purchased credits should remain in the account while the account is active, subject to disclosed refund, account-deletion, and applicable store policies.
+
+If a qualifying generation fails because of a provider or StudyQuest error, restore the credit or apply the disclosed refund process.
+
+Functions:
+
+getVideoCredits()
+getVideoBoostProduct()
+purchaseVideoBoost()
+verifyVideoBoostPurchase()
+addVerifiedVideoCredits()
+reserveVideoCredit()
+completeVideoCreditUsage()
+restoreFailedVideoCredit()
+getVideoCreditHistory()
+
+Show Video Boost inside:
+
+- AnimatedVideoStudioScreen.
+- Video usage screen.
+- VideoUpgradeScreen.
+- Welcome plan catalogue.
+- MyPlansScreen.
+- PurchaseHistoryScreen.
+
+============================================================
+8. ETHICAL SUBSCRIPTION PRESENTATION AND VALUE DESIGN
+============================================================
+
+Feature name:
+
+QUEST PLAN STORE
+
+Implement the package progression inspired by the user's movie-theatre popcorn comparison.
+
+The intended concept:
+
+Small package → Medium package → Big package.
+
+StudyQuest equivalent:
+
+Starter → Balanced Bundle → Complete Max.
+
+Do not make the Starter or Free Plan deliberately useless.
+
+Do not invent fake original prices, fake discounts, fake popularity, countdowns, scarcity, or false savings.
+
+Use ethical and transparent behavioral design.
+
+The goal is to help students understand the value of the plans, not manipulate them into purchases.
+
+Use:
+
+- Clear plan names.
+- Exact prices.
+- Exact billing period.
+- Feature comparison.
+- Clear storage amounts.
+- AI credit amounts.
+- Video credit amounts.
+- Ad-free status.
+- Standalone versus bundle comparison.
+- Transparent cancellation and renewal information.
+- Honest recommendations.
+- Clear Free Plan availability.
+
+Possible value labels:
+
+- "Good for ad-free study."
+- "Best for students who create videos."
+- "Balanced learning bundle."
+- "Highest included capacity."
+- "Best storage value" only when the actual per-GB cost proves it.
+
+Use data-based recommendations where possible.
+
+Do not use psychological pressure to target children.
+
+The selection page must make the Free Plan understandable and accessible.
+
+Free is automatically selected for eligible new users.
+
+A paid option must never be purchased through a default selection or a confusing button.
+
+============================================================
+9. ADS — ALL PAID PLANS MUST BE AD-FREE
+============================================================
+
+Feature name:
+
+QUEST AD MANAGER
+
+Rules:
+
+Free:
+- Limited, permitted, age-appropriate ads only where appropriate and configured.
+
+Every paid subscription:
+- Completely ad-free.
+- No banners.
+- No interstitials.
+- No sponsored interruptions.
+- No ads in focus sessions.
+- No ads in exams.
+- No ads in video playback.
+- No ads in learning interactions.
+
+Additional rules:
+
+- Never show ads as part of an accidental click.
+- Never interfere with study interactions.
+- Never use inappropriate or unsafe advertisements.
+- Never use prohibited interest-based advertising or remarketing for children or unknown-age users.
+- Use only advertising SDKs permitted for the actual audience and distribution policy.
+- Disable ads if a compliant configuration is unavailable.
+
+Functions:
+
+getAdEligibility()
+getAdPreferences()
+loadPermittedAd()
+showPermittedAd()
+disableAdsForPaidEntitlement()
+disableAdsDuringFocus()
+disableAdsDuringExam()
+disableAdsDuringVideo()
+
+============================================================
+10. AI LEARNING SYSTEM
+============================================================
+
+Feature:
+
+STUDYQUEST AI LAB
+
+Screen:
+
+AILabScreen
+
+Create the following named functions:
+
+1. QuestTutor
+   Explain educational subjects and concepts.
+
+2. QuickExplain
+   Explain difficult topics in simple language.
+
+3. ChapterSummarizer
+   Summarize supported learning material.
+
+4. NotesToFlashcards
+   Turn learning notes into revision flashcards.
+
+5. SmartQuizMaker
+   Generate practice questions.
+
+6. QuestionExplainer
+   Explain why a particular answer is correct or incorrect.
+
+7. StudyPlanBuilder
+   Create realistic study plans.
+
+8. EnglishCoach
+   Help students practise English.
+
+9. ConceptExplorer
+   Break complicated concepts into manageable explanations.
+
+10. DocumentLearningAssistant
+    Process supported documents and create learning materials.
+
+11. RevisionAssistant
+    Organize revision sessions.
+
+12. MistakeAnalyzer
+    Help students understand mistakes and misconceptions.
+
+AI must support learning rather than merely facilitate copying homework.
+
+Document workflow:
+
+- Validate upload.
+- Extract content.
+- Identify topics.
+- Organize concepts.
+- Generate explanations.
+- Generate practice activities.
+- Preserve source references where available.
+- Save results only according to user preferences and retention rules.
+
+Do not reproduce entire copyrighted textbooks or paid chapters.
+
+============================================================
+11. AI SELECTION: PUTER PAY-AS-YOU-USE
+============================================================
+
+Screen:
+
+AIServiceSelectionScreen
+
+First method:
+
+PUTER.JS — USER-PAYS AI
+
+Puter.js is separate from the StudyQuest-funded AI subscription.
+
+The student uses their own Puter account.
+
+Puter handles that account's AI and service usage under its own policies and billing model.
+
+StudyQuest must not:
+
+- Claim Puter charges are StudyQuest revenue.
+- Promise unlimited free usage.
+- Hide Puter's possible usage charges.
+- Claim StudyQuest will pay the user's Puter bill.
+- Require the student to enter a private StudyQuest API key.
+
+Clearly explain that usage limits and any extra payment are managed by Puter.
+
+Because StudyQuest serves school students, any external billing or account requirement must be age-appropriate and require guardian involvement where needed.
+
+Puter.js is a JavaScript SDK, not a native Kotlin Android SDK.
+
+Investigate an isolated JavaScript integration using a valid HTTPS origin and the supported authentication flow.
+
+Test:
+
+- Origin requirements.
+- Sign-in.
+- Redirects.
+- Cookies.
+- Account linking.
+- Authentication persistence.
+- Mobile browser behavior.
+- Android WebView behavior if used.
+- User-pays behavior.
+- Error handling.
+
+Never pretend that a Kotlin import provides native Puter support.
+
+Never expose native secrets through a JavaScript bridge.
+
+If the integration cannot be made secure and reliable, report the blocker and provide a correctly isolated alternative.
+
+============================================================
+12. AI SELECTION: STUDYQUEST OWNER-FUNDED AI
+============================================================
+
+Second method:
+
+STUDYQUEST AI
+
+Price:
+
+৳150/month.
+
+Use the owner's privately configured AI provider account.
+
+The owner pays the AI provider.
+
+The student pays the StudyQuest subscription.
+
+The student does not need a separate provider API account or API key.
+
+The student receives the defined allowance.
+
+No hidden request charges.
+
+No automatic usage top-ups.
+
+No separate provider bill sent to the student.
+
+The app shows remaining AI credits.
+
+No unlimited usage promise.
+
+Functions:
+
+getAvailableAIProviders()
+getAvailableAIModels()
+getAIProviderStatus()
+getAIUsageSummary()
+getRemainingAIAllowance()
+reserveAIAllowance()
+runStudyQuestAIRequest()
+settleAIUsage()
+refundFailedAIUsage()
+checkUserAIBudget()
+checkOwnerAIBudget()
+pauseExpensiveAIRequests()
+getAIUsageHistory()
+
+The ৳150 standalone StudyQuest AI product must remain exactly ৳150 wherever the product is displayed.
+
+The AI entitlement can also be included in a larger bundle.
+
+Do not charge the student twice for the same included AI entitlement.
+
+============================================================
+13. OWNER API KEY AND AI COST SAFETY
+============================================================
+
+Feature:
+
+STUDYQUEST AI GATEWAY
+
+The owner's API key must be stored in the secure backend secret-management system.
+
+Never put it in:
+
+- APK.
+- Kotlin source.
+- Compose UI.
+- Public configuration.
+- Ordinary Firestore records.
+- Logs.
+- Crash reports.
+- Client-side network code.
+
+Use the backend to:
+
+1. Authenticate the user.
+2. Check subscription status.
+3. Check entitlement.
+4. Check the user's AI credits.
+5. Check the owner's global budget.
+6. Reserve credits.
+7. Send the provider request.
+8. Measure real usage.
+9. Settle usage.
+10. Restore credits on qualifying failures.
+11. Record a secure transaction.
+
+Feature:
+
+QUEST AI COST GUARD
+
+Functions:
+
+setMonthlyAIBudget()
+getActualProviderSpend()
+getProjectedProviderSpend()
+setPerUserAICap()
+setPerRequestTokenLimit()
+setMaximumConcurrentAIJobs()
+setProviderTimeout()
+setRetryLimit()
+sendAIBudgetAlert()
+disableAIRequestsAtHardLimit()
+resumeAIRequestsAfterBudgetReset()
+
+Required protections:
+
+- Global monthly cost limit.
+- Per-user limit.
+- Per-plan limit.
+- Maximum request size.
+- Maximum concurrent work.
+- Model-specific limits.
+- Retry limits.
+- Provider timeouts.
+- Budget warnings.
+- Hard-stop behavior.
+
+The app must never allow accidental unlimited provider requests.
+
+If the owner budget is reached, pause expensive owner-funded requests and explain the situation clearly.
+
+============================================================
+14. ANIMATED VIDEO SYSTEM
+============================================================
+
+Feature:
+
+QUEST VIDEO STUDIO
+
+Screen:
+
+AnimatedVideoStudioScreen
+
+The video system must process supported educational documents and topics into animated lessons.
+
+Inputs:
+
+- PDFs.
+- Supported text documents.
+- Student notes.
+- Chapters.
+- Topics.
+- Educational explanations.
+
+Generation workflow:
+
+validateVideoInput()
+extractEducationalContent()
+analyzeLessonTopics()
+createLearningObjectives()
+generateLessonScript()
+createSceneStoryboard()
+generateSceneAssets()
+generateNarration()
+createSubtitles()
+renderAnimatedVideo()
+validateVideoOutput()
+publishCompletedVideo()
+
+Student controls:
+
+- Language.
+- Animation style.
+- Narration.
+- Subtitle language.
+- Duration.
+- Complexity.
+- Scene transitions.
+- Illustrations.
+- Authorized background music.
+- Supported output quality.
+
+Animation quality:
+
+- Readable educational titles.
+- Consistent visual subjects.
+- Correct diagrams.
+- Clear narration.
+- Synchronized subtitles.
+- Useful scene transitions.
+- Appropriate pacing.
+- Accurate explanations.
+- Coherent educational conclusions.
+
+Do not make every video a generic slideshow.
+
+Use real animation-generation capabilities from the configured providers.
+
+SCREEN:
+
+VideoLibraryScreen
+
+Functions:
+
+getAvailableVideos()
+searchEducationalVideos()
+filterVideosByClass()
+filterVideosBySubject()
+saveVideoToLibrary()
+updateVideoWatchProgress()
+resumeVideo()
+createVideoQuiz()
+getVideoHistory()
+
+CRITICAL CONTENT ACCESS RULE:
+
+The published educational video library must be available to all eligible StudyQuest users, including Free.
+
+Paid plans do not purchase exclusive access to all normal learning videos.
+
+Subscriptions provide additional capacity to create new videos.
+
+Do not lock already available educational learning content unnecessarily.
+
+Generation status:
+
+- Waiting.
+- Processing.
+- Completed.
+- Failed.
+
+Only real provider status may be shown.
+
+Never invent progress percentages.
+
+============================================================
+15. FOCUS ROOM AND STUDY MUSIC
+============================================================
+
+Feature:
+
+FOCUS ROOM
+
+Preserve all original timer presets:
+
+10, 15, 25, 30, 45, 50, 60 minutes, and custom.
+
+Pomodoro:
+
+25 + 5.
+50 + 10.
+Custom.
+
+Controls:
+
+Start.
+Pause.
+Resume.
+Stop.
+Reset.
+Skip break.
+Start break.
+End break.
+Automatic transition.
+Reminders.
+
+Store timestamps and actual focused duration.
+
+Exclude paused and break time.
+
+Feature:
+
+FOCUS ATMOSPHERE
+
+Categories:
+
+Focus.
+Relaxing.
+Background.
+
+Controls:
+
+Play.
+Pause.
+Previous.
+Next.
+Volume.
+On/off.
+Break behavior.
+Optional auto-play.
+
+Use authorized audio only.
+
+Feature:
+
+SMART BREAK MANAGER
+
+Support custom breaks, skip, disable, reminders, notification preferences, and automatic continuation.
+
+Respect Android background execution behavior.
+
+============================================================
+16. XP AND LEVEL SYSTEM
+============================================================
+
+Feature:
+
+QUEST XP ENGINE
+
+Eligible XP activities:
+
+- Verified study sessions.
+- Assignments.
+- Daily, weekly, two-week, and monthly activities.
+- Goals.
+- Exams.
+- Quizzes.
+- Streaks.
+- Approved learning activities.
+- Competitions.
+- Helpful community contributions.
+
+Admin-configurable difficulty and reward rules.
+
+Functions:
+
+calculateXpReward()
+validateXpEligibility()
+awardXpTransaction()
+getXpHistory()
+reverseInvalidXpTransaction()
+calculateLevelProgress()
+getNextLevelRequirement()
+completeLevelUpgrade()
+
+Maintain a complete transaction ledger.
+
+Do not grant duplicate rewards.
+
+Feature:
+
+LEVEL JOURNEY
+
+Display:
+
+- Current level.
+- Current XP.
+- Next level requirement.
+- Progress.
+- Reward details.
+- Level-up animation.
+- Historical level changes.
+
+============================================================
+17. BADGE SYSTEM
+============================================================
+
+Feature:
+
+ACHIEVEMENT VAULT
+
+Categories:
+
+Study:
+First Study Session.
+1 Hour Learner.
+10 Hour Learner.
+50 Hour Learner.
+100 Hour Learner.
+Study Master.
+
+Streak:
+3-Day Streak.
+7-Day Streak.
+14-Day Streak.
+30-Day Streak.
+100-Day Streak.
+
+Assignments:
+First Assignment.
+Assignment Explorer.
+Assignment Master.
+Assignment Champion.
+
+Exams:
+First Exam.
+High Scorer.
+Perfect Score.
+Exam Champion.
+
+Goals:
+First Goal.
+Goal Builder.
+Goal Crusher.
+Consistency Master.
+
+Competitions:
+First Challenge Winner.
+Weekly Champion.
+Two-Week Champion.
+Monthly Champion.
+Seasonal Champion.
+
+Community:
+Helpful Student.
+Knowledge Sharer.
+Community Contributor.
+
+Rarity:
+
+Common.
+Uncommon.
+Rare.
+Epic.
+Legendary.
+
+Each badge contains:
+
+- Name.
+- Artwork.
+- Description.
+- Category.
+- Rarity.
+- Criteria.
+- Progress.
+- Unlock date.
+- Optional XP reward.
+- Locked/unlocked status.
+
+Functions:
+
+getAvailableBadges()
+getUnlockedBadges()
+calculateBadgeProgress()
+checkBadgeEligibility()
+unlockBadge()
+setFavoriteBadge()
+updateBadgeShowcase()
+
+Allow filters, favourite badges, pinned badges, collection progress, and profile showcase.
+
+Only issue unlock animation when eligibility is verified.
+
+============================================================
+18. GOALS
+============================================================
+
+Feature:
+
+GOAL BUILDER
+
+Allow:
+
+- Create.
+- Edit.
+- Delete.
+- Select subject.
+- Set target.
+- Set deadline.
+- Track progress.
+- Complete.
+- View history.
+
+Examples:
+
+- Study mathematics for a defined duration.
+- Finish a chapter.
+- Answer a question target.
+- Practise English.
+- Complete a learning assignment.
+
+Functions:
+
+createStudyGoal()
+updateStudyGoal()
+deleteStudyGoal()
+updateGoalProgress()
+verifyGoalCompletion()
+completeStudyGoal()
+getGoalHistory()
+
+Prevent meaningless repeatable goals from generating unlimited rewards.
+
+============================================================
+19. ASSIGNMENTS AND CHALLENGES
+============================================================
+
+Feature:
+
+QUEST MISSIONS
+
+Periods:
+
+Daily.
+Weekly.
+Two-week.
+Monthly.
+
+Types:
+
+Subject.
+Chapter.
+Timed.
+Question.
+MCQ.
+Personal goal.
+Special event.
+
+Each mission contains:
+
+- Title.
+- Description.
+- Instructions.
+- Subject.
+- Difficulty.
+- Deadline.
+- Progress.
+- Status.
+- XP.
+- Ranking eligibility.
+- Completion requirements.
+
+Functions:
+
+createAssignment()
+getAvailableAssignments()
+joinAssignment()
+updateAssignmentProgress()
+submitAssignment()
+verifyAssignmentCompletion()
+claimAssignmentReward()
+getAssignmentHistory()
+
+Prevent duplicate claims.
+
+============================================================
+20. EXAMINATION SYSTEM
+============================================================
+
+Feature:
+
+EXAM ARENA
+
+Support:
+
+MCQ.
+Subject examinations.
+Chapter examinations.
+Timed exams.
+Practice quizzes.
+Quick quizzes.
+Special challenges.
+
+Include:
+
+- Question navigation.
+- Answer selection.
+- Timer.
+- Submission.
+- Automatic grading where supported.
+- Marks.
+- Percentage.
+- Accuracy.
+- Explanations.
+- History.
+- Incorrect-answer revision.
+- Subject statistics.
+
+Functions:
+
+loadExamQuestions()
+startExamAttempt()
+saveExamAnswer()
+navigateExamQuestion()
+submitExamAttempt()
+calculateExamResult()
+getExamHistory()
+reviewIncorrectAnswers()
+
+Question banks must be configurable.
+
+Protect examination integrity and prevent repeat-attempt reward manipulation.
+
+============================================================
+21. LEADERBOARDS AND CHAMPIONS
+============================================================
+
+Feature:
+
+QUEST LEADERBOARDS
+
+Separate categories:
+
+- Verified study time.
+- XP for selected period.
+- Exam performance.
+- Assignment performance.
+- Challenge performance.
+
+Period choices:
+
+Weekly.
+Two-week.
+Monthly.
+Seasonal.
+
+Show:
+
+- Rank.
+- Avatar.
+- Display name.
+- XP.
+- Study time.
+- Marks.
+- Progress.
+- Trophy.
+- Reward.
+
+Feature:
+
+CHAMPION SERIES
+
+Functions:
+
+getLeaderboard()
+createLeaderboardPeriod()
+calculateLeaderboardRankings()
+resolveLeaderboardTies()
+finalizeCompetition()
+awardCompetitionRewards()
+preserveCompetitionHistory()
+getPreviousCompetitionResults()
+
+Define exact period boundaries and tie-break rules.
+
+Preserve historical winners and results.
+
+============================================================
+22. FRIENDS AND CHAT
+============================================================
+
+Feature:
+
+STUDYQUEST FRIENDS
+
+Allow:
+
+- Username search.
+- Friend code.
+- Friend requests.
+- Accept.
+- Decline.
+- Cancel request.
+- Remove friend.
+- Block.
+- Report.
+- Friend list.
+- Privacy preferences.
+- Permitted friend activity.
+
+Functions:
+
+searchStudentByUsername()
+generateFriendCode()
+sendFriendRequest()
+acceptFriendRequest()
+declineFriendRequest()
+cancelFriendRequest()
+removeFriend()
+blockStudent()
+reportStudent()
+getFriendList()
+getFriendActivity()
+
+Feature:
+
+QUEST CHAT
+
+Allow safe text messaging between accepted friends.
+
+Include:
+
+- Conversation list.
+- Message sending.
+- Timestamps.
+- Unread indicators.
+- History.
+- Basic search.
+- Reporting.
+- Blocking.
+- Notification settings.
+
+Functions:
+
+createConversation()
+getConversationList()
+sendChatMessage()
+getChatHistory()
+markMessageRead()
+deleteOwnMessage()
+reportChatMessage()
+blockConversation()
+updateChatPreferences()
+
+Student safety:
+
+- No unrestricted stranger DMs.
+- Private chat requires accepted friendship.
+- Group chat requires moderation.
+- Protect personal details.
+- Restrict dangerous information sharing.
+- No unrestricted file sharing in initial release.
+- Provide reporting, blocking, and moderation.
+
+============================================================
+23. CLASS COMMUNITY
+============================================================
+
+Feature:
+
+STUDYQUEST COMMUNITY
+
+Class areas:
+
+Class 6.
+Class 7.
+Class 8.
+Class 9.
+Class 10.
+Additional configured classes.
+
+Sections:
+
+Latest.
+Popular.
+My Posts.
+Questions.
+Saved.
+Subject Discussions.
+Helpful Resources.
+
+Support:
+
+- Educational posts.
+- Questions.
+- Explanations.
+- Study tips.
+- Learning resources.
+- Comments.
+- Reactions.
+- Saved posts.
+- Reports.
+- Moderation.
+
+Functions:
+
+getClassCommunity()
+createCommunityPost()
+editCommunityPost()
+deleteCommunityPost()
+commentOnPost()
+reactToPost()
+saveCommunityPost()
+reportCommunityPost()
+moderateCommunityContent()
+
+Prevent spam XP.
+
+============================================================
+24. PROFILE
+============================================================
+
+Feature:
+
+STUDENT PROFILE
+
+Display:
+
+- Avatar.
+- Username.
+- User ID.
+- Class.
+- Subjects.
+- XP.
+- Level.
+- Study statistics.
+- Streak.
+- Assignment performance.
+- Exam performance.
+- Badges.
+- Trophies.
+- Competition history.
+- Titles.
+- Friend preferences.
+- Public showcase.
+
+Functions:
+
+getStudentProfile()
+updateStudentProfile()
+updateProfileAvatar()
+getProfileStatistics()
+updateProfileShowcase()
+updatePrivacySettings()
+
+============================================================
+25. NOTIFICATIONS
+============================================================
+
+Feature:
+
+QUEST NOTIFICATION CENTER
+
+Categories:
+
+- Study reminders.
+- XP rewards.
+- Level upgrades.
+- Badge unlocks.
+- Assignment deadlines.
+- Competitions.
+- Examinations.
+- Friend requests.
+- Chat messages.
+- Community activity.
+- Video completion.
+- Subscription status.
+- Storage warnings.
+
+Functions:
+
+createNotification()
+getNotifications()
+markNotificationRead()
+markAllNotificationsRead()
+deleteNotification()
+updateNotificationPreferences()
+sendAuthorizedPushNotification()
+
+Include unread counts, history, deep links, preferences, quiet hours, and optional sounds.
+
+Never claim a push was delivered without a confirmed result.
+
+============================================================
+26. SETTINGS
+============================================================
+
+Feature:
+
+QUEST SETTINGS
+
+Screen sections:
+
+- Account.
+- Profile.
+- Password and recovery.
+- Class and subjects.
+- Privacy.
+- Friends.
+- Chat permissions.
+- Notifications.
+- Accessibility.
+- Language.
+- AI preferences.
+- Subscriptions.
+- Storage.
+- Purchases.
+- Support.
+- Account deletion.
+- Sign out.
+
+Subscription management must be available anytime through:
+
+MyPlansScreen.
+
+============================================================
+27. ADMINISTRATOR SYSTEM
+============================================================
+
+Feature:
+
+QUEST ADMIN STUDIO
+
+Only authorized roles can access it.
+
+Admin modules:
+
+- User management.
+- Class and subject management.
+- XP configuration.
+- Level configuration.
+- Badge management.
+- Goal configuration.
+- Assignment management.
+- Challenge management.
+- Exam question bank.
+- Leaderboard management.
+- Community moderation.
+- Friend reports.
+- Chat reports.
+- AI provider configuration.
+- AI model configuration.
+- AI usage budgets.
+- Video provider configuration.
+- Video generation monitoring.
+- Storage plans.
+- Subscription catalogue.
+- Product prices.
+- Billing verification.
+- Ad configuration.
+- Notification templates.
+- Support.
+- Business reports.
+- Audit logs.
+
+Admin functions:
+
+adminManageUser()
+adminConfigureClass()
+adminUpdateXpRules()
+adminCreateBadge()
+adminUpdateLevelRequirements()
+adminCreateAssignment()
+adminScheduleChallenge()
+adminManageQuestionBank()
+adminModerateCommunityPost()
+adminReviewChatReport()
+adminConfigureAIProvider()
+adminUpdateAIBudget()
+adminConfigureVideoProvider()
+adminUpdateStorageLimits()
+adminCreateSubscriptionPlan()
+adminUpdateProductPrice()
+adminReviewPurchase()
+adminGetBusinessReport()
+adminReviewAuditLogs()
+
+All admin operations require backend authorization and audit logging.
+
+============================================================
+28. OWNER REVENUE AND COST MANAGEMENT
+============================================================
+
+Feature:
+
+QUEST BUSINESS INSIGHTS
+
+Track genuine:
+
+- Subscription revenue.
+- Active subscriptions.
+- Renewals.
+- Cancellations.
+- Refunds.
+- Video Boost purchases.
+- Storage add-ons.
+- AI provider charges.
+- Video generation costs.
+- Storage costs.
+- Downloads and bandwidth.
+- Backend costs.
+- Store fees.
+- Payment fees.
+- Applicable taxes.
+- Operating costs.
+
+Functions:
+
+getSubscriptionRevenue()
+getActiveSubscriberCount()
+getRenewalCount()
+getCancellationCount()
+getProductSales()
+getVideoBoostSales()
+getStorageAddonRevenue()
+getRefundTotals()
+getAIProviderCost()
+getVideoGenerationCost()
+getStorageOperatingCost()
+getBandwidthCost()
+getFirebaseCost()
+getPaymentProcessingCost()
+getStoreFeeEstimate()
+calculateNetContribution()
+calculateOperatingMargin()
+getMonthlyBusinessReport()
+
+Use:
+
+Net contribution =
+Revenue actually received
+minus refunds and applicable taxes
+minus store and payment fees
+minus AI costs
+minus video costs
+minus storage and bandwidth
+minus backend and infrastructure costs
+minus other operating costs.
+
+Never calculate profit merely by adding subscription prices.
+
+Before selling a plan, verify that maximum expected included usage is financially sustainable.
+
+If a particular allowance makes a product unsustainable, identify the issue before launch and prepare a transparent adjustment for owner approval.
+
+Do not secretly alter already purchased entitlements.
+
+============================================================
+29. ADS AND COMMERCIAL SAFETY
+============================================================
+
+Because StudyQuest serves school students:
+
+- Minimize data collection.
+- Use age-appropriate advertising configuration.
+- Apply guardian and age requirements where legally necessary.
+- Do not use manipulative purchase patterns.
+- Do not make educational access depend on pressure to purchase.
+- Do not place advertisements in exams, focus sessions, or active videos.
+- Do not display inappropriate content.
+- Do not use restricted ad targeting.
+- Provide clear purchase and cancellation information.
+- Require appropriate adult approval for purchases where necessary.
+
+Use official current platform requirements, not assumptions.
+
+============================================================
+30. DATA ARCHITECTURE
+============================================================
+
+Inspect the actual existing database and extend it.
+
+Potential data groups:
+
+users
+student_profiles
+onboarding_records
+product_catalog
+subscriptions
+purchase_transactions
+entitlements
+storage_usage
+storage_addons
+ai_usage
+ai_jobs
+video_jobs
+video_credits
+study_sessions
+xp_transactions
+level_records
+badge_definitions
+user_badges
+study_goals
+assignments
+assignment_submissions
+competition_periods
+leaderboard_results
+exam_questions
+exam_attempts
+friend_requests
+friendships
+conversations
+messages
+community_posts
+comments
+reports
+notifications
+notification_preferences
+audit_logs
+
+Do not duplicate an existing structure.
+
+Use safe migrations.
+
+Preserve historical records.
+
+Use transactions and idempotency where multiple systems update together.
+
+============================================================
+31. SYSTEM INTEGRATION
+============================================================
+
+Connect the entire system logically.
+
+Study session completion can trigger:
+
+1. Verified study-session record.
+2. XP award.
+3. Level calculation.
+4. Streak update.
+5. Goal progress.
+6. Assignment progress.
+7. Badge eligibility.
+8. Leaderboard update.
+9. Notification creation.
+10. Dashboard refresh.
+
+Exam submission can trigger:
+
+1. Attempt validation.
+2. Score calculation.
+3. Saved examination result.
+4. Eligible XP.
+5. Exam leaderboard update.
+6. Achievement eligibility.
+7. Profile update.
+8. Notification.
+
+Video generation can trigger:
+
+1. Entitlement validation.
+2. Credit reservation.
+3. Input validation.
+4. Job creation.
+5. Provider request.
+6. Real job status update.
+7. Output validation.
+8. Credit settlement or restoration.
+9. Video-library publication.
+10. Completion notification.
+
+Subscription verification can trigger:
+
+1. Purchase verification.
+2. Entitlement activation.
+3. Ad removal.
+4. AI allowance update.
+5. Video allowance update.
+6. Storage quota update.
+7. Profile update.
+8. Subscription confirmation.
+
+Never allow one successful-looking client action to trigger unverified rewards or billing benefits.
+
+============================================================
+32. TECHNICAL SECURITY AND PRIVACY
+============================================================
+
+Implement:
+
+- Server-side authorization.
+- Database security rules.
+- Input validation.
+- Secure upload checks.
+- File-size limits.
+- MIME validation.
+- Rate limits.
+- Idempotent reward and billing operations.
+- Secure API key storage.
+- Secure session handling.
+- Subscription verification.
+- AI budget validation.
+- Video generation validation.
+- XP fraud prevention.
+- Exam integrity.
+- Leaderboard integrity.
+- Moderation.
+- Abuse reports.
+- Blocking.
+- Privacy settings.
+- Account recovery.
+- Account deletion.
+- Data retention rules.
+
+Never trust client-side values for:
+
+- XP.
+- Marks.
+- Ranks.
+- Study duration.
+- Badges.
+- Entitlements.
+- Purchases.
+- AI credits.
+- Video credits.
+- Storage limits.
+
+Protect student privacy.
+
+Avoid exposing unnecessary personal information.
+
+============================================================
+33. BILLING AND EXTERNAL SERVICE REQUIREMENTS
+============================================================
+
+Before implementing purchases, inspect:
+
+- Actual app distribution channel.
+- Current Google Play requirements.
+- Applicable local payment requirements.
+- Product eligibility.
+- Subscription renewal requirements.
+- Cancellation requirements.
+- Store fees.
+- Refund rules.
+- Digital goods rules.
+
+For Play-distributed Android apps, verify the current Google Play billing policy for subscriptions, digital features, cloud storage, and add-ons before implementation.
+
+Do not assume an external checkout link is permitted.
+
+Use the currently permitted billing flow.
+
+Implement backend purchase verification.
+
+Never activate entitlements solely from an untrusted client callback.
+
+Document every external credential or provider configuration required.
+
+Use adult or guardian involvement for accounts, billing, publishing, and payment decisions where required.
+
+============================================================
+34. DESIGN SYSTEM AND FULL ANIMATION
+============================================================
+
+Feature:
+
+STUDYQUEST VISUAL SYSTEM
+
+Preserve the current design language.
+
+Improve:
+
+- Screen hierarchy.
+- Navigation.
+- Readability.
+- Spacing.
+- Layout.
+- Mobile responsiveness.
+- Accessibility.
+- Loading states.
+- Empty states.
+- Error states.
+- Confirmation states.
+- Offline behavior.
+
+Avoid:
+
+- Generic AI dashboard layouts.
+- Fake statistics.
+- Unnecessary gradients.
+- Excessive glass effects.
+- Neon decoration without purpose.
+- Clutter.
+- Inert controls.
+- Decorative elements that damage usability.
+
+Feature:
+
+QUEST MOTION SYSTEM
+
+Create polished animations for:
+
+- Onboarding.
+- Navigation.
+- XP rewards.
+- Level upgrades.
+- Badge unlocks.
+- Goal completion.
+- Assignment completion.
+- Competition victories.
+- Trophy presentation.
+- Video generation.
+- Profile achievements.
+- Subscription confirmation.
+- Friend requests.
+
+Animations must be lightweight, smooth, and purposeful.
+
+Respect reduced-motion accessibility.
+
+============================================================
+35. COMPLETE FUNCTION-NAME DIRECTORY
+============================================================
+
+Maintain meaningful names for all important operations.
+
+ONBOARDING:
+completeOnboarding()
+saveStudentProfile()
+saveLearningPreferences()
+getOnboardingStatus()
+activateFreePlan()
+restoreExistingEntitlements()
+
+DASHBOARD:
+getStudentDashboard()
+getDailyStudySummary()
+getWeeklyStudySummary()
+getRecommendedLessons()
+getSubscriptionSummary()
+
+STUDY:
+startStudySession()
+pauseStudySession()
+resumeStudySession()
+stopStudySession()
+resetStudySession()
+verifyStudySession()
+calculateFocusedDuration()
+
+MUSIC:
+getMusicLibrary()
+playFocusMusic()
+pauseFocusMusic()
+setMusicVolume()
+toggleFocusMusic()
+
+BREAKS:
+configureBreakDuration()
+startBreakTimer()
+skipBreak()
+endBreak()
+enableBreakReminders()
+
+XP:
+calculateXpReward()
+validateXpEligibility()
+awardXpTransaction()
+getXpHistory()
+reverseInvalidXpTransaction()
+calculateLevelProgress()
+
+BADGES:
+getAvailableBadges()
+getUnlockedBadges()
+calculateBadgeProgress()
+checkBadgeEligibility()
+unlockBadge()
+setFavoriteBadge()
+updateBadgeShowcase()
+
+GOALS:
+createStudyGoal()
+updateStudyGoal()
+deleteStudyGoal()
+updateGoalProgress()
+verifyGoalCompletion()
+completeStudyGoal()
+
+ASSIGNMENTS:
+createAssignment()
+getAvailableAssignments()
+joinAssignment()
+updateAssignmentProgress()
+submitAssignment()
+verifyAssignmentCompletion()
+claimAssignmentReward()
+
+EXAMS:
+loadExamQuestions()
+startExamAttempt()
+saveExamAnswer()
+submitExamAttempt()
+calculateExamResult()
+getExamHistory()
+reviewIncorrectAnswers()
+
+LEADERBOARDS:
+getLeaderboard()
+createLeaderboardPeriod()
+calculateLeaderboardRankings()
+resolveLeaderboardTies()
+finalizeCompetition()
+awardCompetitionRewards()
+preserveCompetitionHistory()
+
+FRIENDS:
+searchStudentByUsername()
+generateFriendCode()
+sendFriendRequest()
+acceptFriendRequest()
+declineFriendRequest()
+cancelFriendRequest()
+removeFriend()
+blockStudent()
+reportStudent()
+getFriendList()
+
+CHAT:
+createConversation()
+getConversationList()
+sendChatMessage()
+getChatHistory()
+markMessageRead()
+deleteOwnMessage()
+reportChatMessage()
+blockConversation()
+
+COMMUNITY:
+getClassCommunity()
+createCommunityPost()
+editCommunityPost()
+deleteCommunityPost()
+commentOnPost()
+reactToPost()
+saveCommunityPost()
+reportCommunityPost()
+moderateCommunityContent()
+
+AI:
+getAvailableAIProviders()
+getAvailableAIModels()
+getAIProviderStatus()
+getAIUsageSummary()
+getRemainingAIAllowance()
+reserveAIAllowance()
+runStudyQuestAIRequest()
+settleAIUsage()
+refundFailedAIUsage()
+
+PUTER:
+getPuterConnectionStatus()
+startPuterAuthentication()
+handlePuterReturn()
+verifyPuterIntegration()
+
+AI COSTS:
+setMonthlyAIBudget()
+getActualProviderSpend()
+getProjectedProviderSpend()
+setPerUserAICap()
+setPerRequestTokenLimit()
+setMaximumConcurrentAIJobs()
+sendAIBudgetAlert()
+disableAIRequestsAtHardLimit()
+
+VIDEO:
+validateVideoInput()
+extractEducationalContent()
+analyzeLessonTopics()
+generateLessonScript()
+createSceneStoryboard()
+generateSceneAssets()
+generateNarration()
+createSubtitles()
+renderAnimatedVideo()
+validateVideoOutput()
+publishCompletedVideo()
+
+VIDEO CREDITS:
+getVideoCredits()
+purchaseVideoBoost()
+verifyVideoBoostPurchase()
+addVerifiedVideoCredits()
+reserveVideoCredit()
+completeVideoCreditUsage()
+restoreFailedVideoCredit()
+
+STORAGE:
+getStorageUsage()
+getStorageQuota()
+getRemainingStorage()
+getStorageAddons()
+purchaseStorageAddon()
+uploadStudyFile()
+validateUploadedFile()
+deleteStudyFile()
+checkStorageQuota()
+
+BILLING:
+getPlanCatalog()
+getProductDetails()
+getCanonicalPrice()
+createPurchaseRequest()
+verifyStorePurchase()
+activateSubscriptionEntitlement()
+getCurrentSubscription()
+getPurchaseHistory()
+restorePurchases()
+cancelSubscription()
+handleSubscriptionRenewal()
+handleSubscriptionExpiration()
+applyFreePlanFallback()
+
+ADS:
+getAdEligibility()
+getAdPreferences()
+loadPermittedAd()
+showPermittedAd()
+disableAdsForPaidEntitlement()
+disableAdsDuringFocus()
+disableAdsDuringExam()
+disableAdsDuringVideo()
+
+PROFILE:
+getStudentProfile()
+updateStudentProfile()
+updateProfileAvatar()
+getProfileStatistics()
+updateProfileShowcase()
+updatePrivacySettings()
+
+NOTIFICATIONS:
+createNotification()
+getNotifications()
+markNotificationRead()
+markAllNotificationsRead()
+deleteNotification()
+updateNotificationPreferences()
+sendAuthorizedPushNotification()
+
+ADMIN:
+adminManageUser()
+adminConfigureClass()
+adminUpdateXpRules()
+adminCreateBadge()
+adminUpdateLevelRequirements()
+adminCreateAssignment()
+adminScheduleChallenge()
+adminManageQuestionBank()
+adminModerateCommunityPost()
+adminReviewChatReport()
+adminConfigureAIProvider()
+adminUpdateAIBudget()
+adminConfigureVideoProvider()
+adminUpdateStorageLimits()
+adminCreateSubscriptionPlan()
+adminUpdateProductPrice()
+adminReviewPurchase()
+adminGetBusinessReport()
+adminReviewAuditLogs()
+
+BUSINESS:
+getSubscriptionRevenue()
+getActiveSubscriberCount()
+getRenewalCount()
+getCancellationCount()
+getProductSales()
+getVideoBoostSales()
+getStorageAddonRevenue()
+getRefundTotals()
+getAIProviderCost()
+getVideoGenerationCost()
+getStorageOperatingCost()
+getBandwidthCost()
+getFirebaseCost()
+getPaymentProcessingCost()
+getStoreFeeEstimate()
+calculateNetContribution()
+calculateOperatingMargin()
+getMonthlyBusinessReport()
+
+Do not implement all of these as one monolithic class.
+
+Use proper separation of concerns.
+
+============================================================
+36. DEVELOPMENT EXECUTION ROADMAP
+============================================================
+
+STAGE 1 — INSPECTION
+
+Audit existing app, source, architecture, database, authentication, design, and functionality.
+
+Deliverable:
+Existing project inventory and requirement mapping.
+
+STAGE 2 — ONBOARDING AND PLAN FOUNDATION
+
+Implement class setup, student profile, Free Plan default, plan catalogue, shared pricing, and navigation.
+
+Deliverable:
+Working first-time experience.
+
+STAGE 3 — CORE LEARNING
+
+Implement Focus Room, analytics, goals, XP, levels, badges, assignments, and notifications.
+
+Deliverable:
+Functional learning progression.
+
+STAGE 4 — EXAMS AND COMPETITIONS
+
+Implement exam system, grading, leaderboards, seasonal competition, rewards, and history.
+
+Deliverable:
+Verified academic systems.
+
+STAGE 5 — SOCIAL LEARNING
+
+Implement friends, friend requests, chat, class community, moderation, and reports.
+
+Deliverable:
+Safe student communication.
+
+STAGE 6 — AI
+
+Implement AI Lab, owner-funded provider gateway, Puter compatibility, credits, allowances, cost monitoring, and failure handling.
+
+Deliverable:
+Working AI options with tested boundaries.
+
+STAGE 7 — ANIMATED VIDEO
+
+Implement document processing, scripts, storyboards, narration, animation, subtitles, video library, and credits.
+
+Deliverable:
+Real generation workflow.
+
+STAGE 8 — BILLING AND STORAGE
+
+Implement exact catalogue, plan entitlements, ad removal, Video Boost, storage add-ons, purchase verification, and expiration.
+
+Deliverable:
+Complete subscription lifecycle.
+
+STAGE 9 — ADMIN
+
+Implement plan management, users, moderation, AI budgets, video jobs, purchases, storage, reports, and logs.
+
+Deliverable:
+Functional administration.
+
+STAGE 10 — QUALITY ASSURANCE
+
+Test full product, security, concurrency, mobile performance, billing, and provider failures.
+
+Deliverable:
+Verified release candidate or clear documentation of unresolved blockers.
+
+============================================================
+37. COMPLETE QUALITY AND ACCEPTANCE CRITERIA
+============================================================
+
+Verify the following.
+
+PROJECT:
+- Existing application inspected.
+- Existing functionality preserved.
+- Existing data preserved.
+- No unnecessary rewrite.
+
+ONBOARDING:
+- Correct class selection.
+- Student profile persistence.
+- Free automatically selected for eligible new users.
+- Paid plans optional.
+
+SUBSCRIPTIONS:
+- Seven plans correctly configured.
+- Exact prices.
+- Exact benefits.
+- Free is genuinely useful.
+- Every paid plan is ad-free.
+- Product catalogue shared everywhere.
+- No duplicate bundle charges.
+- Verified purchase lifecycle.
+- Correct expiration and fallback.
+
+AI:
+- Two methods clearly separated.
+- Puter integration tested.
+- StudyQuest uses protected owner credentials.
+- Allowances correct.
+- Credit accounting works.
+- Failures restore eligible credits.
+- Cost ceiling enforced.
+- No surprise StudyQuest charges.
+
+VIDEO:
+- Entire public educational video library accessible to all plans.
+- Generation allowances correct.
+- Video credits recorded.
+- Video Boost costs ৳20.
+- Failed qualifying generation restores credit.
+- No fake progress.
+- No fake completed videos.
+
+STORAGE:
+- Included quotas correct.
+- Add-on stacking correct.
+- Actual file upload works.
+- Storage warnings accurate.
+- Expiration protects user data.
+
+LEARNING:
+- Timer correct.
+- XP correct.
+- Badges correct.
+- Goals correct.
+- Assignments correct.
+- Exams correct.
+- Leaderboards correct.
+- Historical data preserved.
+
+SOCIAL:
+- Friend requests work.
+- Privacy works.
+- Chat permissions work.
+- Report and block work.
+- Community moderation works.
+
+DESIGN:
+- Existing brand preserved.
+- All screens designed.
+- Buttons functional.
+- Loading and error states present.
+- Animations polished.
+- Accessibility considered.
+
+SECURITY:
+- Unauthorized actions rejected.
+- Keys protected.
+- Purchases verified.
+- XP protected.
+- Marks protected.
+- User privacy protected.
+- File uploads validated.
+
+BUSINESS:
+- Revenue comes from verified purchases.
+- Costs come from actual provider usage.
+- Profit calculations include fees and refunds.
+- AI hard budget works.
+- Video budget works.
+- Storage costs tracked.
+- Paid ad-removal entitlement works.
+
+Do not claim a check passed until it has actually been verified.
+
+============================================================
+38. FINAL DELIVERY REQUIREMENTS
+============================================================
+
+Deliver:
+
+1. Updated existing StudyQuest project.
+2. Complete feature implementation.
+3. Complete responsive mobile interface.
+4. Working navigation.
+5. Backend and database updates.
+6. Safe database migrations.
+7. Secure provider integrations where configured.
+8. Subscription and entitlement system.
+9. AI and video allowance systems.
+10. Admin controls.
+11. Automated tests.
+12. Manual QA results.
+13. Build verification.
+14. Required configuration guide.
+15. External provider dependency list.
+16. Known limitations.
+17. Final requirement coverage report.
+
+The final report must distinguish:
+
+- Implemented and verified.
+- Implemented but not fully verified.
+- Waiting for external configuration.
+- Waiting for billing or store approval.
+- Not implemented.
+- Blocked by technical limitations.
+
+Do not pretend to have completed unavailable integrations.
+
+Do not call the project finished while required features remain missing.
+
+============================================================
+39. SOURCE-TO-IMPLEMENTATION TRACEABILITY
+============================================================
+
+Maintain a requirement ledger mapping every requirement to:
+
+- Requirement ID.
+- User requirement.
+- Relevant feature.
+- Screen or backend system.
+- Implementation location.
+- Dependency.
+- Verification method.
+- Current status.
+
+Before delivery, compare the implementation against this entire prompt.
+
+If any requirement is missing, identify it and address it where feasible.
+
+Do not mark a feature as complete merely because its screen exists.
+
+A feature is complete only when its necessary behavior, integration, error states, and verification requirements have been addressed.
+
+============================================================
+40. FINAL EXECUTION DIRECTIVE
+============================================================
+
+Build StudyQuest as a complete, professional, integrated educational platform.
+
+Keep Free genuinely useful.
+
+Make paid subscriptions meaningful additions.
+
+Explain exactly what every plan provides.
+
+Ensure every paid plan is ad-free.
+
+Keep StudyQuest AI at ৳150/month everywhere.
+
+Keep Puter.js Pay-as-you-use separate from the owner's API-funded AI service.
+
+Make the educational video library accessible to all eligible students.
+
+Let subscriptions provide more animated-video creation capacity.
+
+Provide the separate ৳20 Video Boost product.
+
+Implement storage as configurable entitlements and add-ons; do not treat the earlier 100 GB and 200 GB examples as fixed requirements.
+
+Protect the owner against uncontrolled AI and video bills.
+
+Protect student accounts, privacy, and purchases.
+
+Preserve existing functionality.
+
+Use all relevant original and additional ideas.
+
+Implement every feature properly.
+
+Test the complete product.
+
+Fix failures.
+
+Retest.
+
+Deliver the actual project with an honest verification report.
+
+MY ORIGINAL REQUIREMENTS + APPROVED IMPROVEMENTS + COMPLETE SYSTEMS + REAL IMPLEMENTATION = STUDYQUEST.
+
+NO DUMMY PLANS.
+NO EMPTY SUBSCRIPTION CARDS.
+NO FAKE AI.
+NO FAKE VIDEOS.
+NO HIDDEN FEES.
+NO UNNECESSARY FREE-PLAN RESTRICTIONS.
+NO ADVERTISEMENTS IN PAID PLANS.
+NO DUPLICATE PRICING.
+NO UNCONTROLLED API BILLS.
+NO LOST FEATURES.
+
+EVERY IMPORTANT REQUIREMENT MUST BE PRESERVED AND PROPERLY EXECUTED.

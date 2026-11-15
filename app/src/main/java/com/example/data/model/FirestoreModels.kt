@@ -478,8 +478,11 @@ data class CommunityCommentDoc(
 data class AiVideoJobDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
-    val sourceType: String = "chapter",
+    val sourceType: String = "chapter", // "chapter", "pdf", "text", "custom_animated", "uploaded_video"
     val sourceTitle: String = "",
+    val description: String = "",
+    val language: String = "bn",
+    val animationStyle: String = "chalkboard",
     val classId: String = "class_10",
     val subjectId: String = "math",
     val chapterId: String? = null,
@@ -496,7 +499,13 @@ data class AiVideoJobDoc(
 data class LearningVideoDoc(
     @DocumentId val id: String = "",
     val ownerUid: String = "",
+    val ownerName: String = "",
     val title: String = "",
+    val description: String = "",
+    val language: String = "bn", // "bn" or "en"
+    val animationStyle: String = "editorial", // "editorial", "diagram_focus", "step_cards"
+    val videoSourceType: String = "animated_lesson", // "animated_lesson" or "uploaded_video"
+    val localVideoUri: String? = null,
     val classId: String = "class_10",
     val subjectId: String = "math",
     val chapterId: String? = null,
@@ -516,11 +525,125 @@ data class LearningVideoDoc(
 data class UserSubscriptionDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
-    val tier: String = "free",
+    val tier: String = "free", // "free", "plus", "video_pass", "studyquest_ai", "scholar", "creator", "complete_max" (legacy "premium" treated as "plus")
+    val activePlanName: String = "Free StudyQuest",
     val billingProvider: String = "google_play_unconfigured",
     val adEnabled: Boolean = true,
+    val monthlyAiLimit: Long = 20L,
+    val aiCreditsUsed: Long = 0L,
+    val monthlyVideoLimit: Long = 1L,
+    val videoCreditsUsed: Long = 0L,
+    val bonusVideoCredits: Long = 0L,
+    val cycleStartEpochMs: Long = 0L,
+    val autoRenewing: Boolean = false,
     val expiresAtEpochMs: Long = 0L,
     @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class AiCreditLedgerDoc(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val delta: Long = 0L, // negative = spent/reserved, positive = refund/grant/renewal
+    val entryType: String = "reserve", // "reserve", "settle", "refund", "renewal"
+    val toolId: String = "QuestTutor",
+    val modelUsed: String = "gpt-6-luna",
+    val requestId: String = "",
+    val note: String = "",
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class VideoCreditLedgerDoc(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val delta: Long = 0L,
+    val entryType: String = "reserve", // "reserve", "complete", "refund", "boost_purchase", "renewal"
+    val jobId: String = "",
+    val note: String = "",
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class PurchaseRecordDoc(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val productId: String = "",
+    val planId: String = "free",
+    val title: String = "",
+    val amountBdt: Long = 0L,
+    val purchaseType: String = "subscription", // "subscription", "one_time_boost"
+    val status: String = "unconfigured", // "completed", "pending", "cancelled", "refunded", "unconfigured"
+    val playOrderId: String? = null,
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class AiConversationDoc(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val title: String = "New StudyQuest Chat",
+    val toolId: String = "QuestTutor",
+    val providerMode: String = "studyquest_ai", // "studyquest_ai" or "puter_js"
+    val classId: String = "class_10",
+    val subjectId: String = "math",
+    val lastMessagePreview: String = "",
+    val messageCount: Long = 0L,
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class AiChatMessageDoc(
+    @DocumentId val id: String = "",
+    val conversationId: String = "",
+    val userId: String = "",
+    val role: String = "user", // "user", "assistant", "system"
+    val text: String = "",
+    val toolId: String = "QuestTutor",
+    val modelUsed: String? = null,
+    val creditsCharged: Long = 0L,
+    val status: String = "completed", // "streaming", "completed", "failed", "cancelled"
+    val errorMessage: String? = null,
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class AiProviderSettingsDoc(
+    @DocumentId val id: String = "ai_provider_config",
+    val openRouterEnabled: Boolean = true,
+    val defaultModelId: String = "gpt-6-luna",
+    val reasoningModelId: String = "gpt-6.1-sol",
+    val advancedModelId: String = "gpt-6-astra",
+    val advancedModelEnabled: Boolean = false,
+    val fallbackToFirebaseAi: Boolean = true,
+    val globalMonthlyBudgetUsd: Double = 50.0,
+    val perUserMonthlyBudgetUsd: Double = 2.0,
+    val astraMonthlyBudgetUsd: Double = 10.0,
+    val lastVerificationStatus: String = "not_tested",
+    val lastVerifiedModelsSummary: String = "",
+    val lastErrorSummary: String? = null,
+    val lastErrorAtEpochMs: Long = 0L,
+    val updatedByUid: String? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class AiUsageLogDoc(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val conversationId: String = "",
+    val toolId: String = "QuestTutor",
+    val modelId: String = "gpt-6-luna",
+    val provider: String = "openrouter", // "openrouter", "firebase_ai"
+    val inputTokens: Long = 0L,
+    val outputTokens: Long = 0L,
+    val estimatedCostUsd: Double = 0.0,
+    val creditsDeducted: Long = 1L,
+    val status: String = "success", // "success", "failed", "cancelled", "budget_blocked"
+    val dayKey: String = "",
+    val monthKey: String = "",
+    @ServerTimestamp val createdAt: Timestamp? = null
 )
 
 @IgnoreExtraProperties

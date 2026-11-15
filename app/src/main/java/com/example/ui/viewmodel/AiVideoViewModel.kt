@@ -3,13 +3,14 @@ package com.example.ui.viewmodel
 import android.content.Context
 import android.net.Uri
 import android.speech.tts.TextToSpeech
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.AppLanguage
+import com.example.core.StudyActivityMonitor
 import com.example.core.unwrapFirestoreMessage
 import com.example.data.model.AiVideoJobDoc
 import com.example.data.model.LearningVideoDoc
+import com.example.data.model.UserSubscriptionDoc
 import com.example.data.repository.AiVideoRepository
 import com.example.data.repository.StoryboardQuizQuestion
 import com.example.data.repository.StoryboardScene
@@ -39,6 +40,10 @@ class AiVideoViewModel(
     val videos: StateFlow<List<LearningVideoDoc>> = aiVideoRepo.observeLearningVideos(currentUserId)
         .catch { emit(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val publicLibraryVideos: StateFlow<List<LearningVideoDoc>> = aiVideoRepo.observePublicLibraryVideos()
+        .catch { emit(AiVideoRepository.curatedStarterLibrary()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), AiVideoRepository.curatedStarterLibrary())
 
     private val _activeVideo = MutableStateFlow<LearningVideoDoc?>(null)
     val activeVideo: StateFlow<LearningVideoDoc?> = _activeVideo.asStateFlow()
@@ -99,22 +104,21 @@ class AiVideoViewModel(
         _currentSceneIndex.value = startIdx
         _sceneElapsedSec.value = 0
         _isPlaying.value = false
-        updateTtsLanguage(language)
+        StudyActivityMonitor.isVideoActive.value = true
+        val videoLang = if (video.language == "bn") AppLanguage.BANGLA else if (video.language == "en") AppLanguage.ENGLISH else language
+        updateTtsLanguage(videoLang)
     }
 
     fun closeVideo() {
         pauseStoryboard()
+        StudyActivityMonitor.isVideoActive.value = false
         _activeVideo.value = null
         _scenes.value = emptyList()
         _quizQuestions.value = emptyList()
     }
 
     fun togglePlayPause() {
-        if (_isPlaying.value) {
-            pauseStoryboard()
-        } else {
-            playStoryboard()
-        }
+        if (_isPlaying.value) pauseStoryboard() else playStoryboard()
     }
 
     fun playStoryboard() {
@@ -162,18 +166,13 @@ class AiVideoViewModel(
                 aiVideoRepo.saveVideoWatchProgress(vid.id, target)
             }
         }
-        if (autoSpeak) {
-            speakCurrentScene()
-        }
+        if (autoSpeak) speakCurrentScene()
     }
 
     fun toggleTts(enabled: Boolean) {
         _ttsEnabled.value = enabled
-        if (!enabled) {
-            runCatching { tts?.stop() }
-        } else if (_isPlaying.value) {
-            speakCurrentScene()
-        }
+        if (!enabled) runCatching { tts?.stop() }
+        else if (_isPlaying.value) speakCurrentScene()
     }
 
     private fun updateTtsLanguage(language: AppLanguage) {
@@ -197,10 +196,16 @@ class AiVideoViewModel(
     }
 
     fun generateFromChapter(
+        ownerName: String,
         classId: String,
         subjectId: String,
         chapterId: String,
-        language: AppLanguage
+        customTitle: String,
+        customDescription: String,
+        animationStyle: String,
+        visibility: String,
+        language: AppLanguage,
+        subscription: UserSubscriptionDoc
     ) {
         if (_isGenerating.value) return
         viewModelScope.launch {
@@ -209,17 +214,23 @@ class AiVideoViewModel(
             try {
                 val res = aiVideoRepo.generateChapterStoryboard(
                     userId = currentUserId,
+                    ownerName = ownerName,
                     classId = classId,
                     subjectId = subjectId,
                     chapterId = chapterId,
-                    language = language
+                    customTitle = customTitle,
+                    customDescription = customDescription,
+                    animationStyle = animationStyle,
+                    visibility = visibility,
+                    language = language,
+                    subscription = subscription
                 )
                 res.onSuccess { doc ->
                     openVideo(doc, language)
                     _message.value = if (language == AppLanguage.BANGLA) {
-                        "এআই স্টোরিবোর্ড লেসন তৈরি হয়েছে!"
+                        "অ্যানিমেটেড লেসন ভিডিও তৈরি হয়েছে!"
                     } else {
-                        "AI Learning Storyboard ready!"
+                        "Animated lesson video ready!"
                     }
                 }.onFailure { err ->
                     _message.value = unwrapFirestoreMessage(err, err.localizedMessage ?: "Storyboard generation failed")
@@ -233,11 +244,17 @@ class AiVideoViewModel(
     }
 
     fun generateFromDocumentOrNotes(
+        ownerName: String,
         classId: String,
         subjectId: String,
         documentUri: Uri?,
         pastedNotes: String,
-        language: AppLanguage
+        customTitle: String,
+        customDescription: String,
+        animationStyle: String,
+        visibility: String,
+        language: AppLanguage,
+        subscription: UserSubscriptionDoc
     ) {
         if (_isGenerating.value) return
         viewModelScope.launch {
@@ -247,18 +264,24 @@ class AiVideoViewModel(
                 val res = aiVideoRepo.generateFromUriOrText(
                     context = appContext,
                     userId = currentUserId,
+                    ownerName = ownerName,
                     classId = classId,
                     subjectId = subjectId,
                     documentUri = documentUri,
                     pastedNotes = pastedNotes,
-                    language = language
+                    customTitle = customTitle,
+                    customDescription = customDescription,
+                    animationStyle = animationStyle,
+                    visibility = visibility,
+                    language = language,
+                    subscription = subscription
                 )
                 res.onSuccess { doc ->
                     openVideo(doc, language)
                     _message.value = if (language == AppLanguage.BANGLA) {
-                        "ডকুমেন্ট থেকে এআই স্টোরিবোর্ড তৈরি হয়েছে!"
+                        "ডকুমেন্ট থেকে অ্যানিমেটেড ভিডিও তৈরি হয়েছে!"
                     } else {
-                        "AI Storyboard generated from your document!"
+                        "Animated lesson generated from your document!"
                     }
                 }.onFailure { err ->
                     _message.value = unwrapFirestoreMessage(err, err.localizedMessage ?: "Could not generate storyboard")
@@ -268,6 +291,75 @@ class AiVideoViewModel(
             } finally {
                 _isGenerating.value = false
             }
+        }
+    }
+
+    fun uploadCustomVideo(
+        ownerName: String,
+        videoUri: Uri,
+        title: String,
+        description: String,
+        classId: String,
+        subjectId: String,
+        language: AppLanguage,
+        visibility: String
+    ) {
+        if (_isGenerating.value) return
+        viewModelScope.launch {
+            _isGenerating.value = true
+            try {
+                val res = aiVideoRepo.publishUploadedVideo(
+                    context = appContext,
+                    userId = currentUserId,
+                    ownerName = ownerName,
+                    videoUri = videoUri,
+                    title = title,
+                    description = description,
+                    classId = classId,
+                    subjectId = subjectId,
+                    language = language,
+                    visibility = visibility
+                )
+                res.onSuccess { doc ->
+                    openVideo(doc, language)
+                    _message.value = if (language == AppLanguage.BANGLA) {
+                        "ভিডিও সফলভাবে আপলোড ও সংরক্ষণ হয়েছে!"
+                    } else {
+                        "Video uploaded and saved to your StudyQuest library!"
+                    }
+                }.onFailure { err ->
+                    _message.value = unwrapFirestoreMessage(err, err.localizedMessage ?: "Video upload failed")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } finally {
+                _isGenerating.value = false
+            }
+        }
+    }
+
+    fun updateVideoDetails(video: LearningVideoDoc, title: String, description: String, visibility: String) {
+        viewModelScope.launch {
+            val res = aiVideoRepo.updateVideoMetadata(video.id, title, description, visibility)
+            res.onSuccess {
+                if (_activeVideo.value?.id == video.id) {
+                    _activeVideo.value = video.copy(
+                        title = title.trim(),
+                        description = description.trim(),
+                        summary = description.trim(),
+                        visibility = visibility
+                    )
+                }
+                _message.value = "Video details updated."
+            }.onFailure { err ->
+                _message.value = unwrapFirestoreMessage(err, "Could not update video")
+            }
+        }
+    }
+
+    fun toggleBookmarkVideo(video: LearningVideoDoc) {
+        viewModelScope.launch {
+            aiVideoRepo.toggleSavePublicVideo(currentUserId, video)
         }
     }
 
@@ -281,7 +373,7 @@ class AiVideoViewModel(
             val res = aiVideoRepo.recordAiVideoQuizCompleted(currentUserId, video, correctCount, totalQuestions)
             res.onSuccess { xp ->
                 if (xp > 0) {
-                    _message.value = "Storyboard quiz checked ($correctCount/$totalQuestions)! +$xp XP"
+                    _message.value = "Lesson quiz checked ($correctCount/$totalQuestions)! +$xp XP"
                     onXpAwarded(xp)
                 }
             }.onFailure { err ->
@@ -292,14 +384,11 @@ class AiVideoViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        StudyActivityMonitor.isVideoActive.value = false
         playbackJob?.cancel()
         runCatching {
             tts?.stop()
             tts?.shutdown()
         }
-    }
-
-    companion object {
-        private const val TAG = "AiVideoVM"
     }
 }

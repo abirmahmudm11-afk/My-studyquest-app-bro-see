@@ -29,6 +29,7 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,7 +45,7 @@ import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.model.XpRuleConfig
 import com.example.ui.components.StudyQuestCard
-import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.LocalStudyQuestColors
 import com.example.ui.viewmodel.AdminStudioViewModel
 import org.json.JSONObject
 
@@ -65,9 +66,20 @@ fun AdminStudioScreen(
     val badgeDefs by viewModel.badgeDefinitions.collectAsStateWithLifecycle()
     val allAssignments by viewModel.allAssignments.collectAsStateWithLifecycle()
     val flaggedPosts by viewModel.flaggedPosts.collectAsStateWithLifecycle()
+    val aiProviderSettings by viewModel.aiProviderSettings.collectAsStateWithLifecycle()
+    val aiUsageLogs by viewModel.aiUsageLogs.collectAsStateWithLifecycle()
+    val modelCheckResult by viewModel.modelCheckResult.collectAsStateWithLifecycle()
+    val isVerifyingModels by viewModel.isVerifyingModels.collectAsStateWithLifecycle()
+    val businessInsights by viewModel.businessInsights.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0=Editorial, 1=Reports & Community, 2=XP/Badges/Tasks, 3=System, 4=Audit
+    var selectedTab by remember { mutableIntStateOf(0) } // 0=Editorial, 1=Moderation, 2=XP & Tasks, 3=System, 4=Audit, 5=AI Provider, 6=Business Insights
+
+    LaunchedEffect(selectedTab, aiUsageLogs) {
+        if (selectedTab == 6) {
+            viewModel.refreshBusinessInsights()
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -79,7 +91,7 @@ fun AdminStudioScreen(
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
             Column(modifier = Modifier.weight(1f)) {
                 Text("Admin Studio", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Role: $adminRole", style = MaterialTheme.typography.labelSmall, color = CobaltPrimary)
+                Text("Role: $adminRole", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
         }
 
@@ -101,6 +113,8 @@ fun AdminStudioScreen(
             Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("XP & Tasks") })
             Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("System") })
             Tab(selected = selectedTab == 4, onClick = { selectedTab = 4 }, text = { Text("Audit") })
+            Tab(selected = selectedTab == 5, onClick = { selectedTab = 5 }, text = { Text("AI Provider") })
+            Tab(selected = selectedTab == 6, onClick = { selectedTab = 6 }, text = { Text("Insights") })
         }
 
         when (selectedTab) {
@@ -471,6 +485,177 @@ fun AdminStudioScreen(
                         StudyQuestCard {
                             Text("${log.action} -> ${log.targetType}/${log.targetId}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text("Actor: ${log.actorUid.take(10)} • ${log.details ?: ""}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+
+            5 -> {
+                var openRouterEnabled by remember(aiProviderSettings.openRouterEnabled) { mutableStateOf(aiProviderSettings.openRouterEnabled) }
+                var defaultModelId by remember(aiProviderSettings.defaultModelId) { mutableStateOf(aiProviderSettings.defaultModelId) }
+                var reasoningModelId by remember(aiProviderSettings.reasoningModelId) { mutableStateOf(aiProviderSettings.reasoningModelId) }
+                var advancedModelId by remember(aiProviderSettings.advancedModelId) { mutableStateOf(aiProviderSettings.advancedModelId) }
+                var advancedEnabled by remember(aiProviderSettings.advancedModelEnabled) { mutableStateOf(aiProviderSettings.advancedModelEnabled) }
+                var firebaseFallback by remember(aiProviderSettings.fallbackToFirebaseAi) { mutableStateOf(aiProviderSettings.fallbackToFirebaseAi) }
+                var globalBudgetStr by remember(aiProviderSettings.globalMonthlyBudgetUsd) { mutableStateOf(aiProviderSettings.globalMonthlyBudgetUsd.toString()) }
+                var perUserBudgetStr by remember(aiProviderSettings.perUserMonthlyBudgetUsd) { mutableStateOf(aiProviderSettings.perUserMonthlyBudgetUsd.toString()) }
+                var astraBudgetStr by remember(aiProviderSettings.astraMonthlyBudgetUsd) { mutableStateOf(aiProviderSettings.astraMonthlyBudgetUsd.toString()) }
+                val semantic = LocalStudyQuestColors.current
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        StudyQuestCard {
+                            Text("OpenRouter Secret & Model Routing", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = if (viewModel.isOpenRouterKeyConfigured) {
+                                    "OPENROUTER_API_KEY injected via BuildConfig (masked for security)."
+                                } else {
+                                    "OPENROUTER_API_KEY not configured in AI Studio Secrets. Requests fall back to Firebase AI if enabled."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (viewModel.isOpenRouterKeyConfigured) semantic.success else MaterialTheme.colorScheme.error
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Enable OpenRouter Provider")
+                                Switch(checked = openRouterEnabled, onCheckedChange = { openRouterEnabled = it })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Enable Advanced Model (Astra)")
+                                Switch(checked = advancedEnabled, onCheckedChange = { advancedEnabled = it })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Fallback to Firebase AI (Gemini)")
+                                Switch(checked = firebaseFallback, onCheckedChange = { firebaseFallback = it })
+                            }
+                            OutlinedTextField(value = defaultModelId, onValueChange = { defaultModelId = it }, label = { Text("Default Tutoring Model") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = reasoningModelId, onValueChange = { reasoningModelId = it }, label = { Text("Complex Reasoning Model") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = advancedModelId, onValueChange = { advancedModelId = it }, label = { Text("Admin-Gated Advanced Model") }, modifier = Modifier.fillMaxWidth())
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = { viewModel.verifyOpenRouterModels() },
+                                    enabled = !isVerifyingModels,
+                                    modifier = Modifier.weight(1f).testTag("admin_verify_models_btn")
+                                ) {
+                                    Text(if (isVerifyingModels) "Checking..." else "Verify Models Live")
+                                }
+                                Button(
+                                    onClick = {
+                                        viewModel.saveAiProviderSettings(
+                                            openRouterEnabled = openRouterEnabled,
+                                            defaultModelId = defaultModelId,
+                                            reasoningModelId = reasoningModelId,
+                                            advancedModelId = advancedModelId,
+                                            advancedModelEnabled = advancedEnabled,
+                                            fallbackToFirebaseAi = firebaseFallback,
+                                            globalMonthlyBudgetUsd = globalBudgetStr.toDoubleOrNull() ?: aiProviderSettings.globalMonthlyBudgetUsd,
+                                            perUserMonthlyBudgetUsd = perUserBudgetStr.toDoubleOrNull() ?: aiProviderSettings.perUserMonthlyBudgetUsd,
+                                            astraMonthlyBudgetUsd = astraBudgetStr.toDoubleOrNull() ?: aiProviderSettings.astraMonthlyBudgetUsd
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f).testTag("admin_save_ai_provider_btn")
+                                ) {
+                                    Text("Save AI Config")
+                                }
+                            }
+                            val check = modelCheckResult
+                            if (check != null) {
+                                Spacer(Modifier.height(8.dp))
+                                Text(check.message, style = MaterialTheme.typography.labelSmall, color = if (check.reachable) semantic.success else MaterialTheme.colorScheme.error)
+                            } else if (aiProviderSettings.lastVerifiedModelsSummary.isNotBlank()) {
+                                Spacer(Modifier.height(8.dp))
+                                Text("Last check (${aiProviderSettings.lastVerificationStatus}): ${aiProviderSettings.lastVerifiedModelsSummary}", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+
+                    item {
+                        StudyQuestCard {
+                            Text("Cost Guard & Monthly Budget Caps (USD)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(6.dp))
+                            OutlinedTextField(value = globalBudgetStr, onValueChange = { globalBudgetStr = it }, label = { Text("Global Monthly Budget (USD)") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = perUserBudgetStr, onValueChange = { perUserBudgetStr = it }, label = { Text("Per-User Monthly Cap (USD)") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = astraBudgetStr, onValueChange = { astraBudgetStr = it }, label = { Text("Astra Monthly Budget (USD)") }, modifier = Modifier.fillMaxWidth())
+                            if (!aiProviderSettings.lastErrorSummary.isNullOrBlank()) {
+                                Spacer(Modifier.height(6.dp))
+                                Text("Recent AI Alert: ${aiProviderSettings.lastErrorSummary}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+
+                    item {
+                        Text("Recent AI Requests (${aiUsageLogs.size})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    }
+                    items(aiUsageLogs.take(15), key = { it.id }) { log ->
+                        StudyQuestCard {
+                            Text("${log.toolId} • ${log.modelId} (${log.provider})", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                text = "Status: ${log.status} • In/Out: ${log.inputTokens}/${log.outputTokens} tok • Est: $${"%.4f".format(log.estimatedCostUsd)} • ${log.creditsDeducted} cr",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            6 -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        StudyQuestCard {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Quest Business Insights", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                OutlinedButton(onClick = { viewModel.refreshBusinessInsights() }) {
+                                    Text("Refresh")
+                                }
+                            }
+                            Text(
+                                text = if (settings.billingConfigured) "Live Play Billing telemetry active." else "Honest mode: Play Billing is unconfigured, so paid revenue displays ৳0.00 until linked.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    item {
+                        StudyQuestCard {
+                            Text("Subscribers & Revenue (BDT)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(6.dp))
+                            Text("Active Profiles: ${businessInsights.activeUsersTotal}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Completed Paid Subscriptions: ${businessInsights.paidSubscribersTotal}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Gross Monthly Revenue: ৳${"%.2f".format(businessInsights.grossMonthlyRevenueBdt)}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Est. Play Fees (15%) & Tax (5%): -৳${"%.2f".format(businessInsights.playStoreFeesBdt + businessInsights.estimatedTaxesBdt)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+
+                    item {
+                        StudyQuestCard {
+                            Text("AI Provider Cost & Usage Breakdown", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(6.dp))
+                            Text("Today's AI Spend: $${"%.4f".format(businessInsights.dailyAiCostUsd)}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Monthly AI Spend: $${"%.4f".format(businessInsights.monthlyAiCostUsd)} (≈ ৳${"%.2f".format(businessInsights.monthlyAiCostBdt)})", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                text = "This Month (${businessInsights.totalRequestsThisMonth} req): Luna=${businessInsights.lunaRequests}, Sol=${businessInsights.solRequests}, Astra=${businessInsights.astraRequests}, Firebase Fallback=${businessInsights.fallbackRequests}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = "Estimated Net Margin: ৳${"%.2f".format(businessInsights.estimatedNetProfitBdt)}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (businessInsights.estimatedNetProfitBdt >= 0) LocalStudyQuestColors.current.success else MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }

@@ -23,58 +23,58 @@ data class StudyQuestSemanticColors(
 
 val LocalStudyQuestColors = staticCompositionLocalOf {
     StudyQuestSemanticColors(
-        success = ScholarGreen,
-        successContainer = ScholarGreenContainer,
-        onSuccessContainer = OnScholarGreenContainer,
+        success = NaturalGreen,
+        successContainer = NaturalGreenContainer,
+        onSuccessContainer = OnNaturalGreenContainer,
         warning = AmberGold,
         warningContainer = AmberGoldContainer
     )
 }
 
 private val StudyQuestLightScheme = lightColorScheme(
-    primary = CobaltPrimary,
-    onPrimary = PureWhite,
-    primaryContainer = CobaltContainer,
-    onPrimaryContainer = OnCobaltContainer,
-    secondary = TealSecondary,
-    onSecondary = PureWhite,
-    secondaryContainer = TealContainer,
-    onSecondaryContainer = OnTealContainer,
-    tertiary = VioletTertiary,
-    onTertiary = PureWhite,
-    tertiaryContainer = VioletContainer,
-    onTertiaryContainer = OnVioletContainer,
-    background = SoftSlateCanvas,
+    primary = ForestGreenPrimary,
+    onPrimary = PureCardWhite,
+    primaryContainer = SageContainer,
+    onPrimaryContainer = OnSageContainer,
+    secondary = SubtleSlateAccent,
+    onSecondary = PureCardWhite,
+    secondaryContainer = CoolNeutralFill,
+    onSecondaryContainer = DeepInk,
+    tertiary = NaturalGreen,
+    onTertiary = PureCardWhite,
+    tertiaryContainer = SageContainer,
+    onTertiaryContainer = OnSageContainer,
+    background = CrispWhiteCanvas,
     onBackground = DeepInk,
-    surface = PureWhite,
+    surface = PureCardWhite,
     onSurface = DeepInk,
-    surfaceVariant = SoftSlateContainer,
+    surfaceVariant = CoolNeutralFill,
     onSurfaceVariant = MutedSlate,
-    surfaceContainerLowest = PureWhite,
-    surfaceContainerLow = Color(0xFFF8FAFC),
-    surfaceContainer = SoftSlateContainer,
+    surfaceContainerLowest = PureCardWhite,
+    surfaceContainerLow = Color(0xFFFAFAFC),
+    surfaceContainer = CoolNeutralFill,
     surfaceContainerHigh = CoolSurfaceVariant,
     outline = CoolOutline,
     outlineVariant = SubtleOutline,
     error = AccessibleRed,
-    onError = PureWhite,
+    onError = PureCardWhite,
     errorContainer = AccessibleRedContainer,
     onErrorContainer = Color(0xFF7F1D1D)
 )
 
 private val StudyQuestDarkScheme = darkColorScheme(
-    primary = DarkCobaltPrimary,
-    onPrimary = Color(0xFF0A1D3B),
-    primaryContainer = DarkCobaltPrimaryContainer,
-    onPrimaryContainer = Color(0xFFDBEAFE),
-    secondary = DarkTealSecondary,
-    onSecondary = Color(0xFF042F2E),
-    secondaryContainer = Color(0xFF115E59),
-    onSecondaryContainer = Color(0xFFCCFBF1),
-    tertiary = DarkVioletTertiary,
-    onTertiary = Color(0xFF2E1065),
-    tertiaryContainer = DarkVioletContainer,
-    onTertiaryContainer = Color(0xFFEDE9FE),
+    primary = DarkForestPrimary,
+    onPrimary = Color(0xFF052E16),
+    primaryContainer = DarkForestContainer,
+    onPrimaryContainer = Color(0xFFDCFCE7),
+    secondary = DarkSlateTertiary,
+    onSecondary = Color(0xFF0F172A),
+    secondaryContainer = DarkSlateContainer,
+    onSecondaryContainer = Color(0xFFE2E8F0),
+    tertiary = DarkNaturalSecondary,
+    onTertiary = Color(0xFF064E3B),
+    tertiaryContainer = Color(0xFF065F46),
+    onTertiaryContainer = Color(0xFFD1FAE5),
     background = DarkMidnightBackground,
     onBackground = DarkOnSurface,
     surface = DarkMidnightSurface,
@@ -84,7 +84,7 @@ private val StudyQuestDarkScheme = darkColorScheme(
     surfaceContainerLowest = DarkMidnightBackground,
     surfaceContainerLow = DarkMidnightSurface,
     surfaceContainer = DarkMidnightSurfaceElevated,
-    surfaceContainerHigh = Color(0xFF263349),
+    surfaceContainerHigh = Color(0xFF28323D),
     outline = DarkOutline,
     outlineVariant = DarkOutline.copy(alpha = 0.75f),
     error = DarkAccessibleRed,
@@ -96,9 +96,9 @@ private val StudyQuestDarkScheme = darkColorScheme(
 val StudyQuestShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
     small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(28.dp)
+    medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(18.dp),
+    extraLarge = RoundedCornerShape(24.dp)
 )
 
 @Composable
@@ -118,9 +118,9 @@ fun StudyQuestTheme(
         )
     } else {
         StudyQuestSemanticColors(
-            success = ScholarGreen,
-            successContainer = ScholarGreenContainer,
-            onSuccessContainer = OnScholarGreenContainer,
+            success = NaturalGreen,
+            successContainer = NaturalGreenContainer,
+            onSuccessContainer = OnNaturalGreenContainer,
             warning = AmberGold,
             warningContainer = AmberGoldContainer
         )

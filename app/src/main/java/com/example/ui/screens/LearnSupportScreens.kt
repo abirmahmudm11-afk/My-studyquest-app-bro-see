@@ -719,6 +719,8 @@ fun AiDoubtSolverSheet(
     subjectName: String,
     language: AppLanguage,
     aiState: AiDoubtUiState,
+    remainingAiCredits: Int? = null,
+    onOpenAiLab: (() -> Unit)? = null,
     onSubmitDoubt: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -734,20 +736,50 @@ fun AiDoubtSolverSheet(
         )
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = CobaltPrimary)
-                Text(
-                    text = StudyQuestStrings.t(language, "Titu AI Doubt Solver", "টিটু AI সমাধান"),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Column {
+                        Text(
+                            text = "STUDYQUEST HELPER",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = StudyQuestStrings.t(language, "Your Personal Learning Companion", "আপনার ব্যক্তিগত পড়াশোনার সঙ্গী"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (remainingAiCredits != null) {
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = "$remainingAiCredits cr left",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
             }
             Text(
                 text = StudyQuestStrings.t(
@@ -767,15 +799,28 @@ fun AiDoubtSolverSheet(
                     .fillMaxWidth()
                     .testTag("ai_doubt_input")
             )
-            Button(
-                onClick = { if (questionText.isNotBlank()) onSubmitDoubt(questionText) },
-                enabled = questionText.isNotBlank() && aiState !is AiDoubtUiState.Loading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .minimumInteractiveComponentSize()
-                    .testTag("ai_doubt_submit")
-            ) {
-                Text(StudyQuestStrings.t(language, "Explain Step-by-Step", "ধাপে ধাপে সমাধান দাও"))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { if (questionText.isNotBlank()) onSubmitDoubt(questionText) },
+                    enabled = questionText.isNotBlank() && aiState !is AiDoubtUiState.Loading,
+                    modifier = Modifier
+                        .weight(1f)
+                        .minimumInteractiveComponentSize()
+                        .testTag("ai_doubt_submit")
+                ) {
+                    Text(StudyQuestStrings.t(language, "Explain Step-by-Step", "ধাপে ধাপে সমাধান"))
+                }
+                if (onOpenAiLab != null) {
+                    OutlinedButton(
+                        onClick = {
+                            onDismiss()
+                            onOpenAiLab()
+                        },
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Text(StudyQuestStrings.t(language, "AI Lab", "AI ল্যাব"))
+                    }
+                }
             }
 
             when (aiState) {
@@ -783,13 +828,13 @@ fun AiDoubtSolverSheet(
                 AiDoubtUiState.Loading -> {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        Text(StudyQuestStrings.t(language, "Titu is preparing your explanation...", "টিটু উত্তর তৈরি করছে..."))
+                        Text(StudyQuestStrings.t(language, "StudyQuest Helper is thinking...", "উত্তর তৈরি হচ্ছে..."))
                     }
                 }
                 is AiDoubtUiState.Streaming -> {
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(aiState.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(14.dp))
@@ -798,7 +843,7 @@ fun AiDoubtSolverSheet(
                 is AiDoubtUiState.Success -> {
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(aiState.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(14.dp))
@@ -810,12 +855,16 @@ fun AiDoubtSolverSheet(
                         color = MaterialTheme.colorScheme.errorContainer,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = aiState.message,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = aiState.message,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            OutlinedButton(onClick = { if (questionText.isNotBlank()) onSubmitDoubt(questionText) }) {
+                                Text(StudyQuestStrings.t(language, "Retry", "আবার চেষ্টা"))
+                            }
+                        }
                     }
                 }
             }

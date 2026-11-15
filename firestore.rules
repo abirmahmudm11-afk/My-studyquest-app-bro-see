@@ -291,12 +291,15 @@ service cloud.firestore {
 
     function isValidAiVideoJob(data) {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
-        data.sourceType in ['pdf', 'text', 'chapter'] &&
+        data.sourceType in ['pdf', 'text', 'chapter', 'custom_animated'] &&
         data.sourceTitle is string && data.sourceTitle.size() >= 1 && data.sourceTitle.size() <= 160 &&
         data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
         data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
         data.status in ['queued', 'processing', 'completed', 'failed'] &&
         data.progressPercent is int && data.progressPercent >= 0 && data.progressPercent <= 100 &&
+        (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 500)) &&
+        (!('language' in data) || data.language in ['bn', 'en']) &&
+        (!('animationStyle' in data) || (data.animationStyle is string && data.animationStyle.size() <= 60)) &&
         (!('externalRenderStatus' in data) || data.externalRenderStatus in ['unconfigured', 'queued', 'completed', 'failed']);
     }
 
@@ -305,18 +308,30 @@ service cloud.firestore {
         data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
         data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
         data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
-        data.durationSeconds is int && data.durationSeconds >= 10 && data.durationSeconds <= 3600 &&
+        data.durationSeconds is int && data.durationSeconds >= 5 && data.durationSeconds <= 3600 &&
         data.scenesJson is string && data.scenesJson.size() >= 2 && data.scenesJson.size() <= 50000 &&
         data.visibility in ['private', 'public'] &&
+        (!('ownerName' in data) || data.ownerName == null || (data.ownerName is string && data.ownerName.size() <= 80)) &&
+        (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 600)) &&
+        (!('language' in data) || data.language in ['bn', 'en']) &&
+        (!('animationStyle' in data) || (data.animationStyle is string && data.animationStyle.size() <= 60)) &&
+        (!('videoSourceType' in data) || data.videoSourceType in ['animated_lesson', 'uploaded_video', 'custom_animated']) &&
+        (!('localVideoUri' in data) || data.localVideoUri == null || (data.localVideoUri is string && data.localVideoUri.size() <= 500)) &&
         (!('lastWatchedScene' in data) || (data.lastWatchedScene is int && data.lastWatchedScene >= 0 && data.lastWatchedScene <= 100)) &&
         (!('externalRenderStatus' in data) || data.externalRenderStatus in ['unconfigured', 'queued', 'completed', 'failed']);
     }
 
     function isValidUserSubscription(data) {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
-        data.tier in ['free', 'premium'] &&
-        data.billingProvider in ['google_play_unconfigured', 'google_play'] &&
-        data.adEnabled is bool;
+        data.tier in ['free', 'plus', 'video_pass', 'studyquest_ai', 'scholar', 'creator', 'complete_max', 'premium'] &&
+        data.billingProvider in ['google_play_unconfigured', 'google_play', 'admin_grant'] &&
+        data.adEnabled is bool &&
+        (!('activePlanName' in data) || (data.activePlanName is string && data.activePlanName.size() <= 64)) &&
+        (!('monthlyAiLimit' in data) || (data.monthlyAiLimit is int && data.monthlyAiLimit >= 0 && data.monthlyAiLimit <= 10000)) &&
+        (!('aiCreditsUsed' in data) || (data.aiCreditsUsed is int && data.aiCreditsUsed >= 0 && data.aiCreditsUsed <= 10000)) &&
+        (!('monthlyVideoLimit' in data) || (data.monthlyVideoLimit is int && data.monthlyVideoLimit >= 0 && data.monthlyVideoLimit <= 1000)) &&
+        (!('videoCreditsUsed' in data) || (data.videoCreditsUsed is int && data.videoCreditsUsed >= 0 && data.videoCreditsUsed <= 1000)) &&
+        (!('bonusVideoCredits' in data) || (data.bonusVideoCredits is int && data.bonusVideoCredits >= 0 && data.bonusVideoCredits <= 1000));
     }
 
     function isValidAcademicContent(data) {
@@ -655,15 +670,90 @@ service cloud.firestore {
     match /users/{userId}/subscription/{docId} {
       allow get: if (isOwner(userId) || isAdmin()) && isValidId(docId);
       allow list: if isOwner(userId) || isAdmin();
-      // Only admins can grant premium tier without live verified store receipt; owners can only initialize free state
-      allow create, update: if isValidId(docId) &&
+      // Only admins can grant paid tiers; owners can initialize free tier, switch to free, or adjust credit counters on existing tier
+      allow create: if isValidId(docId) &&
         incoming().userId == userId &&
         isValidTimestamp(incoming().updatedAt) &&
         isValidUserSubscription(incoming()) && (
           isAdmin() ||
           (isOwner(userId) && incoming().tier == 'free')
         );
+      allow update: if isValidId(docId) &&
+        incoming().userId == existing().userId &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidUserSubscription(incoming()) && (
+          isAdmin() ||
+          (isOwner(userId) && (
+            incoming().tier == 'free' ||
+            (incoming().tier == existing().tier &&
+             (!('monthlyAiLimit' in incoming()) || incoming().monthlyAiLimit == existing().monthlyAiLimit) &&
+             (!('monthlyVideoLimit' in incoming()) || incoming().monthlyVideoLimit == existing().monthlyVideoLimit) &&
+             incoming().adEnabled == existing().adEnabled)
+          ))
+        );
       allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /users/{userId}/ai_credit_ledger/{entryId} {
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(entryId);
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if (isOwner(userId) || isAdmin()) && isValidId(entryId) &&
+        incoming().userId == userId &&
+        isValidTimestamp(incoming().createdAt) &&
+        incoming().delta is int &&
+        incoming().entryType in ['reserve', 'settle', 'refund', 'renewal', 'admin_grant'];
+      allow update, delete: if isAdmin() && isValidId(entryId);
+    }
+
+    match /users/{userId}/video_credit_ledger/{entryId} {
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(entryId);
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if (isOwner(userId) || isAdmin()) && isValidId(entryId) &&
+        incoming().userId == userId &&
+        isValidTimestamp(incoming().createdAt) &&
+        incoming().delta is int &&
+        incoming().entryType in ['reserve', 'reserve_boost', 'complete', 'refund', 'boost_purchase', 'admin_grant'];
+      allow update, delete: if isAdmin() && isValidId(entryId);
+    }
+
+    match /users/{userId}/purchase_history/{purchaseId} {
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(purchaseId);
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isValidId(purchaseId) &&
+        incoming().userId == userId &&
+        isValidTimestamp(incoming().createdAt) &&
+        incoming().purchaseType in ['subscription', 'one_time_boost'] && (
+          isAdmin() ||
+          (isOwner(userId) && incoming().status == 'unconfigured')
+        );
+      allow update, delete: if isAdmin() && isValidId(purchaseId);
+    }
+
+    match /users/{userId}/ai_conversations/{conversationId} {
+      allow get: if isOwner(userId) && isValidId(conversationId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(conversationId) &&
+        incoming().userId == request.auth.uid &&
+        incoming().title is string && incoming().title.size() >= 1 && incoming().title.size() <= 120 &&
+        incoming().toolId is string && incoming().toolId.size() >= 1 && incoming().toolId.size() <= 64 &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt);
+      allow update: if isOwner(userId) && isValidId(conversationId) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt);
+      allow delete: if isOwner(userId) && isValidId(conversationId);
+
+      match /messages/{messageId} {
+        allow get: if isOwner(userId) && isValidId(messageId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(messageId) &&
+          incoming().userId == request.auth.uid &&
+          incoming().conversationId == conversationId &&
+          incoming().role in ['user', 'assistant'] &&
+          incoming().text is string && incoming().text.size() >= 1 && incoming().text.size() <= 16000 &&
+          isValidTimestamp(incoming().createdAt);
+        allow update, delete: if isOwner(userId) && isValidId(messageId);
+      }
     }
 
     // --- 3. ACADEMIC CONTENT & EDITORIAL PIPELINE ---
@@ -1039,6 +1129,19 @@ service cloud.firestore {
       allow create, update: if isAdmin() && isValidId(settingId) &&
         isValidTimestamp(incoming().updatedAt);
       allow delete: if isBootstrappedOwner() && isValidId(settingId);
+    }
+
+    match /ai_usage_logs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) &&
+        (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(logId) &&
+        incoming().userId == request.auth.uid &&
+        incoming().estimatedCostUsd is number && incoming().estimatedCostUsd >= 0 &&
+        incoming().creditsDeducted is int && incoming().creditsDeducted >= 0 &&
+        isValidTimestamp(incoming().createdAt);
+      allow update, delete: if false;
     }
   }
 }

@@ -668,3 +668,156 @@ test("Class community, AI storyboard jobs, learning videos, subscription tier lo
   );
 });
 
+test("Quest Plan tiers, AI/Video credit ledgers, AI Lab conversations & learning_videos enforce owner isolation and prevent self-upgrade", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const adminDb = testEnv.authenticatedContext("admin_uid", {
+    email: ADMIN_EMAIL,
+    email_verified: true,
+  }).firestore();
+
+  // Owner cannot self-create a paid tier like studyquest_ai
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("subscription").doc("status").set({
+      userId: ALICE_UID,
+      tier: "studyquest_ai",
+      billingProvider: "google_play",
+      adEnabled: false,
+      monthlyAiLimit: 100,
+      aiCreditsUsed: 0,
+      monthlyVideoLimit: 2,
+      videoCreditsUsed: 0,
+      bonusVideoCredits: 0,
+      updatedAt: serverTs(),
+    })
+  );
+
+  // Admin can grant studyquest_ai; Alice can consume credits on it without altering tier/limits
+  await assertSucceeds(
+    adminDb.collection("users").doc(ALICE_UID).collection("subscription").doc("status").set({
+      userId: ALICE_UID,
+      tier: "studyquest_ai",
+      activePlanName: "StudyQuest AI",
+      billingProvider: "admin_grant",
+      adEnabled: false,
+      monthlyAiLimit: 100,
+      aiCreditsUsed: 0,
+      monthlyVideoLimit: 2,
+      videoCreditsUsed: 0,
+      bonusVideoCredits: 0,
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("subscription").doc("status").update({
+      aiCreditsUsed: 1,
+      updatedAt: serverTs(),
+    })
+  );
+
+  // Alice cannot raise her own monthlyAiLimit
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("subscription").doc("status").update({
+      monthlyAiLimit: 999,
+      updatedAt: serverTs(),
+    })
+  );
+
+  // AI & Video credit ledgers + AI Lab conversations are strictly owner-isolated
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("ai_credit_ledger").doc("res_1").set({
+      userId: ALICE_UID,
+      delta: -1,
+      entryType: "reserve",
+      toolId: "QuestTutor",
+      modelUsed: "gpt-6-luna",
+      createdAt: serverTs(),
+    })
+  );
+  await assertFails(
+    bobDb.collection("users").doc(ALICE_UID).collection("ai_credit_ledger").get()
+  );
+
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("ai_conversations").doc("conv_ai_1").set({
+      userId: ALICE_UID,
+      title: "Quadratic Formula",
+      toolId: "StepByStepSolver",
+      providerMode: "studyquest_ai",
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("ai_conversations").doc("conv_ai_1")
+      .collection("messages").doc("m_1").set({
+        conversationId: "conv_ai_1",
+        userId: ALICE_UID,
+        role: "user",
+        text: "Solve x^2 - 5x + 6 = 0",
+        createdAt: serverTs(),
+      })
+  );
+  await assertFails(
+    bobDb.collection("users").doc(ALICE_UID).collection("ai_conversations").doc("conv_ai_1").get()
+  );
+
+  // Uploaded / Animated learning videos: public readable by signed-in peers, private readable only by owner
+  await assertSucceeds(
+    aliceDb.collection("learning_videos").doc("vid_pub_1").set({
+      ownerUid: ALICE_UID,
+      ownerName: "Alice",
+      title: "Quadratic Animated Lesson",
+      description: "Clean visual walkthrough",
+      language: "en",
+      videoSourceType: "animated_lesson",
+      classId: "class_10",
+      subjectId: "math",
+      durationSeconds: 45,
+      scenesJson: "[{\"title\":\"Intro\"}]",
+      visibility: "public",
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+  await assertSucceeds(
+    bobDb.collection("learning_videos").doc("vid_pub_1").get()
+  );
+
+  await assertSucceeds(
+    aliceDb.collection("learning_videos").doc("vid_priv_1").set({
+      ownerUid: ALICE_UID,
+      title: "My Uploaded Algebra Clip",
+      videoSourceType: "uploaded_video",
+      classId: "class_10",
+      subjectId: "math",
+      durationSeconds: 60,
+      scenesJson: "[{\"title\":\"Clip\"}]",
+      visibility: "private",
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+  await assertFails(
+    bobDb.collection("learning_videos").doc("vid_priv_1").get()
+  );
+
+  // ai_usage_logs: owner can write & read own logs; Bob cannot read Alice's usage logs
+  await assertSucceeds(
+    aliceDb.collection("ai_usage_logs").doc("log_1").set({
+      userId: ALICE_UID,
+      toolId: "QuestTutor",
+      modelId: "gpt-6-luna",
+      estimatedCostUsd: 0.002,
+      creditsDeducted: 1,
+      status: "success",
+      createdAt: serverTs(),
+    })
+  );
+  await assertFails(
+    bobDb.collection("ai_usage_logs").doc("log_1").get()
+  );
+});
+
+

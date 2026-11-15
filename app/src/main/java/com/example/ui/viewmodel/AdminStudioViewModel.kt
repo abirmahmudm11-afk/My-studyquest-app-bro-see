@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.unwrapFirestoreMessage
 import com.example.data.model.AcademicContentDoc
+import com.example.data.model.AiProviderSettingsDoc
+import com.example.data.model.AiUsageLogDoc
 import com.example.data.model.AssignmentDefinitionDoc
 import com.example.data.model.AuditLogDoc
 import com.example.data.model.BadgeDefinitionDoc
@@ -12,6 +14,8 @@ import com.example.data.model.ModerationCaseDoc
 import com.example.data.model.SystemSettingsDoc
 import com.example.data.model.XpRuleConfig
 import com.example.data.repository.AdminStudioRepository
+import com.example.data.repository.BusinessInsightsSummary
+import com.example.data.repository.OpenRouterModelCheckResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -52,6 +56,26 @@ class AdminStudioViewModel(
     val flaggedPosts: StateFlow<List<CommunityPostDoc>> = adminRepo.observeFlaggedCommunityPosts()
         .catch { emit(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val aiProviderSettings: StateFlow<AiProviderSettingsDoc> = adminRepo.observeAiProviderSettings()
+        .catch { emit(AiProviderSettingsDoc()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), AiProviderSettingsDoc())
+
+    val aiUsageLogs: StateFlow<List<AiUsageLogDoc>> = adminRepo.observeAiUsageLogs()
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val isOpenRouterKeyConfigured: Boolean
+        get() = adminRepo.isOpenRouterKeyConfigured()
+
+    private val _modelCheckResult = MutableStateFlow<OpenRouterModelCheckResult?>(null)
+    val modelCheckResult: StateFlow<OpenRouterModelCheckResult?> = _modelCheckResult.asStateFlow()
+
+    private val _isVerifyingModels = MutableStateFlow(false)
+    val isVerifyingModels: StateFlow<Boolean> = _isVerifyingModels.asStateFlow()
+
+    private val _businessInsights = MutableStateFlow(BusinessInsightsSummary())
+    val businessInsights: StateFlow<BusinessInsightsSummary> = _businessInsights.asStateFlow()
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
@@ -192,6 +216,55 @@ class AdminStudioViewModel(
             val res = adminRepo.createOfficialTournament(currentUserId, titleEn, titleBn, classId, subjectId)
             res.onSuccess { _message.value = "Tournament launched" }
             res.onFailure { _message.value = unwrapFirestoreMessage(it, "Tournament creation failed") }
+        }
+    }
+
+    fun verifyOpenRouterModels() {
+        if (_isVerifyingModels.value) return
+        viewModelScope.launch {
+            _isVerifyingModels.value = true
+            try {
+                val res = adminRepo.verifyOpenRouterModels(aiProviderSettings.value)
+                _modelCheckResult.value = res
+                _message.value = res.message
+            } finally {
+                _isVerifyingModels.value = false
+            }
+        }
+    }
+
+    fun saveAiProviderSettings(
+        openRouterEnabled: Boolean,
+        defaultModelId: String,
+        reasoningModelId: String,
+        advancedModelId: String,
+        advancedModelEnabled: Boolean,
+        fallbackToFirebaseAi: Boolean,
+        globalMonthlyBudgetUsd: Double,
+        perUserMonthlyBudgetUsd: Double,
+        astraMonthlyBudgetUsd: Double
+    ) {
+        viewModelScope.launch {
+            val res = adminRepo.saveAiProviderSettings(
+                actorUid = currentUserId,
+                openRouterEnabled = openRouterEnabled,
+                defaultModelId = defaultModelId,
+                reasoningModelId = reasoningModelId,
+                advancedModelId = advancedModelId,
+                advancedModelEnabled = advancedModelEnabled,
+                fallbackToFirebaseAi = fallbackToFirebaseAi,
+                globalMonthlyBudgetUsd = globalMonthlyBudgetUsd,
+                perUserMonthlyBudgetUsd = perUserMonthlyBudgetUsd,
+                astraMonthlyBudgetUsd = astraMonthlyBudgetUsd
+            )
+            res.onSuccess { _message.value = "AI Provider & Cost Guard settings saved" }
+            res.onFailure { _message.value = unwrapFirestoreMessage(it, "Failed to save AI provider config") }
+        }
+    }
+
+    fun refreshBusinessInsights() {
+        viewModelScope.launch {
+            _businessInsights.value = adminRepo.computeBusinessInsights(aiUsageLogs.value)
         }
     }
 }

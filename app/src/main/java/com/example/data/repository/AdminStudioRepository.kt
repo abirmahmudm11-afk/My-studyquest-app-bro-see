@@ -4,7 +4,10 @@ import android.content.Context
 import com.example.R
 import com.example.core.OperationType
 import com.example.core.handleFirestoreError
+import com.example.data.curriculum.GamificationCatalog
 import com.example.data.model.AcademicContentDoc
+import com.example.data.model.AiProviderSettingsDoc
+import com.example.data.model.AiUsageLogDoc
 import com.example.data.model.AuditLogDoc
 import com.example.data.model.ModerationCaseDoc
 import com.example.data.model.SystemSettingsDoc
@@ -12,6 +15,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +24,23 @@ import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
+
+data class BusinessInsightsSummary(
+    val activeUsersTotal: Int = 0,
+    val paidSubscribersTotal: Int = 0,
+    val grossMonthlyRevenueBdt: Double = 0.0,
+    val playStoreFeesBdt: Double = 0.0,
+    val estimatedTaxesBdt: Double = 0.0,
+    val dailyAiCostUsd: Double = 0.0,
+    val monthlyAiCostUsd: Double = 0.0,
+    val monthlyAiCostBdt: Double = 0.0,
+    val totalRequestsThisMonth: Int = 0,
+    val lunaRequests: Int = 0,
+    val solRequests: Int = 0,
+    val astraRequests: Int = 0,
+    val fallbackRequests: Int = 0,
+    val estimatedNetProfitBdt: Double = 0.0
+)
 
 class AdminStudioRepository(
     private val db: FirebaseFirestore
@@ -458,6 +479,125 @@ class AdminStudioRepository(
             handleFirestoreError(e, OperationType.CREATE, ref.path)
             Result.failure(e)
         }
+    }
+
+    private val openRouterClient = OpenRouterClient()
+    private val aiCostGuard = StudyQuestAiCostGuard(db)
+
+    fun observeAiProviderSettings(): Flow<AiProviderSettingsDoc> =
+        aiCostGuard.observeProviderSettings()
+
+    fun observeAiUsageLogs(): Flow<List<AiUsageLogDoc>> =
+        aiCostGuard.observeUsageLogs()
+
+    fun isOpenRouterKeyConfigured(): Boolean = openRouterClient.isApiKeyConfigured()
+
+    suspend fun verifyOpenRouterModels(settings: AiProviderSettingsDoc): OpenRouterModelCheckResult {
+        val check = openRouterClient.verifyModelAvailability(
+            defaultModelId = settings.defaultModelId.ifBlank { StudyQuestModelRouter.DEFAULT_MODEL },
+            reasoningModelId = settings.reasoningModelId.ifBlank { StudyQuestModelRouter.REASONING_MODEL },
+            advancedModelId = settings.advancedModelId.ifBlank { StudyQuestModelRouter.ADVANCED_MODEL }
+        )
+        runCatching {
+            db.collection("system_settings").document("ai_provider_config")
+                .set(
+                    mapOf(
+                        "lastVerificationStatus" to if (check.reachable) "verified" else if (!check.keyConfigured) "missing_key" else "error",
+                        "lastVerifiedModelsSummary" to check.message.take(280),
+                        "lastErrorSummary" to if (!check.reachable) check.message.take(200) else null,
+                        "lastErrorAtEpochMs" to if (!check.reachable) System.currentTimeMillis() else 0L,
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    ),
+                    SetOptions.merge()
+                ).await()
+        }
+        return check
+    }
+
+    suspend fun saveAiProviderSettings(
+        actorUid: String,
+        openRouterEnabled: Boolean,
+        defaultModelId: String,
+        reasoningModelId: String,
+        advancedModelId: String,
+        advancedModelEnabled: Boolean,
+        fallbackToFirebaseAi: Boolean,
+        globalMonthlyBudgetUsd: Double,
+        perUserMonthlyBudgetUsd: Double,
+        astraMonthlyBudgetUsd: Double
+    ): Result<Unit> {
+        val ref = db.collection("system_settings").document("ai_provider_config")
+        return try {
+            ref.set(
+                mapOf(
+                    "openRouterEnabled" to openRouterEnabled,
+                    "defaultModelId" to defaultModelId.trim().ifBlank { StudyQuestModelRouter.DEFAULT_MODEL }.take(80),
+                    "reasoningModelId" to reasoningModelId.trim().ifBlank { StudyQuestModelRouter.REASONING_MODEL }.take(80),
+                    "advancedModelId" to advancedModelId.trim().ifBlank { StudyQuestModelRouter.ADVANCED_MODEL }.take(80),
+                    "advancedModelEnabled" to advancedModelEnabled,
+                    "fallbackToFirebaseAi" to fallbackToFirebaseAi,
+                    "globalMonthlyBudgetUsd" to globalMonthlyBudgetUsd.coerceIn(1.0, 50000.0),
+                    "perUserMonthlyBudgetUsd" to perUserMonthlyBudgetUsd.coerceIn(0.1, 500.0),
+                    "astraMonthlyBudgetUsd" to astraMonthlyBudgetUsd.coerceIn(0.5, 10000.0),
+                    "updatedByUid" to actorUid,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ),
+                SetOptions.merge()
+            ).await()
+            writeAuditLog(actorUid, "update_ai_provider_config", "system_settings", "ai_provider_config", "astra=$advancedModelEnabled, globalBudget=$globalMonthlyBudgetUsd")
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, ref.path)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun computeBusinessInsights(logs: List<AiUsageLogDoc>): BusinessInsightsSummary {
+        val monthKey = GamificationCatalog.currentMonthKey()
+        val dayKey = GamificationCatalog.currentDayKey()
+        val monthLogs = logs.filter { it.monthKey == monthKey || it.monthKey.isBlank() }
+        val dailyUsd = monthLogs.filter { it.dayKey == dayKey }.sumOf { it.estimatedCostUsd }
+        val monthlyUsd = monthLogs.sumOf { it.estimatedCostUsd }
+        val usdToBdt = 120.0
+        val monthlyAiCostBdt = monthlyUsd * usdToBdt
+
+        val activeUsers = runCatching {
+            db.collection("public_profiles").limit(200).get().await().size()
+        }.getOrDefault(0)
+
+        // Note: Revenue stays 0.0 when Play Billing is unconfigured; real recorded transactions come from collectionGroup('purchase_history')
+        val paidPurchases = runCatching {
+            db.collectionGroup("purchase_history")
+                .whereEqualTo("status", "completed")
+                .limit(200)
+                .get()
+                .await()
+                .documents
+        }.getOrDefault(emptyList())
+
+        val grossRevenueBdt = paidPurchases.sumOf { (it.getLong("amountBdt") ?: 0L).toDouble() }
+        val playFeesBdt = grossRevenueBdt * 0.15
+        val taxesBdt = grossRevenueBdt * 0.05
+        val netBdt = grossRevenueBdt - playFeesBdt - taxesBdt - monthlyAiCostBdt
+
+        return BusinessInsightsSummary(
+            activeUsersTotal = activeUsers,
+            paidSubscribersTotal = paidPurchases.mapNotNull { it.getString("userId") }.distinct().size,
+            grossMonthlyRevenueBdt = grossRevenueBdt,
+            playStoreFeesBdt = playFeesBdt,
+            estimatedTaxesBdt = taxesBdt,
+            dailyAiCostUsd = dailyUsd,
+            monthlyAiCostUsd = monthlyUsd,
+            monthlyAiCostBdt = monthlyAiCostBdt,
+            totalRequestsThisMonth = monthLogs.size,
+            lunaRequests = monthLogs.count { it.modelId.contains("luna", ignoreCase = true) },
+            solRequests = monthLogs.count { it.modelId.contains("sol", ignoreCase = true) },
+            astraRequests = monthLogs.count { it.modelId.contains("astra", ignoreCase = true) },
+            fallbackRequests = monthLogs.count { it.provider == "firebase_ai" },
+            estimatedNetProfitBdt = netBdt
+        )
     }
 
     private suspend fun writeAuditLog(

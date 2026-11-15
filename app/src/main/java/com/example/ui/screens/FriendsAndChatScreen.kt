@@ -157,6 +157,10 @@ fun FriendsTabScreen(
     var searchText by remember { mutableStateOf("") }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
 
+    BackHandler(enabled = !showCreateGroupDialog && selectedCommunityPost == null && selectedTab != 0) {
+        selectedTab = 0
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = selectedTab) {
             Tab(

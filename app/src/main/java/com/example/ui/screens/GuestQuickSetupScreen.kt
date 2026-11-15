@@ -81,14 +81,7 @@ fun QuickGuestSetupScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f),
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding(),
         contentAlignment = Alignment.TopCenter
     ) {

@@ -39,12 +39,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+import com.example.data.model.AiChatMessageDoc
+import com.example.data.model.AiConversationDoc
+import com.example.data.model.UserSubscriptionDoc
+import com.example.data.repository.StudyQuestAiToolCatalog
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+
 sealed interface AiDoubtUiState {
     data object Idle : AiDoubtUiState
     data object Loading : AiDoubtUiState
-    data class Streaming(val text: String) : AiDoubtUiState
-    data class Success(val text: String) : AiDoubtUiState
-    data class Error(val message: String) : AiDoubtUiState
+    data class Streaming(val text: String, val modelUsed: String = "") : AiDoubtUiState
+    data class Success(val text: String, val modelUsed: String = "") : AiDoubtUiState
+    data class Error(val message: String, val lastPrompt: String? = null) : AiDoubtUiState
 }
 
 data class AssessmentResultSummary(
@@ -116,6 +123,42 @@ class LearnAndExamViewModel(
     private val _aiState = MutableStateFlow<AiDoubtUiState>(AiDoubtUiState.Idle)
     val aiState: StateFlow<AiDoubtUiState> = _aiState.asStateFlow()
 
+    val aiConversations: StateFlow<List<AiConversationDoc>> = if (currentUserId == GuestDataRepository.GUEST_UID) {
+        flowOf(emptyList())
+    } else {
+        aiRepo.getAIConversations(currentUserId).catch { emit(emptyList()) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    private val _activeConversationId = MutableStateFlow<String?>(null)
+    val activeConversationId: StateFlow<String?> = _activeConversationId.asStateFlow()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val activeAiMessages: StateFlow<List<AiChatMessageDoc>> = _activeConversationId
+        .flatMapLatest { convId ->
+            if (convId.isNullOrBlank() || currentUserId == GuestDataRepository.GUEST_UID) {
+                flowOf(emptyList())
+            } else {
+                aiRepo.getAIConversationHistory(currentUserId, convId).catch { emit(emptyList()) }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    private val _activeToolId = MutableStateFlow("QuestTutor")
+    val activeToolId: StateFlow<String> = _activeToolId.asStateFlow()
+
+    private var aiStreamJob: Job? = null
+    private var lastRetryParams: TupleAiRetry? = null
+
+    private data class TupleAiRetry(
+        val conversationId: String,
+        val toolId: String,
+        val prompt: String,
+        val classId: String,
+        val subjectName: String,
+        val language: AppLanguage,
+        val subscription: UserSubscriptionDoc
+    )
+
     private val _statusBanner = MutableStateFlow<String?>(null)
     val statusBanner: StateFlow<String?> = _statusBanner.asStateFlow()
 
@@ -135,6 +178,54 @@ class LearnAndExamViewModel(
     }
 
     fun resetAiDoubtState() {
+        aiStreamJob?.cancel()
+        _aiState.value = AiDoubtUiState.Idle
+    }
+
+    fun selectAiTool(toolId: String) {
+        _activeToolId.value = StudyQuestAiToolCatalog.byId(toolId).id
+    }
+
+    fun openAIConversation(conversationId: String?) {
+        _activeConversationId.value = conversationId
+    }
+
+    fun createAIConversation(
+        title: String,
+        toolId: String,
+        classId: String,
+        subjectId: String
+    ) {
+        viewModelScope.launch {
+            val res = aiRepo.createAIConversation(
+                userId = currentUserId,
+                title = title,
+                toolId = toolId,
+                providerMode = "studyquest_ai",
+                classId = classId,
+                subjectId = subjectId
+            )
+            res.onSuccess { conv ->
+                _activeConversationId.value = conv.id
+                _activeToolId.value = toolId
+            }.onFailure { err ->
+                _statusBanner.value = unwrapFirestoreMessage(err, "Could not start chat")
+            }
+        }
+    }
+
+    fun deleteAIConversation(conversationId: String) {
+        viewModelScope.launch {
+            if (_activeConversationId.value == conversationId) {
+                _activeConversationId.value = null
+            }
+            aiRepo.deleteAIConversation(currentUserId, conversationId)
+        }
+    }
+
+    fun cancelAIRequest() {
+        aiStreamJob?.cancel()
+        aiStreamJob = null
         _aiState.value = AiDoubtUiState.Idle
     }
 
@@ -496,14 +587,95 @@ class LearnAndExamViewModel(
         }
     }
 
+    fun sendStudyQuestMessage(
+        userText: String,
+        classId: String,
+        subjectName: String,
+        language: AppLanguage,
+        subscription: UserSubscriptionDoc = UserSubscriptionDoc(),
+        toolId: String = _activeToolId.value
+    ) {
+        aiStreamJob?.cancel()
+        aiStreamJob = viewModelScope.launch {
+            _aiState.value = AiDoubtUiState.Loading
+            var convId = _activeConversationId.value.orEmpty()
+            if (convId.isBlank() && currentUserId != GuestDataRepository.GUEST_UID) {
+                val created = aiRepo.createAIConversation(
+                    userId = currentUserId,
+                    title = userText.take(42),
+                    toolId = toolId,
+                    providerMode = "studyquest_ai",
+                    classId = classId,
+                    subjectId = subjectName
+                )
+                created.onSuccess {
+                    convId = it.id
+                    _activeConversationId.value = it.id
+                }
+            }
+            lastRetryParams = TupleAiRetry(convId, toolId, userText, classId, subjectName, language, subscription)
+            try {
+                val enabled = aiRepo.isAiSolverEnabled()
+                if (!enabled) {
+                    _aiState.value = AiDoubtUiState.Error(
+                        if (language == AppLanguage.BANGLA) "অ্যাডমিন দ্বারা StudyQuest Helper সাময়িকভাবে বন্ধ আছে।"
+                        else "StudyQuest Helper is currently paused by StudyQuest Admins."
+                    )
+                    return@launch
+                }
+                var latest = ""
+                var latestModel = ""
+                aiRepo.sendStudyQuestMessage(
+                    userId = currentUserId,
+                    conversationId = convId,
+                    toolId = toolId,
+                    userText = userText,
+                    classId = classId,
+                    subjectName = subjectName,
+                    language = language,
+                    subscription = subscription,
+                    history = activeAiMessages.value
+                ).collect { update ->
+                    latest = update.text
+                    latestModel = update.modelUsed
+                    _aiState.value = AiDoubtUiState.Streaming(update.text, update.modelUsed)
+                }
+                if (latest.isNotBlank()) {
+                    _aiState.value = AiDoubtUiState.Success(latest, latestModel)
+                } else {
+                    _aiState.value = AiDoubtUiState.Error("Empty response from StudyQuest Helper.", userText)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "StudyQuest Helper ViewModel error", e)
+                _aiState.value = AiDoubtUiState.Error(e.localizedMessage ?: "AI tutor error.", userText)
+            }
+        }
+    }
+
+    fun retryFailedAIRequest() {
+        val last = lastRetryParams ?: return
+        sendStudyQuestMessage(
+            userText = last.prompt,
+            classId = last.classId,
+            subjectName = last.subjectName,
+            language = last.language,
+            subscription = last.subscription,
+            toolId = last.toolId
+        )
+    }
+
     fun askAiDoubtSolver(
         questionPrompt: String,
         studentQuestion: String,
         classId: String,
         subjectName: String,
-        language: AppLanguage
+        language: AppLanguage,
+        subscription: UserSubscriptionDoc = UserSubscriptionDoc()
     ) {
-        viewModelScope.launch {
+        aiStreamJob?.cancel()
+        aiStreamJob = viewModelScope.launch {
             _aiState.value = AiDoubtUiState.Loading
             try {
                 val enabled = aiRepo.isAiSolverEnabled()
@@ -520,7 +692,8 @@ class LearnAndExamViewModel(
                     studentQuestion = studentQuestion,
                     classId = classId,
                     subjectName = subjectName,
-                    language = language
+                    language = language,
+                    subscription = subscription
                 ).collect { chunk ->
                     latest = chunk
                     _aiState.value = AiDoubtUiState.Streaming(chunk)

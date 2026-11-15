@@ -5,10 +5,14 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -32,16 +36,24 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LockPerson
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -63,7 +75,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -92,11 +103,14 @@ import com.example.ui.components.MascotAvatar
 import com.example.ui.components.MascotTituCard
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
+import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
@@ -105,13 +119,26 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
+private fun Context.hasActiveInternetConnection(): Boolean {
+    val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        ?: return true
+    val network = cm.activeNetwork ?: return false
+    val caps = cm.getNetworkCapabilities(network) ?: return false
+    return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+}
+
+class GoogleSignInController(
+    val launch: () -> Unit,
+    val cancel: () -> Unit
+)
+
 @Composable
-fun rememberGoogleSignInLauncher(
+fun rememberGoogleSignInController(
     language: AppLanguage,
     onSigningInChanged: (Boolean) -> Unit,
     onIdTokenReceived: (String) -> Unit,
     onAuthError: (String) -> Unit
-): () -> Unit {
+): GoogleSignInController {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val scope = rememberCoroutineScope()
@@ -121,89 +148,127 @@ fun rememberGoogleSignInLauncher(
     val latestOnSigningInChanged by rememberUpdatedState(onSigningInChanged)
     val latestOnIdTokenReceived by rememberUpdatedState(onIdTokenReceived)
     val latestOnAuthError by rememberUpdatedState(onAuthError)
+    var activeJob by remember { mutableStateOf<Job?>(null) }
 
     return remember(context, activity, language, webClientId) {
-        {
-            scope.launch {
-                latestOnSigningInChanged(true)
-                try {
-                    Log.d("StudyQuestAuth", "Launching GetSignInWithGoogleOption via CredentialManager")
-                    val googleOption = GetSignInWithGoogleOption.Builder(webClientId).build()
-                    val request = GetCredentialRequest.Builder()
-                        .addCredentialOption(googleOption)
-                        .build()
-                    val result = credentialManager.getCredential(activity ?: context, request)
-                    val credential = result.credential
-                    if (credential is CustomCredential &&
-                        credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                    ) {
-                        val googleCred = GoogleIdTokenCredential.createFrom(credential.data)
-                        if (googleCred.idToken.isBlank()) {
-                            latestOnSigningInChanged(false)
-                            latestOnAuthError(
-                                StudyQuestStrings.t(
-                                    language,
-                                    "Google did not return an ID token. Please try again.",
-                                    "গুগল থেকে বৈধ টোকেন পাওয়া যায়নি। আবার চেষ্টা করো।"
-                                )
-                            )
-                        } else {
-                            Log.d("StudyQuestAuth", "Received Google ID token; passing to Firebase Auth")
-                            latestOnIdTokenReceived(googleCred.idToken)
-                        }
-                    } else {
-                        Log.w("StudyQuestAuth", "Unexpected credential type: ${credential.type}")
-                        latestOnSigningInChanged(false)
-                        latestOnAuthError("Unexpected credential type received (${credential.type}).")
-                    }
-                } catch (e: GetCredentialCancellationException) {
-                    Log.w("StudyQuestAuth", "Google Sign-In cancelled or rejected by Play Services: ${e.message}", e)
+        GoogleSignInController(
+            launch = {
+                if (!context.hasActiveInternetConnection()) {
                     latestOnSigningInChanged(false)
                     latestOnAuthError(
                         StudyQuestStrings.t(
                             language,
-                            "Google Sign-In did not complete (${e.errorMessage ?: "cancelled or signing configuration mismatch"}). Please try again.",
-                            "গুগল সাইন-ইন সম্পন্ন হয়নি (${e.errorMessage ?: "বাতিল হয়েছে বা সাইনিং মিলছে না"})। আবার চেষ্টা করো।"
+                            "No internet connection detected. Connect to Wi-Fi or mobile data and try again.",
+                            "ইন্টারনেট সংযোগ পাওয়া যায়নি। ওয়াই-ফাই বা মোবাইল ডেটা চালু করে আবার চেষ্টা করো।"
                         )
                     )
-                } catch (e: GetCredentialCustomException) {
-                    val raw = e.errorMessage?.toString() ?: e.localizedMessage.orEmpty()
-                    Log.e("StudyQuestAuth", "CredentialManager custom failure: $raw", e)
-                    latestOnSigningInChanged(false)
-                    val isDevConsole28444 = raw.contains("28444") || raw.contains("Developer console", ignoreCase = true)
-                    latestOnAuthError(
-                        if (isDevConsole28444) {
+                    return@GoogleSignInController
+                }
+                activeJob?.cancel()
+                activeJob = scope.launch {
+                    latestOnSigningInChanged(true)
+                    try {
+                        Log.d("StudyQuestAuth", "Launching GetSignInWithGoogleOption via CredentialManager")
+                        val googleOption = GetSignInWithGoogleOption.Builder(webClientId).build()
+                        val request = GetCredentialRequest.Builder()
+                            .addCredentialOption(googleOption)
+                            .build()
+                        val result = credentialManager.getCredential(activity ?: context, request)
+                        val credential = result.credential
+                        if (credential is CustomCredential &&
+                            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                        ) {
+                            val googleCred = GoogleIdTokenCredential.createFrom(credential.data)
+                            if (googleCred.idToken.isBlank()) {
+                                latestOnSigningInChanged(false)
+                                latestOnAuthError(
+                                    StudyQuestStrings.t(
+                                        language,
+                                        "Google did not return an ID token. Please try again.",
+                                        "গুগল থেকে বৈধ টোকেন পাওয়া যায়নি। আবার চেষ্টা করো।"
+                                    )
+                                )
+                            } else {
+                                Log.d("StudyQuestAuth", "Received Google ID token; passing to Firebase Auth")
+                                latestOnIdTokenReceived(googleCred.idToken)
+                            }
+                        } else {
+                            Log.w("StudyQuestAuth", "Unexpected credential type: ${credential.type}")
+                            latestOnSigningInChanged(false)
+                            latestOnAuthError("Unexpected credential type received (${credential.type}).")
+                        }
+                    } catch (e: CancellationException) {
+                        latestOnSigningInChanged(false)
+                        throw e
+                    } catch (e: GetCredentialCancellationException) {
+                        Log.w("StudyQuestAuth", "Google Sign-In cancelled or rejected by Play Services: ${e.message}", e)
+                        latestOnSigningInChanged(false)
+                        latestOnAuthError(
                             StudyQuestStrings.t(
                                 language,
-                                "Google Sign-In configuration error [28444]: The app signing SHA-1 fingerprint for com.aistudio.studyquest.bdxkpq does not match Firebase configuration.",
-                                "গুগল সাইন-ইন কনফিগারেশন ত্রুটি [28444]: com.aistudio.studyquest.bdxkpq প্যাকেজের SHA-1 ফিঙ্গারপ্রিন্ট Firebase কনফিগারেশনের সাথে মিলছে না।"
+                                "Google Sign-In did not complete (${e.errorMessage ?: "cancelled or signing configuration mismatch"}). Please try again.",
+                                "গুগল সাইন-ইন সম্পন্ন হয়নি (${e.errorMessage ?: "বাতিল হয়েছে বা সাইনিং মিলছে না"})। আবার চেষ্টা করো।"
                             )
-                        } else {
-                            raw.ifBlank { "Google Sign-In failed" }
-                        }
-                    )
-                } catch (e: NoCredentialException) {
-                    Log.w("StudyQuestAuth", "No Google account available on device", e)
-                    latestOnSigningInChanged(false)
-                    latestOnAuthError(
-                        StudyQuestStrings.t(
-                            language,
-                            "No Google account found on this device. Please add a Google account in Android Settings and try again.",
-                            "এই ডিভাইসে কোনো গুগল অ্যাকাউন্ট পাওয়া যায়নি। সেটিংস থেকে গুগল অ্যাকাউন্ট যোগ করে আবার চেষ্টা করো।"
                         )
-                    )
-                } catch (e: GetCredentialException) {
-                    Log.e("StudyQuestAuth", "CredentialManager failed [${e.type}]", e)
-                    latestOnSigningInChanged(false)
-                    latestOnAuthError(e.errorMessage?.toString() ?: e.localizedMessage ?: "Google Sign-In failed (${e.type})")
-                } catch (e: Exception) {
-                    Log.e("StudyQuestAuth", "Sign-in exception", e)
-                    latestOnSigningInChanged(false)
-                    latestOnAuthError(e.localizedMessage ?: "Sign-in failed")
+                    } catch (e: GetCredentialCustomException) {
+                        val raw = e.errorMessage?.toString() ?: e.localizedMessage.orEmpty()
+                        Log.e("StudyQuestAuth", "CredentialManager custom failure: $raw", e)
+                        latestOnSigningInChanged(false)
+                        val isDevConsole28444 = raw.contains("28444") || raw.contains("Developer console", ignoreCase = true)
+                        latestOnAuthError(
+                            if (isDevConsole28444) {
+                                StudyQuestStrings.t(
+                                    language,
+                                    "Google Sign-In configuration error [28444]: The app signing SHA-1 fingerprint for com.aistudio.studyquest.bdxkpq does not match Firebase configuration.",
+                                    "গুগল সাইন-ইন কনফিগারেশন ত্রুটি [28444]: com.aistudio.studyquest.bdxkpq প্যাকেজের SHA-1 ফিঙ্গারপ্রিন্ট Firebase কনফিগারেশনের সাথে মিলছে না।"
+                                )
+                            } else {
+                                raw.ifBlank { "Google Sign-In failed" }
+                            }
+                        )
+                    } catch (e: NoCredentialException) {
+                        Log.w("StudyQuestAuth", "No Google account available on device", e)
+                        latestOnSigningInChanged(false)
+                        latestOnAuthError(
+                            StudyQuestStrings.t(
+                                language,
+                                "No Google account found on this device. Please add a Google account in Android Settings and try again.",
+                                "এই ডিভাইসে কোনো গুগল অ্যাকাউন্ট পাওয়া যায়নি। সেটিংস থেকে গুগল অ্যাকাউন্ট যোগ করে আবার চেষ্টা করো।"
+                            )
+                        )
+                    } catch (e: GetCredentialException) {
+                        Log.e("StudyQuestAuth", "CredentialManager failed [${e.type}]", e)
+                        latestOnSigningInChanged(false)
+                        latestOnAuthError(e.errorMessage?.toString() ?: e.localizedMessage ?: "Google Sign-In failed (${e.type})")
+                    } catch (e: Exception) {
+                        Log.e("StudyQuestAuth", "Sign-in exception", e)
+                        latestOnSigningInChanged(false)
+                        latestOnAuthError(e.localizedMessage ?: "Sign-in failed")
+                    }
                 }
+            },
+            cancel = {
+                activeJob?.cancel()
+                activeJob = null
+                latestOnSigningInChanged(false)
             }
-        }
+        )
     }
+}
+
+@Composable
+fun rememberGoogleSignInLauncher(
+    language: AppLanguage,
+    onSigningInChanged: (Boolean) -> Unit,
+    onIdTokenReceived: (String) -> Unit,
+    onAuthError: (String) -> Unit
+): () -> Unit {
+    return rememberGoogleSignInController(
+        language = language,
+        onSigningInChanged = onSigningInChanged,
+        onIdTokenReceived = onIdTokenReceived,
+        onAuthError = onAuthError
+    ).launch
 }
 
 @Composable
@@ -213,14 +278,7 @@ fun LanguagePickerLaunchScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding()
             .padding(24.dp),
         contentAlignment = Alignment.Center
@@ -338,17 +396,27 @@ fun WelcomeAndGoogleSignInScreen(
     onSetLanguage: (AppLanguage) -> Unit,
     onSigningInChanged: (Boolean) -> Unit,
     onIdTokenReceived: (String) -> Unit,
-    onAuthError: (String) -> Unit
+    onAuthError: (String) -> Unit,
+    canCancelSignIn: Boolean = false,
+    onCancelSignIn: () -> Unit = {},
+    onBackToLanguagePicker: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val credentialManager = remember(context) { CredentialManager.create(context) }
     val webClientId = remember(context) { context.getString(R.string.default_web_client_id) }
     val scrollState = rememberScrollState()
+    var selectedAuthTab by remember { mutableIntStateOf(0) } // 0=Google Sign-In, 1=Email Console Guide
+
+    BackHandler {
+        onBackToLanguagePicker()
+    }
 
     // Separate GetGoogleIdOption silent auto sign-in on welcome screen launch
     LaunchedEffect(Unit) {
-        if (Firebase.auth.currentUser != null || isSigningIn) return@LaunchedEffect
+        if (Firebase.auth.currentUser != null || isSigningIn || !context.hasActiveInternetConnection()) {
+            return@LaunchedEffect
+        }
         try {
             val autoOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(true)
@@ -384,7 +452,7 @@ fun WelcomeAndGoogleSignInScreen(
         }
     }
 
-    val launchInteractiveGoogleSignIn = rememberGoogleSignInLauncher(
+    val googleController = rememberGoogleSignInController(
         language = language,
         onSigningInChanged = onSigningInChanged,
         onIdTokenReceived = onIdTokenReceived,
@@ -394,24 +462,17 @@ fun WelcomeAndGoogleSignInScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f),
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding()
-            .padding(20.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
             modifier = Modifier
                 .widthIn(max = 540.dp)
                 .fillMaxWidth()
                 .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -419,8 +480,23 @@ fun WelcomeAndGoogleSignInScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MascotAvatar(size = 38.dp)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    IconButton(
+                        onClick = {
+                            googleController.cancel()
+                            onBackToLanguagePicker()
+                        },
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .testTag("welcome_back_to_lang_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = StudyQuestStrings.t(language, "Back to language picker", "ভাষা নির্বাচনে ফিরে যাও")
+                        )
+                    }
+                    MascotAvatar(size = 34.dp)
+                    Spacer(Modifier.width(4.dp))
                     Text("StudyQuest", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(
@@ -440,31 +516,261 @@ fun WelcomeAndGoogleSignInScreen(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(190.dp)
-                        .clip(RoundedCornerShape(24.dp))
+                        .height(148.dp)
+                        .clip(RoundedCornerShape(20.dp))
                 )
             }
 
             StaggeredEntrance(index = 1, reducedMotion = reducedMotion) {
-                Text(
-                    text = StudyQuestStrings.t(
-                        language,
-                        "Master Classes 6–10 & SSC with Joy",
-                        "আনন্দ ও আত্মবিশ্বাসের সাথে শ্রেণি ৬–১০ এবং এসএসসি প্রস্তুতি"
-                    ),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = StudyQuestStrings.t(
+                            language,
+                            "Master Classes 6–10 & SSC with Clarity",
+                            "স্পষ্টতা ও আত্মবিশ্বাসের সাথে শ্রেণি ৬–১০ এবং এসএসসি প্রস্তুতি"
+                        ),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = StudyQuestStrings.t(
+                            language,
+                            "Learn. Connect. Compete. Achieve.",
+                            "শিখুন • যুক্ত হোন • প্রতিযোগিতা করুন • অর্জন করুন"
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
+            // Modern Auth Card (Crisp White + Selective Forest Green)
             StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
-                StudyQuestCard {
-                    FeatureBulletRow(Icons.Filled.School, StudyQuestStrings.t(language, "NCTB-Aligned Lessons, MCQ & CQ Bank + Mock Exams", "এনসিটিবি পাঠ, MCQ-CQ প্রশ্নব্যাংক ও মডেল টেস্ট"))
+                StudyQuestCard(
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.LockPerson,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = StudyQuestStrings.t(
+                                language,
+                                "Firebase Account Sign-In",
+                                "Firebase অ্যাকাউন্ট সাইন-ইন"
+                            ),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     Spacer(Modifier.height(10.dp))
-                    FeatureBulletRow(Icons.Filled.EmojiEvents, StudyQuestStrings.t(language, "Live 1v1 Battles, Solo Sprints & Class Leaderboards", "১v১ কুইজ যুদ্ধ, সোলো স্প্রিন্ট ও লিডারবোর্ড"))
-                    Spacer(Modifier.height(10.dp))
-                    FeatureBulletRow(Icons.Filled.AutoAwesome, StudyQuestStrings.t(language, "Step-by-step AI Doubt Solver & Offline Chapter Downloads", "ধাপে ধাপে AI সমাধান ও অফলাইন অধ্যায় ডাউনলোড"))
+
+                    // Auth mode selector chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = selectedAuthTab == 0,
+                            onClick = { selectedAuthTab = 0 },
+                            leadingIcon = {
+                                Icon(Icons.Filled.VerifiedUser, contentDescription = null, modifier = Modifier.size(16.dp))
+                            },
+                            label = { Text(StudyQuestStrings.t(language, "Google Sign-In", "গুগল সাইন-ইন")) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("auth_tab_google")
+                        )
+                        FilterChip(
+                            selected = selectedAuthTab == 1,
+                            onClick = { selectedAuthTab = 1 },
+                            leadingIcon = {
+                                Icon(Icons.Filled.Email, contentDescription = null, modifier = Modifier.size(16.dp))
+                            },
+                            label = { Text(StudyQuestStrings.t(language, "Email Setup", "ইমেইল গাইড")) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("auth_tab_email_guide")
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Spacer(Modifier.height(12.dp))
+
+                    if (selectedAuthTab == 0) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            FeatureBulletRow(
+                                Icons.Filled.School,
+                                StudyQuestStrings.t(language, "Sync NCTB lessons, MCQ/CQ Bank & study plans", "এনসিটিবি পাঠ, MCQ-CQ ও স্টাডি প্ল্যান সিঙ্ক")
+                            )
+                            FeatureBulletRow(
+                                Icons.Filled.EmojiEvents,
+                                StudyQuestStrings.t(language, "Live 1v1 quiz battles & national rank", "১v১ কুইজ যুদ্ধ ও ন্যাশনাল র‍্যাংক")
+                            )
+                            FeatureBulletRow(
+                                Icons.Filled.AutoAwesome,
+                                StudyQuestStrings.t(language, "StudyQuest AI Lab & Video Library", "StudyQuest AI ল্যাব ও ভিডিও লাইব্রেরি")
+                            )
+
+                            Spacer(Modifier.height(4.dp))
+
+                            Button(
+                                onClick = { googleController.launch() },
+                                enabled = !isSigningIn,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                                    .testTag("google_sign_in_button")
+                            ) {
+                                if (isSigningIn) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        strokeWidth = 2.5.dp
+                                    )
+                                } else {
+                                    Text(
+                                        text = StudyQuestStrings.t(language, "Continue with Google", "গুগল দিয়ে শুরু করুন"),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            if (isSigningIn) {
+                                Text(
+                                    text = StudyQuestStrings.t(
+                                        language,
+                                        "Signing in with Google...",
+                                        "গুগল অ্যাকাউন্ট যাচাই হচ্ছে..."
+                                    ),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            AnimatedVisibility(visible = isSigningIn && canCancelSignIn) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "Taking longer than usual to reach Firebase...",
+                                            "Firebase-এর সাথে সংযোগ হতে স্বাভাবিকের চেয়ে বেশি সময় লাগছে..."
+                                        ),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    OutlinedButton(
+                                        onClick = {
+                                            googleController.cancel()
+                                            onCancelSignIn()
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("google_sign_in_cancel_button")
+                                    ) {
+                                        Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            StudyQuestStrings.t(
+                                                language,
+                                                "Cancel Sign-In",
+                                                "সাইন-ইন বাতিল করো"
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("email_console_guide_panel")
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = StudyQuestStrings.t(
+                                        language,
+                                        "Google Sign-In is pre-provisioned and ready right now. Email/Password auth requires enabling the provider manually in your Firebase Console:",
+                                        "এই বিল্ডে গুগল সাইন-ইন সরাসরি সক্রিয় রয়েছে। ইমেইল/পাসওয়ার্ড ব্যবহার করতে চাইলে Firebase Console থেকে ম্যানুয়ালি চালু করতে হবে:"
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+
+                            Text(
+                                text = StudyQuestStrings.t(
+                                    language,
+                                    "1. Open Firebase Console → Authentication → Sign-in method\n2. Enable Email/Password and save changes\n3. Verify Android app & SHA-1 in Project Settings:",
+                                    "১. Firebase Console → Authentication → Sign-in method খুলুন\n২. Email/Password চালু করে Save দিন\n৩. Project Settings-এ অ্যাপ ও SHA-1 যাচাই করুন:"
+                                ),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.background,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Package: com.aistudio.studyquest.bdxkpq\nProject: gen-lang-client-0291195118",
+                                    fontFamily = JetBrainsMonoFontFamily,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(10.dp)
+                                )
+                            }
+
+                            Button(
+                                onClick = { selectedAuthTab = 0 },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("switch_back_to_google_auth_btn")
+                            ) {
+                                Text(
+                                    StudyQuestStrings.t(
+                                        language,
+                                        "Use Google Sign-In Now",
+                                        "এখন গুগল দিয়ে সাইন-ইন করো"
+                                    ),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -477,54 +783,28 @@ fun WelcomeAndGoogleSignInScreen(
                         .fillMaxWidth()
                         .testTag("auth_error_banner")
                 ) {
-                    Text(
-                        text = authError,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(14.dp)
-                    )
-                }
-            }
-
-            StaggeredEntrance(index = 3, reducedMotion = reducedMotion) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Button(
-                        onClick = { launchInteractiveGoogleSignIn() },
-                        enabled = !isSigningIn,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(54.dp)
-                            .testTag("google_sign_in_button")
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (isSigningIn) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.5.dp
-                            )
-                        } else {
-                            Text(
-                                text = StudyQuestStrings.t(language, "Continue with Google", "গুগল দিয়ে শুরু করুন"),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                    if (isSigningIn) {
                         Text(
-                            text = StudyQuestStrings.t(
-                                language,
-                                "Signing in with Google...",
-                                "গুগল অ্যাকাউন্ট যাচাই হচ্ছে..."
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            text = authError,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium
                         )
+                        OutlinedButton(
+                            onClick = {
+                                selectedAuthTab = 0
+                                googleController.launch()
+                            },
+                            enabled = !isSigningIn,
+                            modifier = Modifier.minimumInteractiveComponentSize()
+                        ) {
+                            Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(StudyQuestStrings.t(language, "Retry Google Sign-In", "আবার চেষ্টা করো"))
+                        }
                     }
                 }
             }
@@ -532,7 +812,7 @@ fun WelcomeAndGoogleSignInScreen(
             Text(
                 text = StudyQuestStrings.t(
                     language,
-                    "Sign in with your Google account to sync your Class 6–10 progress, streak, flashcards, and leaderboard rank across devices.",
+                    "Sign in with Google to sync your Class 6–10 progress, streak, flashcards, and leaderboard rank across devices.",
                     "তোমার শ্রেণি ৬–১০ অগ্রগতি, স্ট্রিক, ফ্ল্যাশকার্ড এবং লিডারবোর্ড র‍্যাংক সিঙ্ক রাখতে গুগল অ্যাকাউন্ট দিয়ে সাইন-ইন করো।"
                 ),
                 style = MaterialTheme.typography.labelSmall,
@@ -545,9 +825,13 @@ fun WelcomeAndGoogleSignInScreen(
 
 @Composable
 private fun FeatureBulletRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-        Text(text = text, style = MaterialTheme.typography.bodyMedium)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Text(text = text, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -559,6 +843,7 @@ fun AcademicSetupWizardScreen(
     isSaving: Boolean = false,
     errorMessage: String? = null,
     onSignOut: () -> Unit = {},
+    onBack: () -> Unit = onSignOut,
     onCompleteSetup: (
         displayName: String,
         classId: String,
@@ -570,6 +855,9 @@ fun AcademicSetupWizardScreen(
         studyGoalTitle: String
     ) -> Unit
 ) {
+    BackHandler(enabled = !isSaving) {
+        onBack()
+    }
     val context = LocalContext.current
     var displayName by remember(profile.displayName) { mutableStateOf(profile.displayName) }
     var selectedClassId by remember { mutableStateOf(profile.classId.ifBlank { "class_10" }) }
@@ -631,7 +919,18 @@ fun AcademicSetupWizardScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                IconButton(
+                    onClick = { if (!isSaving) onBack() },
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("setup_back_btn")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = StudyQuestStrings.t(language, "Back", "ফিরে যাও")
+                    )
+                }
                 MascotAvatar(size = 32.dp)
                 Column {
                     Text(

@@ -59,6 +59,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -71,7 +72,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.compose.BackHandler
 import com.example.core.AppLanguage
+import com.example.core.BillingAndAdProvider
 import com.example.core.LocalUserPreferences
 import com.example.core.StudyQuestStrings
 import com.example.core.ThemeMode
@@ -80,6 +83,7 @@ import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.local.StudyQuestWorkScheduler
 import com.example.data.model.ExamTemplate
 import com.example.data.model.PublicProfile
+import com.example.data.model.QuestPlanCatalog
 import com.example.ui.components.AudioFeedbackHelper
 import com.example.ui.components.GamificationCelebrationHost
 import com.example.ui.components.LottieCelebrationOverlay
@@ -92,8 +96,10 @@ import com.example.ui.screens.LanguagePickerLaunchScreen
 import com.example.ui.screens.LearnDestination
 import com.example.ui.screens.LearnTabScreen
 import com.example.ui.screens.ProfileTabScreen
+import com.example.ui.screens.SubscriptionSelectionScreen
 import com.example.ui.screens.TodayTabScreen
 import com.example.ui.screens.WelcomeAndGoogleSignInScreen
+import com.example.ui.screens.WelcomePlanSelectionScreen
 import com.example.ui.theme.StudyQuestTheme
 import com.example.ui.viewmodel.AdminStudioViewModel
 import com.example.ui.viewmodel.AiVideoViewModel
@@ -140,6 +146,7 @@ private fun StudyQuestRootApp() {
     val preAuthVm: PreAuthViewModel = viewModel(factory = StudyQuestViewModelFactories.preAuthFactory())
     val preAuthPrefs by preAuthVm.localPreferences.collectAsStateWithLifecycle()
     val isSigningIn by preAuthVm.isSigningIn.collectAsStateWithLifecycle()
+    val canCancelSignIn by preAuthVm.canCancelSignIn.collectAsStateWithLifecycle()
     val authMessage by preAuthVm.authMessage.collectAsStateWithLifecycle()
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -187,7 +194,10 @@ private fun StudyQuestRootApp() {
                         currentUser = auth.currentUser
                     }
                 },
-                onAuthError = { preAuthVm.setAuthError(it) }
+                onAuthError = { preAuthVm.setAuthError(it) },
+                canCancelSignIn = canCancelSignIn,
+                onCancelSignIn = { preAuthVm.cancelSignIn() },
+                onBackToLanguagePicker = { preAuthVm.returnToLanguagePicker() }
             )
         }
     }
@@ -212,6 +222,14 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
     val bootstrapState by sessionVm.bootstrapState.collectAsStateWithLifecycle()
     val isCompletingSetup by sessionVm.isCompletingSetup.collectAsStateWithLifecycle()
     val sessionBanner by sessionVm.bannerMessage.collectAsStateWithLifecycle()
+    val subscription by sessionVm.subscription.collectAsStateWithLifecycle()
+    val systemSettings by sessionVm.systemSettings.collectAsStateWithLifecycle()
+
+    LaunchedEffect(subscription.tier) {
+        if (subscription.tier != "free" && !prefs.welcomePlanCompleted) {
+            sessionVm.markWelcomePlanCompleted()
+        }
+    }
 
     when (val state = bootstrapState) {
         BootstrapState.Loading -> {
@@ -321,15 +339,24 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
 
         is BootstrapState.Ready -> {
             val activeProfile = state.profile
-            if (!activeProfile.onboardingCompleted) {
+            var editingAcademicSetup by remember(activeProfile.userId) { mutableStateOf(false) }
+            if (!activeProfile.onboardingCompleted || editingAcademicSetup) {
                 AcademicSetupWizardScreen(
                     profile = activeProfile,
                     language = prefs.uiLanguage,
                     isSaving = isCompletingSetup,
                     errorMessage = sessionBanner,
-                    onSignOut = { sessionVm.signOut() },
+                    onSignOut = {
+                        editingAcademicSetup = false
+                        sessionVm.signOut()
+                    },
+                    onBack = {
+                        editingAcademicSetup = false
+                        sessionVm.signOut()
+                    },
                     onCompleteSetup = { name, cls, ver, subjs, avatar, grp, dailyMins, goalTitle ->
                         AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
+                        editingAcademicSetup = false
                         sessionVm.completeAcademicSetup(
                             displayName = name,
                             classId = cls,
@@ -341,6 +368,17 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
                             studyGoalTitle = goalTitle
                         )
                     }
+                )
+            } else if (!prefs.welcomePlanCompleted && subscription.tier == "free") {
+                WelcomePlanSelectionScreen(
+                    language = prefs.uiLanguage,
+                    billingConfigured = systemSettings.billingConfigured,
+                    onContinueWithFree = { sessionVm.markWelcomePlanCompleted() },
+                    onSelectPaidPlan = { planId ->
+                        sessionVm.requestPlanUpgrade(planId)
+                        sessionVm.markWelcomePlanCompleted()
+                    },
+                    onBack = { editingAcademicSetup = true }
                 )
             } else {
                 AuthenticatedReadyHost(
@@ -401,6 +439,9 @@ private fun AuthenticatedReadyHost(
     val assignmentSubmissions by sessionVm.assignmentSubmissions.collectAsStateWithLifecycle()
     val systemSettings by sessionVm.systemSettings.collectAsStateWithLifecycle()
     val subscription by sessionVm.subscription.collectAsStateWithLifecycle()
+    val aiCreditLedger by sessionVm.aiCreditLedger.collectAsStateWithLifecycle()
+    val videoCreditLedger by sessionVm.videoCreditLedger.collectAsStateWithLifecycle()
+    val purchaseHistory by sessionVm.purchaseHistory.collectAsStateWithLifecycle()
     val adPlacementState by sessionVm.adPlacementState.collectAsStateWithLifecycle()
 
     val learningRecords by learnVm.learningRecords.collectAsStateWithLifecycle()
@@ -416,6 +457,10 @@ private fun AuthenticatedReadyHost(
     val examRemaining by learnVm.examRemainingSeconds.collectAsStateWithLifecycle()
     val assessmentResult by learnVm.lastAssessmentResult.collectAsStateWithLifecycle()
     val aiState by learnVm.aiState.collectAsStateWithLifecycle()
+    val aiConversations by learnVm.aiConversations.collectAsStateWithLifecycle()
+    val activeAiConversationId by learnVm.activeConversationId.collectAsStateWithLifecycle()
+    val activeAiMessages by learnVm.activeAiMessages.collectAsStateWithLifecycle()
+    val activeAiToolId by learnVm.activeToolId.collectAsStateWithLifecycle()
     val learnBanner by learnVm.statusBanner.collectAsStateWithLifecycle()
 
     val myMatches by competeVm.myMatches.collectAsStateWithLifecycle()
@@ -443,10 +488,26 @@ private fun AuthenticatedReadyHost(
     val selectedPostComments by socialVm.selectedPostComments.collectAsStateWithLifecycle()
     val socialBanner by socialVm.message.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0=Today, 1=Learn, 2=Compete, 3=Friends, 4=Profile
+    val tabBackStack = remember { mutableStateListOf(0) } // 0=Today, 1=Learn, 2=Compete, 3=Friends, 4=Profile
+    val selectedTab = tabBackStack.lastOrNull() ?: 0
+    fun navigateToTab(idx: Int) {
+        if (tabBackStack.lastOrNull() != idx) {
+            tabBackStack.add(idx)
+        }
+    }
     var pendingLearnDest by remember { mutableStateOf<LearnDestination?>(null) }
     var showGlobalAiSheet by remember { mutableStateOf(false) }
+    var showPlanStoreOverlay by remember { mutableStateOf(false) }
     var celebrationPulse by remember { mutableIntStateOf(0) }
+
+    BackHandler(enabled = showGlobalAiSheet) {
+        learnVm.resetAiDoubtState()
+        showGlobalAiSheet = false
+    }
+
+    BackHandler(enabled = !showPlanStoreOverlay && !showGlobalAiSheet && tabBackStack.size > 1) {
+        tabBackStack.removeAt(tabBackStack.lastIndex)
+    }
 
     LaunchedEffect(activeProfile.classId) {
         socialVm.setCommunityClassId(activeProfile.classId)
@@ -476,7 +537,7 @@ private fun AuthenticatedReadyHost(
             descriptionBn = "উত্তীর্ণ হতে ৬০%+ নম্বর অর্জন করুন।"
         )
         pendingLearnDest = LearnDestination.MockExamSession(tpl, qs)
-        selectedTab = 1
+        navigateToTab(1)
     }
 
     Scaffold(
@@ -520,7 +581,7 @@ private fun AuthenticatedReadyHost(
                             selected = selectedTab == idx,
                             onClick = {
                                 AudioFeedbackHelper.triggerClick(view, prefs.soundEnabled, prefs.reducedMotion)
-                                selectedTab = idx
+                                navigateToTab(idx)
                             },
                             icon = { Icon(if (selectedTab == idx) icons.first else icons.second, contentDescription = label) },
                             label = { Text(label, maxLines = 1) },
@@ -566,6 +627,26 @@ private fun AuthenticatedReadyHost(
             }
 
             Box(modifier = Modifier.weight(1f)) {
+                if (showPlanStoreOverlay) {
+                    BackHandler { showPlanStoreOverlay = false }
+                    SubscriptionSelectionScreen(
+                        language = lang,
+                        subscription = subscription,
+                        billingConfigured = systemSettings.billingConfigured,
+                        aiCreditLedger = aiCreditLedger,
+                        videoCreditLedger = videoCreditLedger,
+                        purchaseHistory = purchaseHistory,
+                        onSelectPlan = { sessionVm.requestPlanUpgrade(it) },
+                        onPurchaseVideoBoost = { sessionVm.purchaseVideoBoost() },
+                        onSwitchToFree = { sessionVm.switchToFreePlan() },
+                        onOpenAiLab = {
+                            showPlanStoreOverlay = false
+                            pendingLearnDest = LearnDestination.AiLab
+                            navigateToTab(1)
+                        },
+                        onBack = { showPlanStoreOverlay = false }
+                    )
+                } else {
                 AnimatedContent(
                     targetState = selectedTab,
                     transitionSpec = {
@@ -604,54 +685,60 @@ private fun AuthenticatedReadyHost(
                                 StudyQuestStrings.t(lang, "Quick Practice", "কুইক প্র্যাকটিস"),
                                 qs
                             )
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenMockExam = {
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenRevision = {
                             pendingLearnDest = LearnDestination.RevisionAndPlanner
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenAiDoubtSolver = { showGlobalAiSheet = true },
-                        onOpenMessages = { selectedTab = 3 },
+                        onOpenMessages = { navigateToTab(3) },
                         subjectAnalytics = subjectAnalytics,
                         dailyStudySeries = dailyStudySeries,
                         dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(activeProfile),
                         onOpenSubjectCategory = { subj ->
                             pendingLearnDest = LearnDestination.SubjectDetail(subj)
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenFlashcardsVault = {
                             pendingLearnDest = LearnDestination.FlashcardsAndVault
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenPomodoro = {
                             pendingLearnDest = LearnDestination.PomodoroFocus
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenDailyChallenge = {
                             pendingLearnDest = LearnDestination.DailyChallenge
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenMasteryAnalytics = {
                             pendingLearnDest = LearnDestination.MasteryAnalytics
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenAssignmentsAndGoals = {
                             pendingLearnDest = LearnDestination.AssignmentsAndGoals
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenAiVideoStudio = {
                             pendingLearnDest = LearnDestination.AiVideoStudio
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onOpenBadgesAndXp = {
                             pendingLearnDest = LearnDestination.BadgesAndXp
-                            selectedTab = 1
+                            navigateToTab(1)
                         },
                         onBuyStreakFreeze = { sessionVm.purchaseStreakFreeze() },
-                        onRetakePromotionExam = { openPromotionExam() }
+                        onRetakePromotionExam = { openPromotionExam() },
+                        subscription = subscription,
+                        onOpenAiLab = {
+                            pendingLearnDest = LearnDestination.AiLab
+                            navigateToTab(1)
+                        },
+                        onOpenPlanStore = { showPlanStoreOverlay = true }
                     )
 
                     1 -> LearnTabScreen(
@@ -692,7 +779,7 @@ private fun AuthenticatedReadyHost(
                             socialVm.reportIssue("question", q.id, "Content accuracy review", q.promptEn)
                         },
                         onAskAi = { prompt, studentQ, cls, subj ->
-                            learnVm.askAiDoubtSolver(prompt, studentQ, cls, subj, lang)
+                            learnVm.askAiDoubtSolver(prompt, studentQ, cls, subj, lang, subscription)
                         },
                         onResetAi = { learnVm.resetAiDoubtState() },
                         reducedMotion = prefs.reducedMotion,
@@ -738,7 +825,30 @@ private fun AuthenticatedReadyHost(
                         onSubmitAssignment = { sessionVm.submitAssignment(it) },
                         onToggleBadgeFavorite = { sessionVm.toggleBadgeFavorite(it) },
                         onToggleBadgePin = { sessionVm.toggleBadgePin(it) },
-                        onSetExamOrQuizActive = { learnVm.setExamOrQuizActive(it) }
+                        onSetExamOrQuizActive = { learnVm.setExamOrQuizActive(it) },
+                        subscription = subscription,
+                        aiConversations = aiConversations,
+                        activeAiConversationId = activeAiConversationId,
+                        activeAiMessages = activeAiMessages,
+                        activeAiToolId = activeAiToolId,
+                        onSelectAiTool = { learnVm.selectAiTool(it) },
+                        onSelectAiConversation = { learnVm.openAIConversation(it) },
+                        onCreateAiConversation = { title, toolId ->
+                            learnVm.createAIConversation(title, toolId, activeProfile.classId, "general")
+                        },
+                        onDeleteAiConversation = { learnVm.deleteAIConversation(it) },
+                        onSendAiLabMessage = { msg ->
+                            learnVm.sendStudyQuestMessage(
+                                userText = msg,
+                                classId = activeProfile.classId,
+                                subjectName = "General Study",
+                                language = lang,
+                                subscription = subscription
+                            )
+                        },
+                        onCancelAiRequest = { learnVm.cancelAIRequest() },
+                        onRetryAiRequest = { learnVm.retryFailedAIRequest() },
+                        onOpenPlanStore = { showPlanStoreOverlay = true }
                     )
 
                     2 -> CompeteTabScreen(
@@ -872,9 +982,20 @@ private fun AuthenticatedReadyHost(
                         onUpdateNotificationCategory = { c, e -> sessionVm.updateNotificationCategory(c, e) },
                         onToggleBadgeFavorite = { sessionVm.toggleBadgeFavorite(it) },
                         onToggleBadgePin = { sessionVm.toggleBadgePin(it) },
-                        onTriggerBillingUpgrade = { sessionVm.triggerBillingUpgradeFlow() },
-                        onRetakePromotionExam = { openPromotionExam() }
+                        onTriggerBillingUpgrade = { showPlanStoreOverlay = true },
+                        onRetakePromotionExam = { openPromotionExam() },
+                        aiCreditLedger = aiCreditLedger,
+                        videoCreditLedger = videoCreditLedger,
+                        purchaseHistory = purchaseHistory,
+                        onSelectPlan = { sessionVm.requestPlanUpgrade(it) },
+                        onPurchaseVideoBoost = { sessionVm.purchaseVideoBoost() },
+                        onSwitchToFreePlan = { sessionVm.switchToFreePlan() },
+                        onOpenAiLab = {
+                            pendingLearnDest = LearnDestination.AiLab
+                            navigateToTab(1)
+                        }
                     )
+                }
                 }
                 }
             }
@@ -893,14 +1014,23 @@ private fun AuthenticatedReadyHost(
     }
 
     if (showGlobalAiSheet) {
+        val normSub = BillingAndAdProvider.normalizeSubscription(subscription)
+        val plan = QuestPlanCatalog.planById(normSub.tier)
+        val aiRemaining = (normSub.monthlyAiLimit.toInt().coerceAtLeast(plan.monthlyAiCredits) - normSub.aiCreditsUsed.toInt()).coerceAtLeast(0)
         AiDoubtSolverSheet(
             initialContext = "",
             classId = activeProfile.classId,
             subjectName = "General Study",
             language = lang,
             aiState = aiState,
+            remainingAiCredits = aiRemaining,
+            onOpenAiLab = {
+                showGlobalAiSheet = false
+                pendingLearnDest = LearnDestination.AiLab
+                navigateToTab(1)
+            },
             onSubmitDoubt = { q ->
-                learnVm.askAiDoubtSolver("", q, activeProfile.classId, "General Study", lang)
+                learnVm.askAiDoubtSolver("", q, activeProfile.classId, "General Study", lang, subscription)
             },
             onDismiss = {
                 learnVm.resetAiDoubtState()

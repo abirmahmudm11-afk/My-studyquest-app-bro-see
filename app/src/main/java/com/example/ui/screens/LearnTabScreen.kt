@@ -45,6 +45,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -88,10 +89,14 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.runtime.DisposableEffect
+import com.example.data.model.AiChatMessageDoc
+import com.example.data.model.AiConversationDoc
 import com.example.data.model.AssignmentDefinitionDoc
 import com.example.data.model.AssignmentSubmissionDoc
+import com.example.data.model.QuestPlanCatalog
 import com.example.data.model.StudyGoalDoc
 import com.example.data.model.UserBadgeDoc
+import com.example.data.model.UserSubscriptionDoc
 import com.example.data.model.XpTransactionDoc
 import com.example.data.repository.DailyStudyMetric
 import com.example.ui.viewmodel.AiVideoViewModel
@@ -112,6 +117,7 @@ sealed interface LearnDestination {
     data object AssignmentsAndGoals : LearnDestination
     data object AiVideoStudio : LearnDestination
     data object BadgesAndXp : LearnDestination
+    data object AiLab : LearnDestination
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -179,14 +185,44 @@ fun LearnTabScreen(
     onSubmitAssignment: (AssignmentDefinitionDoc) -> Unit = {},
     onToggleBadgeFavorite: (String) -> Unit = {},
     onToggleBadgePin: (String) -> Unit = {},
-    onSetExamOrQuizActive: (Boolean) -> Unit = {}
+    onSetExamOrQuizActive: (Boolean) -> Unit = {},
+    subscription: UserSubscriptionDoc = UserSubscriptionDoc(),
+    aiConversations: List<AiConversationDoc> = emptyList(),
+    activeAiConversationId: String? = null,
+    activeAiMessages: List<AiChatMessageDoc> = emptyList(),
+    activeAiToolId: String = "QuestTutor",
+    onSelectAiTool: (String) -> Unit = {},
+    onSelectAiConversation: (String?) -> Unit = {},
+    onCreateAiConversation: (String, String) -> Unit = { _, _ -> },
+    onDeleteAiConversation: (String) -> Unit = {},
+    onSendAiLabMessage: (String) -> Unit = {},
+    onCancelAiRequest: () -> Unit = {},
+    onRetryAiRequest: () -> Unit = {},
+    onOpenPlanStore: () -> Unit = {}
 ) {
-    var destination by remember { mutableStateOf<LearnDestination>(LearnDestination.Home) }
+    val destinationStack = remember { mutableStateListOf<LearnDestination>(LearnDestination.Home) }
+    val destination = destinationStack.lastOrNull() ?: LearnDestination.Home
     var selectedClassId by remember(initialClassId) { mutableStateOf(initialClassId) }
+
+    fun pushDest(next: LearnDestination) {
+        if (next == LearnDestination.Home) {
+            while (destinationStack.size > 1) {
+                destinationStack.removeAt(destinationStack.lastIndex)
+            }
+        } else if (destinationStack.lastOrNull() != next) {
+            destinationStack.add(next)
+        }
+    }
+
+    fun popDest() {
+        if (destinationStack.size > 1) {
+            destinationStack.removeAt(destinationStack.lastIndex)
+        }
+    }
 
     LaunchedEffect(externalDestination) {
         if (externalDestination != null) {
-            destination = externalDestination
+            pushDest(externalDestination)
             onConsumeExternalDestination()
         }
     }
@@ -204,10 +240,20 @@ fun LearnTabScreen(
 
     var aiSheetContext by remember { mutableStateOf<Pair<String, String>?>(null) } // prompt to subjectName
 
-    if (destination != LearnDestination.Home) {
-        BackHandler {
-            destination = LearnDestination.Home
+    BackHandler(enabled = aiSheetContext != null) {
+        onResetAi()
+        aiSheetContext = null
+    }
+
+    BackHandler(enabled = aiSheetContext == null && destinationStack.size > 1) {
+        val top = destinationStack.lastOrNull()
+        if (top is LearnDestination.PracticeSession ||
+            top is LearnDestination.MockExamSession ||
+            top is LearnDestination.DailyChallenge
+        ) {
+            onClearAssessmentResult()
         }
+        popDest()
     }
 
     when (val dest = destination) {
@@ -276,7 +322,7 @@ fun LearnTabScreen(
                     StaggeredEntrance(index = 1, reducedMotion = reducedMotion) {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
-                                onClick = { destination = LearnDestination.QuestionBank },
+                                onClick = { pushDest(LearnDestination.QuestionBank) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("open_question_bank")
@@ -288,9 +334,11 @@ fun LearnTabScreen(
                             FilledTonalButton(
                                 onClick = {
                                     val qs = allQuestions.filter { it.classId == selectedClassId }.ifEmpty { allQuestions }.take(6)
-                                    destination = LearnDestination.PracticeSession(
-                                        StudyQuestStrings.t(uiLanguage, "Quick Practice", "কুইক প্র্যাকটিস"),
-                                        qs
+                                    pushDest(
+                                        LearnDestination.PracticeSession(
+                                            StudyQuestStrings.t(uiLanguage, "Quick Practice", "কুইক প্র্যাকটিস"),
+                                            qs
+                                        )
                                     )
                                 },
                                 modifier = Modifier
@@ -302,7 +350,7 @@ fun LearnTabScreen(
                                 Text(StudyQuestStrings.t(uiLanguage, "Quick Practice", "দ্রুত অনুশীলন"))
                             }
                             FilledTonalButton(
-                                onClick = { destination = LearnDestination.RevisionAndPlanner },
+                                onClick = { pushDest(LearnDestination.RevisionAndPlanner) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("open_revision_planner")
@@ -312,7 +360,7 @@ fun LearnTabScreen(
                                 Text(StudyQuestStrings.t(uiLanguage, "Revision & Planner", "রিভিশন ও প্ল্যানার"))
                             }
                             FilledTonalButton(
-                                onClick = { destination = LearnDestination.FlashcardsAndVault },
+                                onClick = { pushDest(LearnDestination.FlashcardsAndVault) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("learn_flashcards_vault")
@@ -322,7 +370,7 @@ fun LearnTabScreen(
                                 Text(StudyQuestStrings.t(uiLanguage, "Flashcards & Vault", "ফ্ল্যাশকার্ড ও সূত্র"))
                             }
                             FilledTonalButton(
-                                onClick = { destination = LearnDestination.PomodoroFocus },
+                                onClick = { pushDest(LearnDestination.PomodoroFocus) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("learn_pomodoro")
@@ -332,7 +380,7 @@ fun LearnTabScreen(
                                 Text(StudyQuestStrings.t(uiLanguage, "Pomodoro Focus", "পমোডোরো ফোকাস"))
                             }
                             FilledTonalButton(
-                                onClick = { destination = LearnDestination.DailyChallenge },
+                                onClick = { pushDest(LearnDestination.DailyChallenge) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("learn_daily_challenge")
@@ -342,7 +390,7 @@ fun LearnTabScreen(
                                 Text(StudyQuestStrings.t(uiLanguage, "Daily Streak", "দৈনিক চ্যালেঞ্জ"))
                             }
                             FilledTonalButton(
-                                onClick = { destination = LearnDestination.MasteryAnalytics },
+                                onClick = { pushDest(LearnDestination.MasteryAnalytics) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("learn_mastery_analytics")
@@ -352,6 +400,16 @@ fun LearnTabScreen(
                                 Text(StudyQuestStrings.t(uiLanguage, "Mastery Analytics", "দক্ষতা বিশ্লেষণ"))
                             }
                             OutlinedButton(
+                                onClick = { pushDest(LearnDestination.AiLab) },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("learn_ai_lab")
+                            ) {
+                                Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "StudyQuest AI Lab", "StudyQuest AI ল্যাব"))
+                            }
+                            OutlinedButton(
                                 onClick = {
                                     aiSheetContext = "" to StudyQuestStrings.t(uiLanguage, "General Study", "সাধারণ পড়াশোনা")
                                 },
@@ -359,10 +417,10 @@ fun LearnTabScreen(
                             ) {
                                 Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text(StudyQuestStrings.t(uiLanguage, "AI Tutor", "AI টিউটর"))
+                                Text(StudyQuestStrings.t(uiLanguage, "Quick Doubt", "দ্রুত সমাধান"))
                             }
                             FilledTonalButton(
-                                onClick = { destination = LearnDestination.AssignmentsAndGoals },
+                                onClick = { pushDest(LearnDestination.AssignmentsAndGoals) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("learn_assignments_goals")
@@ -372,17 +430,17 @@ fun LearnTabScreen(
                                 Text(StudyQuestStrings.t(uiLanguage, "Goals & Tasks", "লক্ষ্য ও কাজ"))
                             }
                             FilledTonalButton(
-                                onClick = { destination = LearnDestination.AiVideoStudio },
+                                onClick = { pushDest(LearnDestination.AiVideoStudio) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("learn_ai_video_studio")
                             ) {
                                 Icon(Icons.Filled.VideoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text(StudyQuestStrings.t(uiLanguage, "AI Storyboard", "AI ভিডিও স্টুডিও"))
+                                Text(StudyQuestStrings.t(uiLanguage, "Video Library", "ভিডিও লাইব্রেরি"))
                             }
                             FilledTonalButton(
-                                onClick = { destination = LearnDestination.BadgesAndXp },
+                                onClick = { pushDest(LearnDestination.BadgesAndXp) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("learn_badges_xp")
@@ -414,7 +472,7 @@ fun LearnTabScreen(
                             language = uiLanguage,
                             chapterCount = chCount,
                             masteryProgress = mastery,
-                            onClick = { destination = LearnDestination.SubjectDetail(subject) }
+                            onClick = { pushDest(LearnDestination.SubjectDetail(subject)) }
                         )
                     }
                 }
@@ -441,7 +499,7 @@ fun LearnTabScreen(
                         containerColor = if (profile.annualExamStatus == "failed") {
                             MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f)
                         } else {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f)
+                            MaterialTheme.colorScheme.surface
                         },
                         modifier = Modifier.testTag("promotion_exam_card")
                     ) {
@@ -468,7 +526,7 @@ fun LearnTabScreen(
                             Button(
                                 onClick = {
                                     val qs = allQuestions.filter { it.classId == profile.classId }.ifEmpty { allQuestions }.take(8)
-                                    destination = LearnDestination.MockExamSession(promoTemplate, qs)
+                                    pushDest(LearnDestination.MockExamSession(promoTemplate, qs))
                                 },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
@@ -521,7 +579,7 @@ fun LearnTabScreen(
                             Button(
                                 onClick = {
                                     val qs = allQuestions.filter { it.subjectId in tpl.subjectIds }.ifEmpty { allQuestions }.take(6)
-                                    destination = LearnDestination.MockExamSession(tpl, qs)
+                                    pushDest(LearnDestination.MockExamSession(tpl, qs))
                                 },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
@@ -549,7 +607,7 @@ fun LearnTabScreen(
             ) {
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { destination = LearnDestination.Home }) {
+                        IconButton(onClick = { popDest() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                         Text(
@@ -635,7 +693,7 @@ fun LearnTabScreen(
                                             )
                                         }
                                         FilledTonalButton(
-                                            onClick = { destination = LearnDestination.LessonDetail(lesson) },
+                                            onClick = { pushDest(LearnDestination.LessonDetail(lesson)) },
                                             modifier = Modifier.testTag("open_lesson_${lesson.id}")
                                         ) {
                                             Text(StudyQuestStrings.t(uiLanguage, "Study", "পড়ো"))
@@ -647,9 +705,11 @@ fun LearnTabScreen(
                                 Spacer(Modifier.height(6.dp))
                                 Button(
                                     onClick = {
-                                        destination = LearnDestination.PracticeSession(
-                                            StudyQuestStrings.t(uiLanguage, chapter.titleEn, chapter.titleBn),
-                                            chapterQuestions
+                                        pushDest(
+                                            LearnDestination.PracticeSession(
+                                                StudyQuestStrings.t(uiLanguage, chapter.titleEn, chapter.titleBn),
+                                                chapterQuestions
+                                            )
                                         )
                                     },
                                     modifier = Modifier.fillMaxWidth()
@@ -674,14 +734,16 @@ fun LearnTabScreen(
                 lesson = dest.lesson,
                 uiLanguage = uiLanguage,
                 isCompleted = cachedLessons.any { it.id == dest.lesson.id && it.completed },
-                onBack = { destination = LearnDestination.Home },
+                onBack = { popDest() },
                 onCompleteLesson = { onCompleteLesson(dest.lesson) },
                 onPracticeTopic = {
                     val topicQs = allQuestions.filter { it.chapterId == dest.lesson.chapterId }
                         .ifEmpty { allQuestions.filter { it.subjectId == dest.lesson.subjectId } }
-                    destination = LearnDestination.PracticeSession(
-                        StudyQuestStrings.t(uiLanguage, dest.lesson.titleEn, dest.lesson.titleBn),
-                        topicQs
+                    pushDest(
+                        LearnDestination.PracticeSession(
+                            StudyQuestStrings.t(uiLanguage, dest.lesson.titleEn, dest.lesson.titleBn),
+                            topicQs
+                        )
                     )
                 },
                 onAskAi = {
@@ -696,7 +758,7 @@ fun LearnTabScreen(
                 questionLanguage = questionLanguage,
                 allQuestions = allQuestions,
                 bookmarks = bookmarks,
-                onBack = { destination = LearnDestination.Home },
+                onBack = { popDest() },
                 onToggleBookmark = onToggleBookmark,
                 onAddRevision = onAddRevision,
                 onReportQuestion = onReportQuestion,
@@ -704,7 +766,7 @@ fun LearnTabScreen(
                     aiSheetContext = StudyQuestStrings.t(questionLanguage, q.promptEn, q.promptBn) to q.subjectId
                 },
                 onStartFilteredPractice = { title, qs ->
-                    destination = LearnDestination.PracticeSession(title, qs)
+                    pushDest(LearnDestination.PracticeSession(title, qs))
                 }
             )
         }
@@ -721,7 +783,7 @@ fun LearnTabScreen(
                 assessmentResult = lastAssessmentResult,
                 onBack = {
                     onClearAssessmentResult()
-                    destination = LearnDestination.Home
+                    popDest()
                 },
                 onStartExamTimer = { _, _ -> },
                 onToggleBookmark = onToggleBookmark,
@@ -748,7 +810,7 @@ fun LearnTabScreen(
                 assessmentResult = lastAssessmentResult,
                 onBack = {
                     onClearAssessmentResult()
-                    destination = LearnDestination.Home
+                    popDest()
                 },
                 onStartExamTimer = onStartExamTimer,
                 onToggleBookmark = onToggleBookmark,
@@ -777,7 +839,7 @@ fun LearnTabScreen(
                 revisions = revisions,
                 allQuestions = allQuestions,
                 studyPlans = studyPlans,
-                onBack = { destination = LearnDestination.Home },
+                onBack = { popDest() },
                 onReviewItem = onReviewRevision,
                 onCreatePlan = onCreateStudyPlan,
                 onTogglePlan = onToggleStudyPlan,
@@ -792,7 +854,7 @@ fun LearnTabScreen(
                 classId = selectedClassId,
                 allQuestions = allQuestions,
                 reducedMotion = reducedMotion,
-                onBack = { destination = LearnDestination.Home },
+                onBack = { popDest() },
                 onAddRevision = onAddRevision,
                 onCompleteFlashcardDeck = onCompleteFlashcardDeck
             )
@@ -804,13 +866,13 @@ fun LearnTabScreen(
                     uiLanguage = uiLanguage,
                     classId = selectedClassId,
                     focusVm = focusVm,
-                    onBack = { destination = LearnDestination.Home }
+                    onBack = { popDest() }
                 )
             } else {
                 PomodoroFocusScreen(
                     uiLanguage = uiLanguage,
                     classId = selectedClassId,
-                    onBack = { destination = LearnDestination.Home },
+                    onBack = { popDest() },
                     onCompleteFocusSession = onCompletePomodoro
                 )
             }
@@ -829,7 +891,7 @@ fun LearnTabScreen(
                 assessmentResult = lastAssessmentResult,
                 onBack = {
                     onClearAssessmentResult()
-                    destination = LearnDestination.Home
+                    popDest()
                 },
                 onToggleBookmark = onToggleBookmark,
                 onAddRevision = onAddRevision,
@@ -851,14 +913,16 @@ fun LearnTabScreen(
                 subjectAnalytics = subjectAnalytics,
                 weakTopics = weakTopics,
                 dailyStudySeries = dailyStudySeries,
-                onBack = { destination = LearnDestination.Home },
+                onBack = { popDest() },
                 onPracticeWeakTopic = { wt ->
                     val topicQs = allQuestions.filter { it.topicId == wt.topicId }
                         .ifEmpty { allQuestions.filter { it.subjectId == wt.subjectId } }
                         .ifEmpty { allQuestions.take(5) }
-                    destination = LearnDestination.PracticeSession(
-                        StudyQuestStrings.t(uiLanguage, wt.topicLabelEn, wt.topicLabelBn),
-                        topicQs
+                    pushDest(
+                        LearnDestination.PracticeSession(
+                            StudyQuestStrings.t(uiLanguage, wt.topicLabelEn, wt.topicLabelBn),
+                            topicQs
+                        )
                     )
                 }
             )
@@ -876,7 +940,7 @@ fun LearnTabScreen(
                 onClaimGoal = onClaimStudyGoal,
                 onDeleteGoal = onDeleteStudyGoal,
                 onSubmitAssignment = onSubmitAssignment,
-                onBack = { destination = LearnDestination.Home }
+                onBack = { popDest() }
             )
         }
 
@@ -885,15 +949,19 @@ fun LearnTabScreen(
                 AiVideoStudioScreen(
                     uiLanguage = uiLanguage,
                     classId = profile.classId,
+                    ownerName = profile.displayName,
+                    currentUserId = profile.userId,
+                    subscription = subscription,
                     aiVideoVm = aiVideoVm,
                     isOnline = isOnline,
                     externalVideoRendererConfigured = externalVideoRendererConfigured,
                     isGuestMode = isGuestMode,
+                    onOpenVideoUpgrade = onOpenPlanStore,
                     onRequestGoogleSignIn = onRequestGoogleSignIn,
-                    onBack = { destination = LearnDestination.Home }
+                    onBack = { popDest() }
                 )
             } else {
-                destination = LearnDestination.Home
+                LaunchedEffect(Unit) { popDest() }
             }
         }
 
@@ -906,18 +974,51 @@ fun LearnTabScreen(
                 isGuestMode = isGuestMode,
                 onToggleFavorite = onToggleBadgeFavorite,
                 onTogglePin = onToggleBadgePin,
-                onBack = { destination = LearnDestination.Home }
+                onBack = { popDest() }
+            )
+        }
+
+        LearnDestination.AiLab -> {
+            AILabScreen(
+                language = uiLanguage,
+                classId = selectedClassId,
+                subjectName = "General Study",
+                subscription = subscription,
+                activeToolId = activeAiToolId,
+                conversations = aiConversations,
+                activeConversationId = activeAiConversationId,
+                messages = activeAiMessages,
+                aiState = aiState,
+                isGuestMode = isGuestMode,
+                onSelectTool = onSelectAiTool,
+                onSelectConversation = onSelectAiConversation,
+                onCreateConversation = onCreateAiConversation,
+                onDeleteConversation = onDeleteAiConversation,
+                onSendMessage = onSendAiLabMessage,
+                onCancelRequest = onCancelAiRequest,
+                onRetryRequest = onRetryAiRequest,
+                onOpenPlanStore = onOpenPlanStore,
+                onRequestGoogleSignIn = onRequestGoogleSignIn,
+                onBack = { popDest() }
             )
         }
     }
 
     aiSheetContext?.let { (promptContext, subjectId) ->
+        val activePlan = QuestPlanCatalog.planById(subscription.tier)
+        val aiLimit = subscription.monthlyAiLimit.toInt().coerceAtLeast(activePlan.monthlyAiCredits)
+        val aiLeft = (aiLimit - subscription.aiCreditsUsed.toInt()).coerceAtLeast(0)
         AiDoubtSolverSheet(
             initialContext = promptContext,
             classId = selectedClassId,
             subjectName = subjectId,
             language = uiLanguage,
             aiState = aiState,
+            remainingAiCredits = if (isGuestMode) null else aiLeft,
+            onOpenAiLab = {
+                aiSheetContext = null
+                pushDest(LearnDestination.AiLab)
+            },
             onSubmitDoubt = { studentQ ->
                 onAskAi(promptContext, studentQ, selectedClassId, subjectId)
             },

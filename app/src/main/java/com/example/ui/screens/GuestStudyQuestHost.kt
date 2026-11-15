@@ -36,9 +36,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -122,9 +124,24 @@ fun GuestStudyQuestHost(
     val aiState by learnVm.aiState.collectAsStateWithLifecycle()
     val learnBanner by learnVm.statusBanner.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabBackStack = remember { mutableStateListOf(0) }
+    val selectedTab = tabBackStack.lastOrNull() ?: 0
+    fun navigateToTab(idx: Int) {
+        if (tabBackStack.lastOrNull() != idx) {
+            tabBackStack.add(idx)
+        }
+    }
     var pendingLearnDest by remember { mutableStateOf<LearnDestination?>(null) }
     var showGlobalAiSheet by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = showGlobalAiSheet) {
+        learnVm.resetAiDoubtState()
+        showGlobalAiSheet = false
+    }
+
+    BackHandler(enabled = !showGlobalAiSheet && tabBackStack.size > 1) {
+        tabBackStack.removeAt(tabBackStack.lastIndex)
+    }
 
     val activeBanner = authError ?: guestBanner ?: learnBanner
     val lang = prefs.uiLanguage
@@ -144,7 +161,7 @@ fun GuestStudyQuestHost(
             descriptionBn = "উত্তীর্ণ হতে ৬০%+ নম্বর অর্জন করুন।"
         )
         pendingLearnDest = LearnDestination.MockExamSession(tpl, qs)
-        selectedTab = 1
+        navigateToTab(1)
     }
 
     Scaffold(
@@ -164,7 +181,7 @@ fun GuestStudyQuestHost(
                         selected = selectedTab == idx,
                         onClick = {
                             AudioFeedbackHelper.triggerClick(view, prefs.soundEnabled, prefs.reducedMotion)
-                            selectedTab = idx
+                            navigateToTab(idx)
                         },
                         icon = { Icon(if (selectedTab == idx) icons.first else icons.second, contentDescription = label) },
                         label = { Text(label, maxLines = 1) },
@@ -243,51 +260,55 @@ fun GuestStudyQuestHost(
                                         StudyQuestStrings.t(lang, "Quick Practice", "কুইক প্র্যাকটিস"),
                                         qs
                                     )
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
-                                onOpenMockExam = { selectedTab = 1 },
+                                onOpenMockExam = { navigateToTab(1) },
                                 onOpenRevision = {
                                     pendingLearnDest = LearnDestination.RevisionAndPlanner
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
                                 onOpenAiDoubtSolver = { showGlobalAiSheet = true },
-                                onOpenMessages = { selectedTab = 3 },
+                                onOpenMessages = { navigateToTab(3) },
                                 subjectAnalytics = subjectAnalytics,
                                 dailyStudySeries = dailyStudySeries,
                                 dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(profile),
                                 onOpenSubjectCategory = { subj ->
                                     pendingLearnDest = LearnDestination.SubjectDetail(subj)
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
                                 onOpenFlashcardsVault = {
                                     pendingLearnDest = LearnDestination.FlashcardsAndVault
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
                                 onOpenPomodoro = {
                                     pendingLearnDest = LearnDestination.PomodoroFocus
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
                                 onOpenDailyChallenge = {
                                     pendingLearnDest = LearnDestination.DailyChallenge
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
                                 onOpenMasteryAnalytics = {
                                     pendingLearnDest = LearnDestination.MasteryAnalytics
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
                                 onOpenAssignmentsAndGoals = {
                                     pendingLearnDest = LearnDestination.AssignmentsAndGoals
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
                                 onOpenAiVideoStudio = {
                                     pendingLearnDest = LearnDestination.AiVideoStudio
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
                                 onOpenBadgesAndXp = {
                                     pendingLearnDest = LearnDestination.BadgesAndXp
-                                    selectedTab = 1
+                                    navigateToTab(1)
                                 },
                                 onRetakePromotionExam = { openPromotionExam() },
+                                onOpenAiLab = {
+                                    pendingLearnDest = LearnDestination.AiLab
+                                    navigateToTab(1)
+                                },
                                 isGuestMode = true,
                                 onRequestGoogleSignIn = onRequestGoogleSignIn
                             )
@@ -366,7 +387,13 @@ fun GuestStudyQuestHost(
                                 onCreateStudyGoal = { t, gt, pt, s, tv, d -> guestVm.createStudyGoal(t, gt, pt, s, tv, d) },
                                 onClaimStudyGoal = { guestVm.claimStudyGoal(it) },
                                 onDeleteStudyGoal = { guestVm.deleteStudyGoal(it) },
-                                onSetExamOrQuizActive = { learnVm.setExamOrQuizActive(it) }
+                                onSetExamOrQuizActive = { learnVm.setExamOrQuizActive(it) },
+                                onSendAiLabMessage = { msg ->
+                                    learnVm.sendStudyQuestMessage(msg, profile.classId, "General Study", lang)
+                                },
+                                onCancelAiRequest = { learnVm.cancelAIRequest() },
+                                onRetryAiRequest = { learnVm.retryFailedAIRequest() },
+                                onOpenPlanStore = onRequestGoogleSignIn
                             )
 
                             2 -> CompeteTabScreen(
@@ -494,7 +521,11 @@ fun GuestStudyQuestHost(
                                 dailyStudySeries = dailyStudySeries,
                                 onUpdateThemeMode = { guestVm.updateThemeMode(it) },
                                 onUpdateNotificationCategory = { c, e -> guestVm.updateNotificationCategory(c, e) },
-                                onRetakePromotionExam = { openPromotionExam() }
+                                onRetakePromotionExam = { openPromotionExam() },
+                                onOpenAiLab = {
+                                    pendingLearnDest = LearnDestination.AiLab
+                                    navigateToTab(1)
+                                }
                             )
                         }
                     }
@@ -520,6 +551,11 @@ fun GuestStudyQuestHost(
             subjectName = "General Study",
             language = lang,
             aiState = aiState,
+            onOpenAiLab = {
+                showGlobalAiSheet = false
+                pendingLearnDest = LearnDestination.AiLab
+                navigateToTab(1)
+            },
             onSubmitDoubt = { q ->
                 learnVm.askAiDoubtSolver("", q, profile.classId, "General Study", lang)
             },

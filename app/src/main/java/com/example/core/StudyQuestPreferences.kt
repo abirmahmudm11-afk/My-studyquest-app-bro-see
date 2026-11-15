@@ -34,15 +34,15 @@ enum class AppLanguage(val code: String, val labelEn: String, val labelBn: Strin
 }
 
 enum class ThemeMode(val code: String, val labelEn: String, val labelBn: String) {
-    SYSTEM("system", "System Default", "সিস্টেম থিম"),
-    LIGHT("light", "Tinted Light", "হালকা থিম"),
-    DARK("dark", "Midnight Dark", "ডার্ক থিম");
+    LIGHT("light", "Crisp White (Default)", "পরিষ্কার সাদা (ডিফল্ট)"),
+    DARK("dark", "Midnight Dark", "ডার্ক থিম"),
+    SYSTEM("system", "System Default", "সিস্টেম থিম");
 
     companion object {
         fun fromCode(code: String?): ThemeMode = when (code) {
-            "light" -> LIGHT
             "dark" -> DARK
-            else -> SYSTEM
+            "system" -> SYSTEM
+            else -> LIGHT
         }
     }
 }
@@ -68,9 +68,10 @@ data class PersistedFocusTimerState(
 
 data class LocalUserPreferences(
     val hasChosenInitialLanguage: Boolean = false,
+    val welcomePlanCompleted: Boolean = false,
     val uiLanguage: AppLanguage = AppLanguage.BANGLA,
     val questionLanguage: AppLanguage = AppLanguage.BANGLA,
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val themeMode: ThemeMode = ThemeMode.LIGHT,
     val darkMode: Boolean = false,
     val reducedMotion: Boolean = false,
     val soundEnabled: Boolean = true,
@@ -112,6 +113,7 @@ class StudyQuestPreferences(private val context: Context) {
 
     private object Keys {
         val HAS_CHOSEN_LANG = booleanPreferencesKey("has_chosen_initial_language")
+        val WELCOME_PLAN_COMPLETED = booleanPreferencesKey("welcome_plan_completed")
         val UI_LANGUAGE = stringPreferencesKey("ui_language")
         val QUESTION_LANGUAGE = stringPreferencesKey("question_language")
         val THEME_MODE = stringPreferencesKey("theme_mode")
@@ -175,10 +177,11 @@ class StudyQuestPreferences(private val context: Context) {
         val resolvedThemeMode = when {
             rawThemeMode != null -> ThemeMode.fromCode(rawThemeMode)
             legacyDark == true -> ThemeMode.DARK
-            else -> ThemeMode.SYSTEM
+            else -> ThemeMode.LIGHT
         }
         LocalUserPreferences(
             hasChosenInitialLanguage = prefs[Keys.HAS_CHOSEN_LANG] ?: false,
+            welcomePlanCompleted = prefs[Keys.WELCOME_PLAN_COMPLETED] ?: false,
             uiLanguage = AppLanguage.fromCode(prefs[Keys.UI_LANGUAGE] ?: "bn"),
             questionLanguage = AppLanguage.fromCode(prefs[Keys.QUESTION_LANGUAGE] ?: "bn"),
             themeMode = resolvedThemeMode,
@@ -242,6 +245,18 @@ class StudyQuestPreferences(private val context: Context) {
             prefs[Keys.HAS_CHOSEN_LANG] = true
             prefs[Keys.UI_LANGUAGE] = language.code
             prefs[Keys.QUESTION_LANGUAGE] = language.code
+        }
+    }
+
+    suspend fun resetInitialLanguageSelection() {
+        context.studyQuestDataStore.edit { prefs ->
+            prefs[Keys.HAS_CHOSEN_LANG] = false
+        }
+    }
+
+    suspend fun setWelcomePlanCompleted(completed: Boolean) {
+        context.studyQuestDataStore.edit { prefs ->
+            prefs[Keys.WELCOME_PLAN_COMPLETED] = completed
         }
     }
 

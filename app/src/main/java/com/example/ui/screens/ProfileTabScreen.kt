@@ -68,14 +68,19 @@ import com.example.core.StudyQuestStrings
 import com.example.core.ThemeMode
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.curriculum.GamificationCatalog
+import com.example.data.model.AiCreditLedgerDoc
 import com.example.data.model.LearningRecordDoc
 import com.example.data.model.PublicProfile
+import com.example.data.model.PurchaseRecordDoc
+import com.example.data.model.QuestPlanCatalog
 import com.example.data.model.UserBadgeDoc
 import com.example.data.model.UserSubscriptionDoc
+import com.example.data.model.VideoCreditLedgerDoc
 import com.example.data.model.XpTransactionDoc
 import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.WeakTopicStat
+import com.example.core.BillingAndAdProvider
 import com.example.ui.components.AnimatedCircularMasteryRing
 import com.example.ui.components.AvatarBadgeView
 import com.example.ui.components.GuestUpgradeBannerCard
@@ -85,11 +90,9 @@ import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
 import com.example.ui.components.StudyTimeAndXpBarChart
-import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.AmberGold
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.LocalStudyQuestColors
-import com.example.ui.theme.TealSecondary
-import com.example.ui.theme.VioletTertiary
 import com.example.ui.viewmodel.AdminStudioViewModel
 import com.google.firebase.FirebaseApp
 
@@ -100,6 +103,7 @@ sealed interface ProfileDestination {
     data object CosmeticsShop : ProfileDestination
     data object SettingsAndSafety : ProfileDestination
     data object AdminStudio : ProfileDestination
+    data object PlanStore : ProfileDestination
 }
 
 @Composable
@@ -142,7 +146,14 @@ fun ProfileTabScreen(
     onToggleBadgeFavorite: (String) -> Unit = {},
     onToggleBadgePin: (String) -> Unit = {},
     onTriggerBillingUpgrade: () -> Unit = {},
-    onRetakePromotionExam: () -> Unit = {}
+    onRetakePromotionExam: () -> Unit = {},
+    aiCreditLedger: List<AiCreditLedgerDoc> = emptyList(),
+    videoCreditLedger: List<VideoCreditLedgerDoc> = emptyList(),
+    purchaseHistory: List<PurchaseRecordDoc> = emptyList(),
+    onSelectPlan: (String) -> Unit = {},
+    onPurchaseVideoBoost: () -> Unit = {},
+    onSwitchToFreePlan: () -> Unit = {},
+    onOpenAiLab: () -> Unit = {}
 ) {
     var destination by remember { mutableStateOf<ProfileDestination>(ProfileDestination.Home) }
     val lang = preferences.uiLanguage
@@ -207,8 +218,8 @@ fun ProfileTabScreen(
                                     StatBadgePill(
                                         icon = Icons.Filled.MonetizationOn,
                                         label = "${StudyQuestStrings.formatDigits(profile.coins, lang)} Coins",
-                                        tint = VioletTertiary,
-                                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+                                        tint = AmberGold,
+                                        containerColor = MaterialTheme.colorScheme.surface
                                     )
                                 }
                                 AnimatedCircularMasteryRing(
@@ -235,7 +246,7 @@ fun ProfileTabScreen(
                         modifier = Modifier.testTag("profile_academic_lock_card")
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(Icons.Filled.Lock, contentDescription = null, tint = CobaltPrimary)
+                            Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = StudyQuestStrings.t(
@@ -269,7 +280,7 @@ fun ProfileTabScreen(
                 item {
                     StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
                         StudyQuestCard(
-                            containerColor = semantic.successContainer.copy(alpha = 0.65f),
+                            containerColor = MaterialTheme.colorScheme.surface,
                             onClick = { destination = ProfileDestination.BadgesAndXp },
                             modifier = Modifier.testTag("profile_open_badges_xp")
                         ) {
@@ -298,49 +309,60 @@ fun ProfileTabScreen(
                                     icon = Icons.Filled.WorkspacePremium,
                                     label = "${profile.totalXp} XP",
                                     tint = semantic.success,
-                                    containerColor = MaterialTheme.colorScheme.surface
+                                    containerColor = semantic.successContainer
                                 )
                             }
                         }
                     }
                 }
 
-                // Free vs Premium Membership Card (Play Billing Hook)
+                // My Plan & AI/Video Credits Card (No Storage Plans)
                 if (!isGuestMode) {
                     item {
+                        val normalizedSub = remember(subscription) { BillingAndAdProvider.normalizeSubscription(subscription) }
+                        val activePlan = remember(normalizedSub.tier) { QuestPlanCatalog.planById(normalizedSub.tier) }
+                        val aiLeft = (normalizedSub.monthlyAiLimit.toInt().coerceAtLeast(activePlan.monthlyAiCredits) - normalizedSub.aiCreditsUsed.toInt()).coerceAtLeast(0)
+                        val videoLeft = ((normalizedSub.monthlyVideoLimit.toInt().coerceAtLeast(activePlan.monthlyVideoCredits) + normalizedSub.bonusVideoCredits.toInt()) - normalizedSub.videoCreditsUsed.toInt()).coerceAtLeast(0)
                         StudyQuestCard(modifier = Modifier.testTag("profile_subscription_card")) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = StudyQuestStrings.t(
-                                            lang,
-                                            if (subscription.tier == "premium") "StudyQuest Plus (Active)" else "Free Scholar Plan",
-                                            if (subscription.tier == "premium") "StudyQuest প্লাস (সক্রিয়)" else "ফ্রি স্টাডি প্ল্যান"
-                                        ),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = StudyQuestStrings.t(
-                                            lang,
-                                            if (billingConfigured) "Google Play Billing ready • Zero ads during study & exams"
-                                            else "Play Billing unconfigured in build • 100% study features unlocked",
-                                            "সব পড়াশোনা, ফোকাস ও কুইজ সম্পূর্ণ আনলক"
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                if (subscription.tier != "premium") {
-                                    FilledTonalButton(
-                                        onClick = onTriggerBillingUpgrade,
-                                        modifier = Modifier.testTag("upgrade_premium_btn")
-                                    ) {
-                                        Text(StudyQuestStrings.t(lang, "Upgrade", "আপগ্রেড"))
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = StudyQuestStrings.t(
+                                                lang,
+                                                "${activePlan.titleEn} (${QuestPlanCatalog.formatPriceBdt(activePlan.priceBdtMonthly, lang)})",
+                                                "${activePlan.titleBn} (${QuestPlanCatalog.formatPriceBdt(activePlan.priceBdtMonthly, lang)})"
+                                            ),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = StudyQuestStrings.t(
+                                                lang,
+                                                "$aiLeft AI credits • $videoLeft Video credits remaining",
+                                                "বাকি: ${StudyQuestStrings.formatDigits(aiLeft, lang)} AI ও ${StudyQuestStrings.formatDigits(videoLeft, lang)} ভিডিও ক্রেডিট"
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        OutlinedButton(
+                                            onClick = onOpenAiLab,
+                                            modifier = Modifier.testTag("profile_open_ai_lab_btn")
+                                        ) {
+                                            Text(StudyQuestStrings.t(lang, "AI Lab", "AI ল্যাব"))
+                                        }
+                                        Button(
+                                            onClick = { destination = ProfileDestination.PlanStore },
+                                            modifier = Modifier.testTag("upgrade_premium_btn")
+                                        ) {
+                                            Text(StudyQuestStrings.t(lang, "Plans", "প্ল্যান"))
+                                        }
                                     }
                                 }
                             }
@@ -496,6 +518,25 @@ fun ProfileTabScreen(
                 onBack = { destination = ProfileDestination.Home }
             )
         }
+
+        ProfileDestination.PlanStore -> {
+            SubscriptionSelectionScreen(
+                language = lang,
+                subscription = subscription,
+                billingConfigured = billingConfigured,
+                aiCreditLedger = aiCreditLedger,
+                videoCreditLedger = videoCreditLedger,
+                purchaseHistory = purchaseHistory,
+                onSelectPlan = onSelectPlan,
+                onPurchaseVideoBoost = onPurchaseVideoBoost,
+                onSwitchToFree = onSwitchToFreePlan,
+                onOpenAiLab = {
+                    destination = ProfileDestination.Home
+                    onOpenAiLab()
+                },
+                onBack = { destination = ProfileDestination.Home }
+            )
+        }
     }
 }
 
@@ -509,7 +550,7 @@ private fun ProfileNavTile(
 ) {
     StudyQuestCard(onClick = onClick, modifier = Modifier.testTag(testTag)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(icon, contentDescription = null, tint = CobaltPrimary, modifier = Modifier.size(28.dp))
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -560,7 +601,7 @@ private fun AnalyticsAndAchievementsScreen(
                 StudyQuestCard {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(StudyQuestStrings.t(lang, subj?.titleEn ?: item.subjectId, subj?.titleBn ?: item.subjectId), fontWeight = FontWeight.Bold)
-                        Text("Lv.${item.subjectLevel} • ${item.totalXp} XP", color = CobaltPrimary, fontWeight = FontWeight.Bold)
+                        Text("Lv.${item.subjectLevel} • ${item.totalXp} XP", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(6.dp))
                     LinearProgressIndicator(
@@ -604,15 +645,15 @@ private fun AnalyticsAndAchievementsScreen(
                 "ach_first_battle" -> matchCount >= 1
                 else -> false
             }
+            val semanticColors = LocalStudyQuestColors.current
             StudyQuestCard(
-                containerColor = if (unlocked) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
-                else MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(
                         imageVector = if (unlocked) Icons.Filled.CheckCircle else Icons.Filled.EmojiEvents,
                         contentDescription = null,
-                        tint = if (unlocked) TealSecondary else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (unlocked) semanticColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(StudyQuestStrings.t(lang, ach.titleEn, ach.titleBn), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -622,7 +663,7 @@ private fun AnalyticsAndAchievementsScreen(
                         text = if (unlocked) StudyQuestStrings.t(lang, "Unlocked", "অর্জিত") else "+${ach.xpBonus} XP",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (unlocked) TealSecondary else CobaltPrimary
+                        color = if (unlocked) semanticColors.success else MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -653,8 +694,8 @@ private fun CosmeticsShopScreen(
                 StatBadgePill(
                     icon = Icons.Filled.MonetizationOn,
                     label = "${profile.coins}",
-                    tint = VioletTertiary,
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    tint = AmberGold,
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
         }
@@ -821,7 +862,7 @@ private fun PreferencesAndSafetyScreen(
         item {
             StudyQuestCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Filled.Security, contentDescription = null, tint = CobaltPrimary)
+                    Icon(Icons.Filled.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(StudyQuestStrings.t(lang, "Student Safety & Data Controls", "শিক্ষার্থী নিরাপত্তা ও ডেটা নিয়ন্ত্রণ"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(6.dp))

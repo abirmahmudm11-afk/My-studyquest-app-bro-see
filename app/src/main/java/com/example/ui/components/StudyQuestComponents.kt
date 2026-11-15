@@ -90,6 +90,7 @@ import com.example.ui.theme.VioletTertiary
 fun StudyQuestCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
+    border: BorderStroke? = null,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -102,10 +103,10 @@ fun StudyQuestCard(
     }
     Card(
         modifier = cardModifier,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = border ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -122,14 +123,14 @@ fun SyncStatusPill(
     modifier: Modifier = Modifier
 ) {
     val bgColor = if (isOnline) {
-        MaterialTheme.colorScheme.secondaryContainer
+        MaterialTheme.colorScheme.primaryContainer
     } else {
-        MaterialTheme.colorScheme.tertiaryContainer
+        MaterialTheme.colorScheme.surfaceVariant
     }
     val fgColor = if (isOnline) {
-        MaterialTheme.colorScheme.onSecondaryContainer
+        MaterialTheme.colorScheme.onPrimaryContainer
     } else {
-        MaterialTheme.colorScheme.onTertiaryContainer
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
         modifier = modifier,
@@ -217,77 +218,60 @@ fun SubjectCard(
             .minimumInteractiveComponentSize()
             .clickable(interactionSource = interactionSource, indication = androidx.compose.material3.ripple(), onClick = onClick)
             .testTag("subject_card_${subject.id}"),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.28f))
+        tonalElevation = 0.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Canvas(modifier = Modifier.matchParentSize()) {
-                drawCircle(
-                    color = accent.copy(alpha = 0.08f),
-                    radius = size.height * 0.65f,
-                    center = Offset(size.width * 0.94f, size.height * 0.22f)
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Text(
+                        text = subject.code,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                Text(
+                    text = StudyQuestStrings.t(
+                        language,
+                        "$chapterCount ch",
+                        "${StudyQuestStrings.formatDigits(chapterCount, language)} অধ্যায়"
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Column {
-                Box(
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = StudyQuestStrings.t(language, subject.titleEn, subject.titleBn),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (masteryProgress > 0f) {
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { masteryProgress.coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
-                        .background(
-                            Brush.horizontalGradient(listOf(accent, accent.copy(alpha = 0.55f)))
-                        )
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(999.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = accent.copy(alpha = 0.14f)
-                        ) {
-                            Text(
-                                text = subject.code,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = accent,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                        Text(
-                            text = StudyQuestStrings.t(
-                                language,
-                                "$chapterCount ch",
-                                "${StudyQuestStrings.formatDigits(chapterCount, language)} অধ্যায়"
-                            ),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = StudyQuestStrings.t(language, subject.titleEn, subject.titleBn),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (masteryProgress > 0f) {
-                        Spacer(Modifier.height(8.dp))
-                        LinearProgressIndicator(
-                            progress = { masteryProgress.coerceIn(0f, 1f) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(999.dp)),
-                            color = accent,
-                            trackColor = accent.copy(alpha = 0.15f)
-                        )
-                    }
-                }
+            } else {
+                Spacer(Modifier.height(4.dp))
             }
         }
     }

@@ -17,15 +17,18 @@ import com.example.core.StudyActivityMonitor
 import com.example.core.StudyQuestPreferences
 import com.example.core.ThemeMode
 import com.example.core.unwrapFirestoreMessage
+import com.example.data.model.AiCreditLedgerDoc
 import com.example.data.model.AssignmentDefinitionDoc
 import com.example.data.model.AssignmentSubmissionDoc
 import com.example.data.model.PublicProfile
+import com.example.data.model.PurchaseRecordDoc
 import com.example.data.model.StudyGoalDoc
 import com.example.data.model.SystemSettingsDoc
 import com.example.data.model.UserBadgeDoc
 import com.example.data.model.UserNotificationDoc
 import com.example.data.model.UserQuestDoc
 import com.example.data.model.UserSubscriptionDoc
+import com.example.data.model.VideoCreditLedgerDoc
 import com.example.data.model.XpTransactionDoc
 import com.example.data.repository.AdminStudioRepository
 import com.example.data.repository.AuthAndProfileRepository
@@ -86,9 +89,21 @@ class PreAuthViewModel(
     private val _isSigningIn = MutableStateFlow(false)
     val isSigningIn: StateFlow<Boolean> = _isSigningIn.asStateFlow()
 
+    private val _canCancelSignIn = MutableStateFlow(false)
+    val canCancelSignIn: StateFlow<Boolean> = _canCancelSignIn.asStateFlow()
+
+    private var cancelTimerJob: Job? = null
+
     fun selectInitialLanguage(lang: AppLanguage) {
         viewModelScope.launch {
             preferences.setInitialLanguage(lang)
+        }
+    }
+
+    fun returnToLanguagePicker() {
+        cancelSignIn(showMessage = false)
+        viewModelScope.launch {
+            preferences.resetInitialLanguageSelection()
         }
     }
 
@@ -144,11 +159,40 @@ class PreAuthViewModel(
 
     fun setSigningIn(loading: Boolean) {
         _isSigningIn.value = loading
+        cancelTimerJob?.cancel()
+        if (loading) {
+            _authMessage.value = null
+            _canCancelSignIn.value = false
+            cancelTimerJob = viewModelScope.launch {
+                delay(CANCEL_REVEAL_DELAY_MS)
+                if (_isSigningIn.value) {
+                    _canCancelSignIn.value = true
+                }
+            }
+        } else {
+            _canCancelSignIn.value = false
+        }
     }
 
     fun setAuthError(msg: String?) {
+        cancelTimerJob?.cancel()
+        _canCancelSignIn.value = false
         _authMessage.value = msg
         _isSigningIn.value = false
+    }
+
+    fun cancelSignIn(showMessage: Boolean = true) {
+        signInJob?.cancel()
+        signInJob = null
+        cancelTimerJob?.cancel()
+        cancelTimerJob = null
+        _isSigningIn.value = false
+        _canCancelSignIn.value = false
+        _authMessage.value = if (showMessage) {
+            "Sign-in cancelled. Check your connection or tap Continue with Google when ready."
+        } else {
+            null
+        }
     }
 
     fun signInWithGoogleIdToken(
@@ -156,8 +200,7 @@ class PreAuthViewModel(
         onSuccess: () -> Unit = {}
     ) {
         if (idToken.isBlank()) {
-            _isSigningIn.value = false
-            _authMessage.value = "Google Sign-In did not return a valid ID token. Please try again."
+            setAuthError("Google Sign-In did not return a valid ID token. Please try again.")
             return
         }
         if (signInJob?.isActive == true) {
@@ -165,38 +208,38 @@ class PreAuthViewModel(
             return
         }
         signInJob = viewModelScope.launch {
-            _isSigningIn.value = true
-            _authMessage.value = null
+            setSigningIn(true)
             try {
                 Log.d(TAG, "Exchanging Google ID token with Firebase Auth")
                 val credential = GoogleAuthProvider.getCredential(idToken, null)
-                withTimeout(25_000L) {
+                withTimeout(FIREBASE_AUTH_TIMEOUT_MS) {
                     Firebase.auth.signInWithCredential(credential).await()
                 }
                 Log.d(TAG, "Firebase signInWithCredential succeeded for uid=${Firebase.auth.currentUser?.uid}")
-                _isSigningIn.value = false
+                setSigningIn(false)
                 onSuccess()
             } catch (e: TimeoutCancellationException) {
                 Log.e(TAG, "Firebase Google signIn timed out", e)
-                _isSigningIn.value = false
-                _authMessage.value = "Google Sign-In timed out while contacting Firebase. Please check your internet connection and try again."
+                setAuthError("Google Sign-In timed out while contacting Firebase. Please check your internet connection and try again.")
             } catch (e: CancellationException) {
+                cancelTimerJob?.cancel()
+                _canCancelSignIn.value = false
                 _isSigningIn.value = false
                 throw e
             } catch (e: FirebaseAuthException) {
                 Log.e(TAG, "FirebaseAuthException during Google signIn [${e.errorCode}]", e)
-                _isSigningIn.value = false
-                _authMessage.value = "Sign-in failed [${e.errorCode}]: ${e.localizedMessage ?: "Firebase authentication rejected the credential."}"
+                setAuthError("Sign-in failed [${e.errorCode}]: ${e.localizedMessage ?: "Firebase authentication rejected the credential."}")
             } catch (e: Exception) {
                 Log.e(TAG, "Firebase Google signIn failed", e)
-                _isSigningIn.value = false
-                _authMessage.value = e.localizedMessage ?: "Google Sign-In failed. Please try again."
+                setAuthError(e.localizedMessage ?: "Google Sign-In failed. Please try again.")
             }
         }
     }
 
     companion object {
         private const val TAG = "PreAuthVM"
+        private const val CANCEL_REVEAL_DELAY_MS = 6_000L
+        private const val FIREBASE_AUTH_TIMEOUT_MS = 45_000L
     }
 }
 
@@ -321,16 +364,32 @@ class MainSessionViewModel(
         .catch { emit(UserSubscriptionDoc(userId = currentUser.uid)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), UserSubscriptionDoc(userId = currentUser.uid))
 
+    val aiCreditLedger: StateFlow<List<AiCreditLedgerDoc>> = (billingProvider?.observeAiCreditLedger(currentUser.uid)
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val videoCreditLedger: StateFlow<List<VideoCreditLedgerDoc>> = (billingProvider?.observeVideoCreditLedger(currentUser.uid)
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val purchaseHistory: StateFlow<List<PurchaseRecordDoc>> = (billingProvider?.observePurchaseHistory(currentUser.uid)
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
     val adPlacementState: StateFlow<AdBannerPlacementState> = combine(
         subscription,
         systemSettings,
         StudyActivityMonitor.isFocusActive,
-        StudyActivityMonitor.isExamOrQuizActive
-    ) { sub, settings, focusActive, examActive ->
-        billingProvider?.evaluateAdPlacement(sub, settings, focusActive, examActive)
+        StudyActivityMonitor.isExamOrQuizActive,
+        StudyActivityMonitor.isVideoActive
+    ) { sub, settings, focusActive, examActive, videoActive ->
+        billingProvider?.evaluateAdPlacement(sub, settings, focusActive, examActive, videoActive)
             ?: AdBannerPlacementState(
                 shouldDisplayAdSlot = false,
-                isSuppressedForStudyOrExam = focusActive || examActive,
+                isSuppressedForStudyOrExam = focusActive || examActive || videoActive,
                 adMobConfigured = settings.adMobConfigured,
                 tier = sub.tier
             )
@@ -628,6 +687,49 @@ class MainSessionViewModel(
         _bannerMessage.value = when (outcome) {
             is BillingActionResult.Unconfigured -> if (lang == AppLanguage.BANGLA) outcome.reasonBn else outcome.reasonEn
             is BillingActionResult.ConfiguredReady -> if (lang == AppLanguage.BANGLA) outcome.messageBn else outcome.messageEn
+        }
+    }
+
+    fun requestPlanUpgrade(planId: String) {
+        val provider = billingProvider ?: return
+        viewModelScope.launch {
+            val outcome = provider.requestPlanUpgrade(currentUser.uid, planId, systemSettings.value)
+            val lang = localPreferences.value.uiLanguage
+            _bannerMessage.value = when (outcome) {
+                is BillingActionResult.Unconfigured -> if (lang == AppLanguage.BANGLA) outcome.reasonBn else outcome.reasonEn
+                is BillingActionResult.ConfiguredReady -> if (lang == AppLanguage.BANGLA) outcome.messageBn else outcome.messageEn
+            }
+        }
+    }
+
+    fun purchaseVideoBoost() {
+        val provider = billingProvider ?: return
+        viewModelScope.launch {
+            val outcome = provider.purchaseVideoBoost(currentUser.uid, systemSettings.value)
+            val lang = localPreferences.value.uiLanguage
+            _bannerMessage.value = when (outcome) {
+                is BillingActionResult.Unconfigured -> if (lang == AppLanguage.BANGLA) outcome.reasonBn else outcome.reasonEn
+                is BillingActionResult.ConfiguredReady -> if (lang == AppLanguage.BANGLA) outcome.messageBn else outcome.messageEn
+            }
+        }
+    }
+
+    fun switchToFreePlan() {
+        val provider = billingProvider ?: return
+        viewModelScope.launch {
+            provider.applyFreePlanFallback(currentUser.uid)
+            val lang = localPreferences.value.uiLanguage
+            _bannerMessage.value = if (lang == AppLanguage.BANGLA) {
+                "ফ্রি StudyQuest (৳০/মাস) চালু হয়েছে — প্রতি মাসে ২০টি AI ও ১টি ভিডিও ক্রেডিট।"
+            } else {
+                "Free StudyQuest (৳0/mo) active — 20 AI & 1 animated video credit every month."
+            }
+        }
+    }
+
+    fun markWelcomePlanCompleted() {
+        viewModelScope.launch {
+            preferences.setWelcomePlanCompleted(true)
         }
     }
 

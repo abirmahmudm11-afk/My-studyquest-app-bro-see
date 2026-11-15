@@ -163,6 +163,10 @@ fun CompeteTabScreen(
     var joinCodeInput by remember { mutableStateOf("") }
     var showChallengeDialog by remember { mutableStateOf(false) }
 
+    BackHandler(enabled = !showChallengeDialog && selectedTab != 0) {
+        selectedTab = 0
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = selectedTab) {
             Tab(
