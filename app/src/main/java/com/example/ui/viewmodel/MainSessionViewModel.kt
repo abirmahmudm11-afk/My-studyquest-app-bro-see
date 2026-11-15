@@ -7,16 +7,29 @@ import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.core.AdBannerPlacementState
 import com.example.core.AppLanguage
+import com.example.core.BillingActionResult
+import com.example.core.BillingAndAdProvider
 import com.example.core.ConnectivityObserver
 import com.example.core.LocalUserPreferences
+import com.example.core.StudyActivityMonitor
 import com.example.core.StudyQuestPreferences
+import com.example.core.ThemeMode
 import com.example.core.unwrapFirestoreMessage
+import com.example.data.model.AssignmentDefinitionDoc
+import com.example.data.model.AssignmentSubmissionDoc
 import com.example.data.model.PublicProfile
+import com.example.data.model.StudyGoalDoc
+import com.example.data.model.SystemSettingsDoc
+import com.example.data.model.UserBadgeDoc
 import com.example.data.model.UserNotificationDoc
 import com.example.data.model.UserQuestDoc
+import com.example.data.model.UserSubscriptionDoc
+import com.example.data.model.XpTransactionDoc
 import com.example.data.repository.AdminStudioRepository
 import com.example.data.repository.AuthAndProfileRepository
+import com.example.data.repository.GamificationEngine
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
@@ -24,6 +37,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
@@ -34,6 +48,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -86,6 +101,12 @@ class PreAuthViewModel(
     fun setDarkMode(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setDarkMode(enabled)
+        }
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch {
+            preferences.setThemeMode(mode)
         }
     }
 
@@ -179,13 +200,16 @@ class PreAuthViewModel(
     }
 }
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class MainSessionViewModel(
     private val currentUser: FirebaseUser,
     private val authRepo: AuthAndProfileRepository,
     private val adminRepo: AdminStudioRepository,
     private val preferences: StudyQuestPreferences,
     connectivityObserver: ConnectivityObserver,
-    private val appContext: Context? = null
+    private val appContext: Context? = null,
+    private val gamificationEngine: GamificationEngine? = null,
+    private val billingProvider: BillingAndAdProvider? = null
 ) : ViewModel() {
 
     val localPreferences: StateFlow<LocalUserPreferences> = preferences.preferencesFlow
@@ -259,6 +283,63 @@ class MainSessionViewModel(
         .catch { emit(setOf("owl_classic")) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), setOf("owl_classic"))
 
+    val badges: StateFlow<List<UserBadgeDoc>> = (gamificationEngine?.observeUserBadges(currentUser.uid)
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val xpLedger: StateFlow<List<XpTransactionDoc>> = (gamificationEngine?.observeXpLedger(currentUser.uid)
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val studyGoals: StateFlow<List<StudyGoalDoc>> = (gamificationEngine?.observeStudyGoals(currentUser.uid)
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val assignments: StateFlow<List<AssignmentDefinitionDoc>> = profile
+        .flatMapLatest { prof ->
+            gamificationEngine?.observeAssignments(prof?.classId ?: "class_10")
+                ?: kotlinx.coroutines.flow.flowOf(emptyList())
+        }.catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val assignmentSubmissions: StateFlow<List<AssignmentSubmissionDoc>> =
+        (gamificationEngine?.observeAssignmentSubmissions(currentUser.uid)
+            ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+            .catch { emit(emptyList()) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val systemSettings: StateFlow<SystemSettingsDoc> = adminRepo.observeSystemSettings()
+        .catch { emit(SystemSettingsDoc()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), SystemSettingsDoc())
+
+    val subscription: StateFlow<UserSubscriptionDoc> = (billingProvider?.observeSubscription(currentUser.uid)
+        ?: kotlinx.coroutines.flow.flowOf(UserSubscriptionDoc(userId = currentUser.uid)))
+        .catch { emit(UserSubscriptionDoc(userId = currentUser.uid)) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), UserSubscriptionDoc(userId = currentUser.uid))
+
+    val adPlacementState: StateFlow<AdBannerPlacementState> = combine(
+        subscription,
+        systemSettings,
+        StudyActivityMonitor.isFocusActive,
+        StudyActivityMonitor.isExamOrQuizActive
+    ) { sub, settings, focusActive, examActive ->
+        billingProvider?.evaluateAdPlacement(sub, settings, focusActive, examActive)
+            ?: AdBannerPlacementState(
+                shouldDisplayAdSlot = false,
+                isSuppressedForStudyOrExam = focusActive || examActive,
+                adMobConfigured = settings.adMobConfigured,
+                tier = sub.tier
+            )
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000L),
+        AdBannerPlacementState(false, false, false, "free")
+    )
+
     private val _adminRole = MutableStateFlow<String?>(null)
     val adminRole: StateFlow<String?> = _adminRole.asStateFlow()
 
@@ -314,6 +395,12 @@ class MainSessionViewModel(
             _adminRole.value = runCatching {
                 withTimeout(8_000L) { adminRepo.resolveAdminRole(currentUser) }
             }.getOrNull()
+            runCatching {
+                withTimeout(8_000L) { gamificationEngine?.evaluateAcademicYearLifecycle(currentUser.uid) }
+            }
+            runCatching {
+                withTimeout(8_000L) { billingProvider?.ensureFreeSubscriptionInitialized(currentUser.uid) }
+            }
             _bootstrapping.value = false
         }
     }
@@ -412,7 +499,14 @@ class MainSessionViewModel(
     fun updateDarkMode(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setDarkMode(enabled)
-            authRepo.syncPreferencesToCloud(currentUser.uid, localPreferences.value.copy(darkMode = enabled))
+            authRepo.syncPreferencesToCloud(currentUser.uid, localPreferences.value.copy(darkMode = enabled, themeMode = if (enabled) ThemeMode.DARK else ThemeMode.LIGHT))
+        }
+    }
+
+    fun updateThemeMode(mode: ThemeMode) {
+        viewModelScope.launch {
+            preferences.setThemeMode(mode)
+            authRepo.syncPreferencesToCloud(currentUser.uid, localPreferences.value.copy(themeMode = mode, darkMode = mode == ThemeMode.DARK))
         }
     }
 
@@ -440,6 +534,100 @@ class MainSessionViewModel(
     fun updateNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setNotificationsEnabled(enabled)
+        }
+    }
+
+    fun updateNotificationCategory(category: String, enabled: Boolean) {
+        viewModelScope.launch {
+            preferences.setNotificationCategoryEnabled(category, enabled)
+            val snap = preferences.snapshot()
+            authRepo.syncPreferencesToCloud(currentUser.uid, snap)
+        }
+    }
+
+    fun purchaseStreakFreeze() {
+        viewModelScope.launch {
+            val res = gamificationEngine?.purchaseStreakFreeze(currentUser.uid)
+                ?: Result.failure(IllegalStateException("Streak Freeze unavailable"))
+            res.onSuccess {
+                _bannerMessage.value = "Streak Freeze added to your inventory!"
+            }.onFailure {
+                _bannerMessage.value = unwrapFirestoreMessage(it, it.localizedMessage ?: "Purchase failed")
+            }
+        }
+    }
+
+    fun toggleBadgeFavorite(badgeId: String) {
+        viewModelScope.launch {
+            gamificationEngine?.toggleBadgeFavoriteOrPin(currentUser.uid, badgeId, toggleFavorite = true)
+        }
+    }
+
+    fun toggleBadgePin(badgeId: String) {
+        viewModelScope.launch {
+            gamificationEngine?.toggleBadgeFavoriteOrPin(currentUser.uid, badgeId, pinAsFeatured = true)
+        }
+    }
+
+    fun createStudyGoal(
+        title: String,
+        goalType: String,
+        periodType: String,
+        subjectId: String,
+        targetValue: Long,
+        difficulty: String
+    ) {
+        viewModelScope.launch {
+            val res = gamificationEngine?.createStudyGoal(
+                userId = currentUser.uid,
+                title = title,
+                goalType = goalType,
+                periodType = periodType,
+                subjectId = subjectId,
+                targetValue = targetValue,
+                difficulty = difficulty
+            ) ?: Result.failure(IllegalStateException("Goals service unavailable"))
+            res.onSuccess { _bannerMessage.value = "Personal study goal created!" }
+                .onFailure { _bannerMessage.value = unwrapFirestoreMessage(it, it.localizedMessage ?: "Could not create goal") }
+        }
+    }
+
+    fun claimStudyGoal(goal: StudyGoalDoc) {
+        viewModelScope.launch {
+            val res = gamificationEngine?.claimGoalReward(currentUser.uid, goal)
+                ?: Result.failure(IllegalStateException("Goals service unavailable"))
+            res.onSuccess { xp ->
+                if (xp > 0) _bannerMessage.value = "Goal completed! +$xp XP claimed"
+            }.onFailure {
+                _bannerMessage.value = unwrapFirestoreMessage(it, it.localizedMessage ?: "Could not claim goal")
+            }
+        }
+    }
+
+    fun deleteStudyGoal(goalId: String) {
+        viewModelScope.launch {
+            gamificationEngine?.deleteStudyGoal(currentUser.uid, goalId)
+        }
+    }
+
+    fun submitAssignment(assignment: AssignmentDefinitionDoc) {
+        viewModelScope.launch {
+            val res = gamificationEngine?.submitAssignmentCompletion(currentUser.uid, assignment)
+                ?: Result.failure(IllegalStateException("Assignments service unavailable"))
+            res.onSuccess { xp ->
+                if (xp > 0) _bannerMessage.value = "Assignment verified! +$xp XP"
+            }.onFailure {
+                _bannerMessage.value = unwrapFirestoreMessage(it, it.localizedMessage ?: "Submission failed")
+            }
+        }
+    }
+
+    fun triggerBillingUpgradeFlow() {
+        val outcome = billingProvider?.requestUpgradeToPremium(systemSettings.value) ?: return
+        val lang = localPreferences.value.uiLanguage
+        _bannerMessage.value = when (outcome) {
+            is BillingActionResult.Unconfigured -> if (lang == AppLanguage.BANGLA) outcome.reasonBn else outcome.reasonEn
+            is BillingActionResult.ConfiguredReady -> if (lang == AppLanguage.BANGLA) outcome.messageBn else outcome.messageEn
         }
     }
 

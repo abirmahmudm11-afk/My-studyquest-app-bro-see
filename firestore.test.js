@@ -436,3 +436,235 @@ test("Practice modules & leaderboard: allows pomodoro/flashcard/daily_challenge 
     })
   );
 });
+
+test("XP ledger is strictly append-only; badges, goals, and study sessions enforce owner & anti-farming bounds", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+
+  // XP Ledger create succeeds for valid positive award
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("xp_ledger").doc("tx_1").set({
+      userId: ALICE_UID,
+      sourceType: "lesson",
+      sourceId: "lesson_trig_basics",
+      xpDelta: 20,
+      coinDelta: 5,
+      description: "Lesson completed",
+      idempotencyKey: "lesson_lesson_trig_basics_2026",
+      createdAt: serverTs(),
+    })
+  );
+
+  // XP Ledger is immutable from client (update and delete forbidden)
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("xp_ledger").doc("tx_1").update({ xpDelta: 500 })
+  );
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("xp_ledger").doc("tx_1").delete()
+  );
+
+  // Focus sessions must have >= 60 focusedSeconds and endedAt > startedAt
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("study_sessions").doc("sess_1").set({
+      userId: ALICE_UID,
+      subjectId: "math",
+      mode: "pomodoro",
+      startedAtEpochMs: 1000000,
+      endedAtEpochMs: 2500000,
+      focusedSeconds: 1500,
+      xpAwarded: 50,
+      status: "completed",
+      idempotencyKey: "focus_sess_1",
+      createdAt: serverTs(),
+    })
+  );
+
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("study_sessions").doc("sess_fake").set({
+      userId: ALICE_UID,
+      subjectId: "math",
+      mode: "pomodoro",
+      startedAtEpochMs: 1000000,
+      endedAtEpochMs: 1010000,
+      focusedSeconds: 10,
+      xpAwarded: 50,
+      status: "completed",
+      idempotencyKey: "focus_sess_fake",
+      createdAt: serverTs(),
+    })
+  );
+
+  // Time study goals must be >= 5 minutes
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("study_goals").doc("goal_1").set({
+      userId: ALICE_UID,
+      title: "Focus 30 mins in Physics",
+      goalType: "time_minutes",
+      periodType: "daily",
+      subjectId: "physics",
+      targetValue: 30,
+      currentValue: 0,
+      difficulty: "medium",
+      xpReward: 40,
+      completed: false,
+      rewardClaimed: false,
+      periodKey: "2026-11-15",
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("study_goals").doc("goal_tiny").set({
+      userId: ALICE_UID,
+      title: "Fake 1 min goal",
+      goalType: "time_minutes",
+      periodType: "daily",
+      subjectId: "physics",
+      targetValue: 1,
+      currentValue: 0,
+      difficulty: "easy",
+      xpReward: 40,
+      completed: false,
+      rewardClaimed: false,
+      periodKey: "2026-11-15",
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+
+  // Badges owner-isolated
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("badges").doc("badge_first_study").set({
+      userId: ALICE_UID,
+      badgeId: "badge_first_study",
+      category: "study",
+      rarity: "common",
+      progress: 1,
+      target: 1,
+      unlocked: true,
+      pinned: true,
+      favorite: true,
+      animationShown: true,
+      updatedAt: serverTs(),
+    })
+  );
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("badges").get());
+});
+
+test("Class community, AI storyboard jobs, learning videos, subscription tier lock & competition archives", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const adminDb = testEnv.authenticatedContext("admin_uid", {
+    email: ADMIN_EMAIL,
+    email_verified: true,
+  }).firestore();
+
+  // Alice creates a Class Community post; Bob can upvote/comment, cannot edit Alice's body
+  await assertSucceeds(
+    aliceDb.collection("community_posts").doc("post_1").set({
+      authorUid: ALICE_UID,
+      authorName: "Alice",
+      authorClassId: "class_10",
+      classId: "class_10",
+      subjectId: "math",
+      postType: "question",
+      title: "How to solve quadratic roots?",
+      body: "Please explain discriminant > 0 step by step.",
+      upvoterUids: [],
+      commentCount: 0,
+      flagged: false,
+      hidden: false,
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertSucceeds(
+    bobDb.collection("community_posts").doc("post_1").update({
+      upvoterUids: [BOB_UID],
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertFails(
+    bobDb.collection("community_posts").doc("post_1").update({
+      body: "Hacked post body",
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertSucceeds(
+    bobDb.collection("community_posts").doc("post_1").collection("comments").doc("c_1").set({
+      postId: "post_1",
+      authorUid: BOB_UID,
+      authorName: "Bob",
+      classId: "class_10",
+      body: "Use b^2 - 4ac > 0 for two distinct real roots!",
+      upvoterUids: [],
+      isHelpful: false,
+      createdAt: serverTs(),
+    })
+  );
+
+  // Student can initialize free subscription but cannot self-upgrade to premium
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("subscription").doc("status").set({
+      userId: ALICE_UID,
+      tier: "free",
+      billingProvider: "google_play_unconfigured",
+      adEnabled: true,
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("subscription").doc("status").update({
+      tier: "premium",
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertSucceeds(
+    adminDb.collection("assignments").doc("assign_w1").set({
+      titleEn: "Weekly Trigonometry Sprint",
+      titleBn: "সাপ্তাহিক ত্রিকোণমিতি অনুশীলন",
+      assignmentType: "weekly",
+      classId: "class_10",
+      subjectId: "math",
+      difficulty: "medium",
+      targetCount: 3,
+      xpReward: 75,
+      active: true,
+      periodKey: "2026_w46",
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("ai_video_jobs").doc("job_1").set({
+      userId: ALICE_UID,
+      sourceType: "chapter",
+      sourceTitle: "Motion & Equations",
+      classId: "class_10",
+      subjectId: "physics",
+      status: "completed",
+      progressPercent: 100,
+      externalRenderStatus: "unconfigured",
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+
+  await assertSucceeds(
+    aliceDb.collection("competition_archives").doc("2026_w45_weekly_xp").set({
+      periodKey: "2026_w45_weekly_xp",
+      periodType: "weekly",
+      category: "xp",
+      winners: ["Alice (1200)"],
+      archivedAt: serverTs(),
+    })
+  );
+});
+

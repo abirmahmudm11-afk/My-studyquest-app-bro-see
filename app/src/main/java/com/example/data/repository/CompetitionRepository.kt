@@ -25,13 +25,32 @@ import kotlinx.coroutines.tasks.await
 import java.util.UUID
 import kotlin.random.Random
 
+import com.example.data.curriculum.GamificationCatalog
+import com.example.data.model.CompetitionArchiveDoc
+
+enum class LeaderboardCategory(val id: String, val labelEn: String, val labelBn: String) {
+    XP("xp", "XP", "অর্জিত XP"),
+    STUDY_TIME("study_time", "Study Time", "অধ্যয়ন সময়"),
+    EXAM("exam", "Exam", "পরীক্ষা স্কোর"),
+    ASSIGNMENT("assignment", "Assignment", "অ্যাসাইনমেন্ট"),
+    CHALLENGE("challenge", "Challenge", "চ্যালেঞ্জ")
+}
+
+enum class LeaderboardPeriod(val id: String, val labelEn: String, val labelBn: String) {
+    WEEKLY("weekly", "Weekly", "সাপ্তাহিক"),
+    BIWEEKLY("biweekly", "Two-Week", "পাক্ষিক"),
+    MONTHLY("monthly", "Monthly", "মাসিক")
+}
+
 class CompetitionRepository(
-    private val db: FirebaseFirestore
+    private val db: FirebaseFirestore,
+    private val gamificationEngine: GamificationEngine? = null
 ) {
-    constructor(context: Context) : this(
+    constructor(context: Context, gamificationEngine: GamificationEngine? = null) : this(
         FirebaseFirestore.getInstance(
             context.applicationContext.getString(R.string.firestore_database_id)
-        )
+        ),
+        gamificationEngine
     )
 
     fun observeMyMatches(userId: String): Flow<List<MatchDoc>> {
@@ -98,13 +117,23 @@ class CompetitionRepository(
     fun observeLeaderboard(): Flow<List<LeaderboardEntryDoc>> =
         db.collection("leaderboard_entries")
             .orderBy("competitionRating", Query.Direction.DESCENDING)
-            .limit(100)
+            .limit(150)
             .snapshots()
             .map {
                 it.toObjects(
                     LeaderboardEntryDoc::class.java,
                     DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
                 )
+            }
+
+    fun observeCompetitionArchives(): Flow<List<CompetitionArchiveDoc>> =
+        db.collection("competition_archives")
+            .snapshots()
+            .map {
+                it.toObjects(
+                    CompetitionArchiveDoc::class.java,
+                    DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                ).sortedByDescending { doc -> doc.archivedAt?.seconds ?: 0L }
             }
 
     fun observeTournaments(): Flow<List<TournamentDoc>> =
@@ -116,6 +145,62 @@ class CompetitionRepository(
                     DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
                 ).sortedByDescending { t -> t.createdAt?.seconds ?: 0L }
             }
+
+    suspend fun archivePreviousPeriodIfNeeded(entries: List<LeaderboardEntryDoc>, callerUid: String) {
+        if (entries.isEmpty()) return
+        val prevWeek = GamificationCatalog.previousWeekKey()
+        for (cat in listOf(LeaderboardCategory.XP, LeaderboardCategory.STUDY_TIME, LeaderboardCategory.EXAM)) {
+            val archiveId = "${prevWeek}_${cat.id}"
+            val ref = db.collection("competition_archives").document(archiveId)
+            runCatching {
+                if (!ref.get().await().exists()) {
+                    val top3 = entries
+                        .filter { it.weekKey == prevWeek || scoreFor(it, cat, LeaderboardPeriod.WEEKLY) > 0L }
+                        .sortedByDescending { scoreFor(it, cat, LeaderboardPeriod.WEEKLY) }
+                        .take(3)
+                    if (top3.isNotEmpty()) {
+                        val winnerMaps = top3.mapIndexed { idx, entry ->
+                            mapOf(
+                                "rank" to (idx + 1).toLong(),
+                                "userId" to entry.userId,
+                                "displayName" to entry.displayName,
+                                "studyQuestId" to entry.studyQuestId,
+                                "classId" to entry.classId,
+                                "score" to scoreFor(entry, cat, LeaderboardPeriod.WEEKLY)
+                            )
+                        }
+                        ref.set(
+                            mapOf(
+                                "periodKey" to archiveId,
+                                "periodType" to "weekly",
+                                "category" to cat.id,
+                                "classId" to "all",
+                                "winners" to winnerMaps,
+                                "archivedAt" to FieldValue.serverTimestamp()
+                            )
+                        ).await()
+
+                        // Grant Trophy Title if the caller placed Top 3
+                        val myRank = top3.indexOfFirst { it.userId == callerUid }
+                        if (myRank >= 0) {
+                            val trophy = "Top ${myRank + 1} • ${cat.labelEn} ($prevWeek)"
+                            val pRef = db.collection("public_profiles").document(callerUid)
+                            val existingTitles = pRef.get().await().get("unlockedTrophyTitles") as? List<*> ?: emptyList<String>()
+                            if (trophy !in existingTitles) {
+                                val updated = (existingTitles.mapNotNull { it?.toString() } + trophy).takeLast(30)
+                                pRef.update(
+                                    mapOf(
+                                        "unlockedTrophyTitles" to updated,
+                                        "updatedAt" to FieldValue.serverTimestamp()
+                                    )
+                                ).await()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * Real Quick Battle matchmaking:
@@ -469,7 +554,9 @@ class CompetitionRepository(
                 val coinsEarned = if (won) 25L else 10L
                 val lbRef = db.collection("leaderboard_entries").document(profile.userId)
                 val existingLb = lbRef.get().await()
-                val weekKey = AuthAndProfileRepository.currentWeeklyPeriodKey()
+                val weekKey = GamificationCatalog.currentWeekKey()
+                val biweekKey = GamificationCatalog.currentBiweekKey()
+                val monthKey = GamificationCatalog.currentMonthKey()
                 val oldWeekly = if (existingLb.getString("weekKey") == weekKey) existingLb.getLong("weeklyPoints") ?: 0L else 0L
                 val oldSeasonal = existingLb.getLong("seasonalPoints") ?: 0L
                 val oldPlayed = existingLb.getLong("matchesPlayed") ?: 0L
@@ -484,6 +571,7 @@ class CompetitionRepository(
                         "sourceId" to match.id,
                         "xpDelta" to xpEarned,
                         "coinDelta" to coinsEarned,
+                        "description" to "Quiz Arena Match (${match.subjectId})",
                         "idempotencyKey" to ledgerId,
                         "createdAt" to FieldValue.serverTimestamp()
                     )
@@ -510,8 +598,16 @@ class CompetitionRepository(
                         "subjectId" to match.subjectId,
                         "seasonId" to "season_2026_11",
                         "weekKey" to weekKey,
+                        "biweekKey" to biweekKey,
+                        "monthKey" to monthKey,
                         "weeklyPoints" to (oldWeekly + xpEarned),
                         "seasonalPoints" to (oldSeasonal + xpEarned),
+                        "weeklyXp" to ((if (existingLb.getString("weekKey") == weekKey) existingLb.getLong("weeklyXp") ?: 0L else 0L) + xpEarned),
+                        "weeklyChallengeScore" to ((if (existingLb.getString("weekKey") == weekKey) existingLb.getLong("weeklyChallengeScore") ?: 0L else 0L) + myScore),
+                        "biweeklyXp" to ((if (existingLb.getString("biweekKey") == biweekKey) existingLb.getLong("biweeklyXp") ?: 0L else 0L) + xpEarned),
+                        "biweeklyChallengeScore" to ((if (existingLb.getString("biweekKey") == biweekKey) existingLb.getLong("biweeklyChallengeScore") ?: 0L else 0L) + myScore),
+                        "monthlyXp" to ((if (existingLb.getString("monthKey") == monthKey) existingLb.getLong("monthlyXp") ?: 0L else 0L) + xpEarned),
+                        "monthlyChallengeScore" to ((if (existingLb.getString("monthKey") == monthKey) existingLb.getLong("monthlyChallengeScore") ?: 0L else 0L) + myScore),
                         "competitionRating" to newRating,
                         "rankTier" to tier,
                         "optInNational" to profile.optInNationalLeaderboard,
@@ -620,5 +716,35 @@ class CompetitionRepository(
         rating >= 1200L -> "Gold"
         rating >= 1080L -> "Silver"
         else -> "Bronze"
+    }
+
+    companion object {
+        fun scoreFor(
+            entry: LeaderboardEntryDoc,
+            category: LeaderboardCategory,
+            period: LeaderboardPeriod
+        ): Long = when (period) {
+            LeaderboardPeriod.WEEKLY -> when (category) {
+                LeaderboardCategory.STUDY_TIME -> entry.weeklyStudyMinutes
+                LeaderboardCategory.XP -> entry.weeklyXp.takeIf { it > 0L } ?: entry.weeklyPoints
+                LeaderboardCategory.EXAM -> entry.weeklyExamScore
+                LeaderboardCategory.ASSIGNMENT -> entry.weeklyAssignmentScore
+                LeaderboardCategory.CHALLENGE -> entry.weeklyChallengeScore.takeIf { it > 0L } ?: entry.competitionRating
+            }
+            LeaderboardPeriod.BIWEEKLY -> when (category) {
+                LeaderboardCategory.STUDY_TIME -> entry.biweeklyStudyMinutes
+                LeaderboardCategory.XP -> entry.biweeklyXp.takeIf { it > 0L } ?: entry.weeklyPoints
+                LeaderboardCategory.EXAM -> entry.biweeklyExamScore
+                LeaderboardCategory.ASSIGNMENT -> entry.biweeklyAssignmentScore
+                LeaderboardCategory.CHALLENGE -> entry.biweeklyChallengeScore.takeIf { it > 0L } ?: entry.competitionRating
+            }
+            LeaderboardPeriod.MONTHLY -> when (category) {
+                LeaderboardCategory.STUDY_TIME -> entry.monthlyStudyMinutes
+                LeaderboardCategory.XP -> entry.monthlyXp.takeIf { it > 0L } ?: entry.seasonalPoints
+                LeaderboardCategory.EXAM -> entry.monthlyExamScore
+                LeaderboardCategory.ASSIGNMENT -> entry.monthlyAssignmentScore
+                LeaderboardCategory.CHALLENGE -> entry.monthlyChallengeScore.takeIf { it > 0L } ?: entry.competitionRating
+            }
+        }
     }
 }

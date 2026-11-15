@@ -4,13 +4,16 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.unwrapFirestoreMessage
+import com.example.data.model.CompetitionArchiveDoc
+import com.example.data.model.LeaderboardEntryDoc
 import com.example.data.model.MatchDoc
 import com.example.data.model.MatchRequestDoc
 import com.example.data.model.MatchSubmissionDoc
 import com.example.data.model.PublicProfile
 import com.example.data.model.TournamentDoc
-import com.example.data.model.LeaderboardEntryDoc
 import com.example.data.repository.CompetitionRepository
+import com.example.data.repository.LeaderboardCategory
+import com.example.data.repository.LeaderboardPeriod
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,9 +46,19 @@ class CompeteViewModel(
         .catch { emit(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
+    val competitionArchives: StateFlow<List<CompetitionArchiveDoc>> = compRepo.observeCompetitionArchives()
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
     val tournaments: StateFlow<List<TournamentDoc>> = compRepo.observeTournaments()
         .catch { emit(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    private val _selectedCategory = MutableStateFlow(LeaderboardCategory.XP)
+    val selectedCategory: StateFlow<LeaderboardCategory> = _selectedCategory.asStateFlow()
+
+    private val _selectedPeriod = MutableStateFlow(LeaderboardPeriod.WEEKLY)
+    val selectedPeriod: StateFlow<LeaderboardPeriod> = _selectedPeriod.asStateFlow()
 
     private val _activeMatchId = MutableStateFlow<String?>(null)
     val activeMatch: StateFlow<MatchDoc?> = _activeMatchId
@@ -79,6 +92,21 @@ class CompeteViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            leaderboard.collect { entries ->
+                if (entries.isNotEmpty()) {
+                    compRepo.archivePreviousPeriodIfNeeded(entries, currentUserId)
+                }
+            }
+        }
+    }
+
+    fun selectCategory(cat: LeaderboardCategory) {
+        _selectedCategory.value = cat
+    }
+
+    fun selectPeriod(period: LeaderboardPeriod) {
+        _selectedPeriod.value = period
     }
 
     fun clearMessage() {

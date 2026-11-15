@@ -9,6 +9,7 @@ import com.example.core.OperationType
 import com.example.core.StudyQuestStrings
 import com.example.core.handleFirestoreError
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.GamificationCatalog
 import com.example.data.local.StudyQuestDao
 import com.example.data.model.PrivateAccountInfo
 import com.example.data.model.PublicProfile
@@ -164,6 +165,12 @@ class AuthAndProfileRepository(
                     "academicGroup" to "science",
                     "dailyGoalMinutes" to 30L,
                     "streakCount" to 0L,
+                    "streakFreezeCount" to 1L,
+                    "streakHistoryKeys" to emptyList<String>(),
+                    "annualExamStatus" to "pending",
+                    "pinnedBadgeIds" to emptyList<String>(),
+                    "unlockedTrophyTitles" to emptyList<String>(),
+                    "totalFocusMinutes" to 0L,
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
                 ).filterValues { it != null }
@@ -299,6 +306,7 @@ class AuthAndProfileRepository(
             val cleanName = displayName.trim().ifBlank { "Student" }.take(60)
             val safeGroup = if (academicGroup in listOf("general", "science", "business", "humanities")) academicGroup else "general"
             val safeDailyMins = dailyGoalMinutes.coerceIn(5L, 360L)
+            val currentAcademicYear = GamificationCatalog.currentAcademicYear()
             withTimeout(15_000L) {
                 ref.update(
                     mapOf(
@@ -309,6 +317,8 @@ class AuthAndProfileRepository(
                         "avatarId" to avatarId,
                         "academicGroup" to safeGroup,
                         "dailyGoalMinutes" to safeDailyMins,
+                        "classLockedAcademicYear" to currentAcademicYear,
+                        "annualExamStatus" to "pending",
                         "onboardingCompleted" to true,
                         "updatedAt" to FieldValue.serverTimestamp()
                     )
@@ -340,7 +350,9 @@ class AuthAndProfileRepository(
                 withTimeout(10_000L) {
                     val profSnap = ref.get().await()
                     val existingLb = lbRef.get().await()
-                    val weekKey = currentWeeklyPeriodKey()
+                    val weekKey = GamificationCatalog.currentWeekKey()
+                    val biweekKey = GamificationCatalog.currentBiweekKey()
+                    val monthKey = GamificationCatalog.currentMonthKey()
                     val oldWeekly = if (existingLb.getString("weekKey") == weekKey) existingLb.getLong("weeklyPoints") ?: 0L else 0L
                     lbRef.set(
                         mapOf(
@@ -353,6 +365,8 @@ class AuthAndProfileRepository(
                             "subjectId" to selectedSubjects.firstOrNull(),
                             "seasonId" to "season_2026_11",
                             "weekKey" to weekKey,
+                            "biweekKey" to biweekKey,
+                            "monthKey" to monthKey,
                             "weeklyPoints" to oldWeekly,
                             "seasonalPoints" to (existingLb.getLong("seasonalPoints") ?: (profSnap.getLong("totalXp") ?: 0L)),
                             "competitionRating" to (existingLb.getLong("competitionRating") ?: (profSnap.getLong("competitionRating") ?: 1000L)),
@@ -388,6 +402,18 @@ class AuthAndProfileRepository(
     ): Result<Unit> {
         val ref = db.collection("public_profiles").document(userId)
         return try {
+            if (classId != null) {
+                val snap = ref.get().await()
+                val alreadyOnboarded = snap.getBoolean("onboardingCompleted") == true
+                val lockedYear = snap.getLong("classLockedAcademicYear")?.toInt()
+                val currentClass = snap.getString("classId")
+                val currentYear = GamificationCatalog.currentAcademicYear()
+                if (alreadyOnboarded && lockedYear != null && lockedYear >= currentYear && classId != currentClass) {
+                    return Result.failure(
+                        IllegalStateException("Class is locked for $currentYear and promotes automatically on Jan 1 (unless annual final exam is failed).")
+                    )
+                }
+            }
             val updates = mutableMapOf<String, Any?>(
                 "updatedAt" to FieldValue.serverTimestamp()
             )
@@ -436,9 +462,19 @@ class AuthAndProfileRepository(
                     "uiLanguage" to prefs.uiLanguage.code,
                     "questionLanguage" to prefs.questionLanguage.code,
                     "darkMode" to prefs.darkMode,
+                    "themeMode" to prefs.themeMode.code,
                     "reducedMotion" to prefs.reducedMotion,
                     "soundEnabled" to prefs.soundEnabled,
                     "quietHoursEnabled" to prefs.quietHoursEnabled,
+                    "notifStudyEnabled" to prefs.notifStudyEnabled,
+                    "notifXpEnabled" to prefs.notifXpEnabled,
+                    "notifBadgeEnabled" to prefs.notifBadgeEnabled,
+                    "notifAssignmentEnabled" to prefs.notifAssignmentEnabled,
+                    "notifCompetitionEnabled" to prefs.notifCompetitionEnabled,
+                    "notifExamEnabled" to prefs.notifExamEnabled,
+                    "notifCommunityEnabled" to prefs.notifCommunityEnabled,
+                    "focusMusicVolume" to prefs.focusMusicVolume.toDouble(),
+                    "musicDuringBreak" to prefs.musicDuringBreak,
                     "dailyGoalXp" to prefs.dailyGoalXp,
                     "weeklyGoalMinutes" to prefs.weeklyGoalMinutes,
                     "updatedAt" to FieldValue.serverTimestamp()
@@ -851,6 +887,3 @@ class AuthAndProfileRepository(
         }
     }
 }
-
-private fun StudyQuestStrings.levelForXp(xp: Long): Long =
-    (xp / 100L) + 1L

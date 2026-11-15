@@ -12,6 +12,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,10 +74,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.core.AppLanguage
 import com.example.core.LocalUserPreferences
 import com.example.core.StudyQuestStrings
+import com.example.core.ThemeMode
 import com.example.core.configureAppCheck
+import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.local.StudyQuestWorkScheduler
+import com.example.data.model.ExamTemplate
 import com.example.data.model.PublicProfile
 import com.example.ui.components.AudioFeedbackHelper
+import com.example.ui.components.GamificationCelebrationHost
 import com.example.ui.components.LottieCelebrationOverlay
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.screens.AcademicSetupWizardScreen
@@ -91,8 +96,10 @@ import com.example.ui.screens.TodayTabScreen
 import com.example.ui.screens.WelcomeAndGoogleSignInScreen
 import com.example.ui.theme.StudyQuestTheme
 import com.example.ui.viewmodel.AdminStudioViewModel
+import com.example.ui.viewmodel.AiVideoViewModel
 import com.example.ui.viewmodel.BootstrapState
 import com.example.ui.viewmodel.CompeteViewModel
+import com.example.ui.viewmodel.FocusTimerViewModel
 import com.example.ui.viewmodel.LearnAndExamViewModel
 import com.example.ui.viewmodel.MainSessionViewModel
 import com.example.ui.viewmodel.PreAuthViewModel
@@ -136,9 +143,15 @@ private fun StudyQuestRootApp() {
     val authMessage by preAuthVm.authMessage.collectAsStateWithLifecycle()
 
     val context = androidx.compose.ui.platform.LocalContext.current
-    DisposableEffect(preAuthPrefs.darkMode) {
+    val systemDark = isSystemInDarkTheme()
+    val useDarkTheme = when (preAuthPrefs.themeMode) {
+        ThemeMode.SYSTEM -> systemDark
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+    }
+    DisposableEffect(useDarkTheme) {
         val activity = context as? ComponentActivity
-        val style = if (preAuthPrefs.darkMode) {
+        val style = if (useDarkTheme) {
             SystemBarStyle.dark(AndroidColor.TRANSPARENT)
         } else {
             SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
@@ -148,7 +161,7 @@ private fun StudyQuestRootApp() {
     }
 
     StudyQuestTheme(
-        darkTheme = preAuthPrefs.darkMode,
+        darkTheme = useDarkTheme,
         isBangla = preAuthPrefs.uiLanguage == AppLanguage.BANGLA
     ) {
         val user = currentUser
@@ -364,6 +377,14 @@ private fun AuthenticatedReadyHost(
         key = "social_${user.uid}",
         factory = StudyQuestViewModelFactories.socialFactory(user.uid)
     )
+    val focusVm: FocusTimerViewModel = viewModel(
+        key = "focus_${user.uid}",
+        factory = StudyQuestViewModelFactories.focusTimerFactory(user.uid)
+    )
+    val aiVideoVm: AiVideoViewModel = viewModel(
+        key = "aivideo_${user.uid}",
+        factory = StudyQuestViewModelFactories.aiVideoFactory(user.uid)
+    )
 
     val isOnline by sessionVm.isOnline.collectAsStateWithLifecycle()
     val quests by sessionVm.quests.collectAsStateWithLifecycle()
@@ -373,6 +394,14 @@ private fun AuthenticatedReadyHost(
     val adminRole by sessionVm.adminRole.collectAsStateWithLifecycle()
     val exportedJson by sessionVm.exportedJson.collectAsStateWithLifecycle()
     val guestMergedCount by sessionVm.guestMergedCount.collectAsStateWithLifecycle()
+    val badges by sessionVm.badges.collectAsStateWithLifecycle()
+    val xpLedger by sessionVm.xpLedger.collectAsStateWithLifecycle()
+    val studyGoals by sessionVm.studyGoals.collectAsStateWithLifecycle()
+    val assignments by sessionVm.assignments.collectAsStateWithLifecycle()
+    val assignmentSubmissions by sessionVm.assignmentSubmissions.collectAsStateWithLifecycle()
+    val systemSettings by sessionVm.systemSettings.collectAsStateWithLifecycle()
+    val subscription by sessionVm.subscription.collectAsStateWithLifecycle()
+    val adPlacementState by sessionVm.adPlacementState.collectAsStateWithLifecycle()
 
     val learningRecords by learnVm.learningRecords.collectAsStateWithLifecycle()
     val mergedQuestions by learnVm.mergedQuestions.collectAsStateWithLifecycle()
@@ -383,6 +412,7 @@ private fun AuthenticatedReadyHost(
     val pendingSyncCount by learnVm.pendingSyncCount.collectAsStateWithLifecycle()
     val weakTopics by learnVm.weakTopics.collectAsStateWithLifecycle()
     val subjectAnalytics by learnVm.subjectAnalytics.collectAsStateWithLifecycle()
+    val dailyStudySeries by learnVm.dailyStudySeries.collectAsStateWithLifecycle()
     val examRemaining by learnVm.examRemainingSeconds.collectAsStateWithLifecycle()
     val assessmentResult by learnVm.lastAssessmentResult.collectAsStateWithLifecycle()
     val aiState by learnVm.aiState.collectAsStateWithLifecycle()
@@ -393,6 +423,9 @@ private fun AuthenticatedReadyHost(
     val activeRequest by competeVm.activeMatchRequest.collectAsStateWithLifecycle()
     val activeSubmissions by competeVm.activeSubmissions.collectAsStateWithLifecycle()
     val leaderboard by competeVm.leaderboard.collectAsStateWithLifecycle()
+    val selectedCategory by competeVm.selectedCategory.collectAsStateWithLifecycle()
+    val selectedPeriod by competeVm.selectedPeriod.collectAsStateWithLifecycle()
+    val competitionArchives by competeVm.competitionArchives.collectAsStateWithLifecycle()
     val tournaments by competeVm.tournaments.collectAsStateWithLifecycle()
     val competeBanner by competeVm.message.collectAsStateWithLifecycle()
 
@@ -405,12 +438,19 @@ private fun AuthenticatedReadyHost(
     val searchResults by socialVm.searchResults.collectAsStateWithLifecycle()
     val activeConversation by socialVm.activeConversation.collectAsStateWithLifecycle()
     val activeMessages by socialVm.activeMessages.collectAsStateWithLifecycle()
+    val communityPosts by socialVm.communityPosts.collectAsStateWithLifecycle()
+    val selectedCommunityPost by socialVm.selectedPost.collectAsStateWithLifecycle()
+    val selectedPostComments by socialVm.selectedPostComments.collectAsStateWithLifecycle()
     val socialBanner by socialVm.message.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableIntStateOf(0) } // 0=Today, 1=Learn, 2=Compete, 3=Friends, 4=Profile
     var pendingLearnDest by remember { mutableStateOf<LearnDestination?>(null) }
     var showGlobalAiSheet by remember { mutableStateOf(false) }
     var celebrationPulse by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(activeProfile.classId) {
+        socialVm.setCommunityClassId(activeProfile.classId)
+    }
 
     LaunchedEffect(guestMergedCount) {
         if (guestMergedCount > 0) {
@@ -421,35 +461,73 @@ private fun AuthenticatedReadyHost(
     val activeBanner = sessionBanner ?: learnBanner ?: competeBanner ?: socialBanner
     val lang = prefs.uiLanguage
 
+    fun openPromotionExam() {
+        val qs = mergedQuestions.filter { it.classId == activeProfile.classId }.ifEmpty { mergedQuestions }.take(8)
+        val tpl = ExamTemplate(
+            id = "promotion_${activeProfile.classId}",
+            titleEn = "Annual Class Promotion Exam (${StudyQuestStrings.classLabel(activeProfile.classId, lang)})",
+            titleBn = "বার্ষিক শ্রেণি প্রোমোশন পরীক্ষা (${StudyQuestStrings.classLabel(activeProfile.classId, lang)})",
+            classId = activeProfile.classId,
+            subjectIds = BangladeshCurriculumCatalog.subjectsForClass(activeProfile.classId).map { it.id },
+            durationSeconds = 900,
+            totalMarks = 8,
+            negativeMarkingPerWrong = 0.0,
+            descriptionEn = "Pass 60%+ to advance your locked class.",
+            descriptionBn = "উত্তীর্ণ হতে ৬০%+ নম্বর অর্জন করুন।"
+        )
+        pendingLearnDest = LearnDestination.MockExamSession(tpl, qs)
+        selectedTab = 1
+    }
+
     Scaffold(
         bottomBar = {
             Column {
+                if (adPlacementState.shouldDisplayAdSlot) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("admob_banner_slot")
+                    ) {
+                        Text(
+                            text = StudyQuestStrings.t(
+                                lang,
+                                "Ad Slot Ready (Paused automatically during Focus, Quizzes & Exams)",
+                                "বিজ্ঞাপন স্লট প্রস্তুত (ফোকাস, কুইজ ও পরীক্ষায় স্বয়ংক্রিয়ভাবে বন্ধ)"
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 0.dp,
                     modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
                 ) {
-                val tabs = listOf(
-                    Triple(0, StudyQuestStrings.tabToday(lang), Icons.Filled.Home to Icons.Outlined.Home),
-                    Triple(1, StudyQuestStrings.tabLearn(lang), Icons.AutoMirrored.Filled.MenuBook to Icons.AutoMirrored.Outlined.MenuBook),
-                    Triple(2, StudyQuestStrings.tabCompete(lang), Icons.Filled.EmojiEvents to Icons.Outlined.EmojiEvents),
-                    Triple(3, StudyQuestStrings.tabFriends(lang), Icons.Filled.Groups to Icons.Outlined.Groups),
-                    Triple(4, StudyQuestStrings.tabProfile(lang), Icons.Filled.Person to Icons.Outlined.Person)
-                )
-                tabs.forEach { (idx, label, icons) ->
-                    NavigationBarItem(
-                        selected = selectedTab == idx,
-                        onClick = {
-                            AudioFeedbackHelper.triggerClick(view, prefs.soundEnabled, prefs.reducedMotion)
-                            selectedTab = idx
-                        },
-                        icon = { Icon(if (selectedTab == idx) icons.first else icons.second, contentDescription = label) },
-                        label = { Text(label, maxLines = 1) },
-                        modifier = Modifier.testTag("nav_tab_$idx")
+                    val tabs = listOf(
+                        Triple(0, StudyQuestStrings.tabToday(lang), Icons.Filled.Home to Icons.Outlined.Home),
+                        Triple(1, StudyQuestStrings.tabLearn(lang), Icons.AutoMirrored.Filled.MenuBook to Icons.AutoMirrored.Outlined.MenuBook),
+                        Triple(2, StudyQuestStrings.tabCompete(lang), Icons.Filled.EmojiEvents to Icons.Outlined.EmojiEvents),
+                        Triple(3, StudyQuestStrings.tabFriends(lang), Icons.Filled.Groups to Icons.Outlined.Groups),
+                        Triple(4, StudyQuestStrings.tabProfile(lang), Icons.Filled.Person to Icons.Outlined.Person)
                     )
+                    tabs.forEach { (idx, label, icons) ->
+                        NavigationBarItem(
+                            selected = selectedTab == idx,
+                            onClick = {
+                                AudioFeedbackHelper.triggerClick(view, prefs.soundEnabled, prefs.reducedMotion)
+                                selectedTab = idx
+                            },
+                            icon = { Icon(if (selectedTab == idx) icons.first else icons.second, contentDescription = label) },
+                            label = { Text(label, maxLines = 1) },
+                            modifier = Modifier.testTag("nav_tab_$idx")
+                        )
+                    }
                 }
-            }
             }
         }
     ) { innerPadding ->
@@ -538,6 +616,7 @@ private fun AuthenticatedReadyHost(
                         onOpenAiDoubtSolver = { showGlobalAiSheet = true },
                         onOpenMessages = { selectedTab = 3 },
                         subjectAnalytics = subjectAnalytics,
+                        dailyStudySeries = dailyStudySeries,
                         dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(activeProfile),
                         onOpenSubjectCategory = { subj ->
                             pendingLearnDest = LearnDestination.SubjectDetail(subj)
@@ -558,7 +637,21 @@ private fun AuthenticatedReadyHost(
                         onOpenMasteryAnalytics = {
                             pendingLearnDest = LearnDestination.MasteryAnalytics
                             selectedTab = 1
-                        }
+                        },
+                        onOpenAssignmentsAndGoals = {
+                            pendingLearnDest = LearnDestination.AssignmentsAndGoals
+                            selectedTab = 1
+                        },
+                        onOpenAiVideoStudio = {
+                            pendingLearnDest = LearnDestination.AiVideoStudio
+                            selectedTab = 1
+                        },
+                        onOpenBadgesAndXp = {
+                            pendingLearnDest = LearnDestination.BadgesAndXp
+                            selectedTab = 1
+                        },
+                        onBuyStreakFreeze = { sessionVm.purchaseStreakFreeze() },
+                        onRetakePromotionExam = { openPromotionExam() }
                     )
 
                     1 -> LearnTabScreen(
@@ -628,7 +721,24 @@ private fun AuthenticatedReadyHost(
                                 celebrationPulse += 1
                                 AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
                             }
-                        }
+                        },
+                        focusVm = focusVm,
+                        aiVideoVm = aiVideoVm,
+                        dailyStudySeries = dailyStudySeries,
+                        studyGoals = studyGoals,
+                        assignments = assignments,
+                        assignmentSubmissions = assignmentSubmissions,
+                        userBadges = badges,
+                        xpLedger = xpLedger,
+                        externalVideoRendererConfigured = systemSettings.externalVideoRendererConfigured,
+                        isGuestMode = false,
+                        onCreateStudyGoal = { t, gt, pt, s, tv, d -> sessionVm.createStudyGoal(t, gt, pt, s, tv, d) },
+                        onClaimStudyGoal = { sessionVm.claimStudyGoal(it) },
+                        onDeleteStudyGoal = { sessionVm.deleteStudyGoal(it) },
+                        onSubmitAssignment = { sessionVm.submitAssignment(it) },
+                        onToggleBadgeFavorite = { sessionVm.toggleBadgeFavorite(it) },
+                        onToggleBadgePin = { sessionVm.toggleBadgePin(it) },
+                        onSetExamOrQuizActive = { learnVm.setExamOrQuizActive(it) }
                     )
 
                     2 -> CompeteTabScreen(
@@ -661,7 +771,12 @@ private fun AuthenticatedReadyHost(
                             competeVm.finalizeMatch(m, activeProfile)
                         },
                         onCloseActiveMatch = { competeVm.closeActiveMatch() },
-                        onJoinTournament = { competeVm.joinTournament(it) }
+                        onJoinTournament = { competeVm.joinTournament(it) },
+                        selectedCategory = selectedCategory,
+                        selectedPeriod = selectedPeriod,
+                        competitionArchives = competitionArchives,
+                        onSelectCategory = { competeVm.selectCategory(it) },
+                        onSelectPeriod = { competeVm.selectPeriod(it) }
                     )
 
                     3 -> FriendsTabScreen(
@@ -693,7 +808,22 @@ private fun AuthenticatedReadyHost(
                         onToggleReaction = { convId, msg, emoji -> socialVm.toggleReaction(convId, msg, emoji) },
                         onMarkRead = { convId, msgs -> socialVm.markVisibleMessagesRead(convId, msgs) },
                         onReport = { t, id, r, d -> socialVm.reportIssue(t, id, r, d) },
-                        reducedMotion = prefs.reducedMotion
+                        reducedMotion = prefs.reducedMotion,
+                        communityPosts = communityPosts,
+                        selectedCommunityPost = selectedCommunityPost,
+                        selectedPostComments = selectedPostComments,
+                        onOpenCommunityPost = { socialVm.openCommunityPost(it) },
+                        onCloseCommunityPost = { socialVm.closeCommunityPost() },
+                        onCreateCommunityPost = { subj, type, title, body ->
+                            socialVm.createCommunityPost(activeProfile, subj, type, title, body)
+                        },
+                        onAddCommunityComment = { post, txt ->
+                            socialVm.addCommunityComment(activeProfile, post, txt)
+                        },
+                        onToggleCommunityUpvote = { socialVm.toggleCommunityUpvote(it) },
+                        onMarkCommentHelpful = { post, c -> socialVm.markCommentHelpful(post, c) },
+                        onReportCommunityPost = { post, reason -> socialVm.reportCommunityPost(post, reason) },
+                        onDeleteOwnCommunityPost = { socialVm.deleteOwnCommunityPost(it) }
                     )
 
                     4 -> ProfileTabScreen(
@@ -732,7 +862,18 @@ private fun AuthenticatedReadyHost(
                                 key = "admin_${user.uid}",
                                 factory = StudyQuestViewModelFactories.adminStudioFactory(user.uid)
                             )
-                        }
+                        },
+                        userBadges = badges,
+                        xpLedger = xpLedger,
+                        dailyStudySeries = dailyStudySeries,
+                        subscription = subscription,
+                        billingConfigured = systemSettings.billingConfigured,
+                        onUpdateThemeMode = { sessionVm.updateThemeMode(it) },
+                        onUpdateNotificationCategory = { c, e -> sessionVm.updateNotificationCategory(c, e) },
+                        onToggleBadgeFavorite = { sessionVm.toggleBadgeFavorite(it) },
+                        onToggleBadgePin = { sessionVm.toggleBadgePin(it) },
+                        onTriggerBillingUpgrade = { sessionVm.triggerBillingUpgradeFlow() },
+                        onRetakePromotionExam = { openPromotionExam() }
                     )
                 }
                 }
@@ -741,6 +882,11 @@ private fun AuthenticatedReadyHost(
 
             LottieCelebrationOverlay(
                 triggerKey = celebrationPulse,
+                reducedMotion = prefs.reducedMotion
+            )
+
+            GamificationCelebrationHost(
+                language = lang,
                 reducedMotion = prefs.reducedMotion
             )
         }

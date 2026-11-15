@@ -26,7 +26,7 @@ class GuestDataRepository(
     private val preferences: StudyQuestPreferences
 ) {
     fun buildGuestProfile(prefs: LocalUserPreferences): PublicProfile {
-        val level = (prefs.guestXp / 100L) + 1L
+        val level = StudyQuestStrings.levelForXp(prefs.guestXp)
         val tier = when {
             prefs.guestRating >= 1800L -> "Master"
             prefs.guestRating >= 1550L -> "Diamond"
@@ -56,7 +56,9 @@ class GuestDataRepository(
             showOnlineStatus = false,
             isOnline = true,
             onboardingCompleted = prefs.guestOnboardingCompleted,
-            selectedSubjects = prefs.guestSelectedSubjectsCsv.split(",").filter { it.isNotBlank() }
+            selectedSubjects = prefs.guestSelectedSubjectsCsv.split(",").filter { it.isNotBlank() },
+            streakCount = prefs.guestStreakCount,
+            lastChallengeDateKey = prefs.guestLastChallengeDateKey.ifBlank { null }
         )
     }
 
@@ -185,44 +187,23 @@ class GuestDataRepository(
             weekKey = AuthAndProfileRepository.currentWeeklyPeriodKey(),
             weeklyPoints = profile.totalXp,
             seasonalPoints = profile.totalXp,
+            weeklyStudyMinutes = profile.totalFocusMinutes,
+            weeklyXp = profile.totalXp,
+            weeklyChallengeScore = soloMatches.sumOf { it.score },
+            biweeklyStudyMinutes = profile.totalFocusMinutes,
+            biweeklyXp = profile.totalXp,
+            biweeklyChallengeScore = soloMatches.sumOf { it.score },
+            monthlyStudyMinutes = profile.totalFocusMinutes,
+            monthlyXp = profile.totalXp,
+            monthlyChallengeScore = soloMatches.sumOf { it.score },
             competitionRating = profile.competitionRating,
             rankTier = profile.rankTier,
             optInNational = true,
             matchesPlayed = soloMatches.size.toLong(),
-            matchesWon = wins
+            matchesWon = wins,
+            streakCount = profile.streakCount
         )
-        // Add transparent NCTB Tier Par Benchmarks (not fake student usernames) so leaderboard shows progress targets
-        val benchmarks = listOf(
-            LeaderboardEntryDoc(
-                id = "tier_goal_silver",
-                userId = "tier_goal_silver",
-                displayName = "Silver Milestone Target",
-                studyQuestId = "TARGET",
-                avatarId = "owl_classic",
-                classId = profile.classId,
-                subjectId = "math",
-                weeklyPoints = 120L,
-                seasonalPoints = 250L,
-                competitionRating = 1080L,
-                rankTier = "Silver",
-                optInNational = true
-            ),
-            LeaderboardEntryDoc(
-                id = "tier_goal_gold",
-                userId = "tier_goal_gold",
-                displayName = "Gold Milestone Target",
-                studyQuestId = "TARGET",
-                avatarId = "tiger_bengal",
-                classId = profile.classId,
-                subjectId = "physics",
-                weeklyPoints = 300L,
-                seasonalPoints = 600L,
-                competitionRating = 1200L,
-                rankTier = "Gold",
-                optInNational = true
-            )
-        )
-        return (listOf(guestEntry) + benchmarks).sortedByDescending { it.seasonalPoints }
+        return listOf(guestEntry)
     }
 
     fun buildLocalTournaments(classId: String): List<TournamentDoc> = listOf(

@@ -50,10 +50,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.core.StudyQuestStrings
+import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.model.ExamTemplate
 import com.example.data.repository.GuestDataRepository
 import com.example.ui.components.AudioFeedbackHelper
+import com.example.ui.components.GamificationCelebrationHost
 import com.example.ui.components.LottieCelebrationOverlay
 import com.example.ui.viewmodel.AdminStudioViewModel
+import com.example.ui.viewmodel.AiVideoViewModel
+import com.example.ui.viewmodel.FocusTimerViewModel
 import com.example.ui.viewmodel.GuestSessionViewModel
 import com.example.ui.viewmodel.LearnAndExamViewModel
 import com.example.ui.viewmodel.StudyQuestViewModelFactories
@@ -74,6 +79,14 @@ fun GuestStudyQuestHost(
         key = "learn_${GuestDataRepository.GUEST_UID}",
         factory = StudyQuestViewModelFactories.learnAndExamFactory(GuestDataRepository.GUEST_UID)
     )
+    val focusVm: FocusTimerViewModel = viewModel(
+        key = "focus_${GuestDataRepository.GUEST_UID}",
+        factory = StudyQuestViewModelFactories.focusTimerFactory(GuestDataRepository.GUEST_UID)
+    )
+    val aiVideoVm: AiVideoViewModel = viewModel(
+        key = "aivideo_${GuestDataRepository.GUEST_UID}",
+        factory = StudyQuestViewModelFactories.aiVideoFactory(GuestDataRepository.GUEST_UID)
+    )
 
     val prefs by guestVm.localPreferences.collectAsStateWithLifecycle()
     val profile by guestVm.profile.collectAsStateWithLifecycle()
@@ -91,6 +104,9 @@ fun GuestStudyQuestHost(
     val celebrationPulse by guestVm.celebrationPulse.collectAsStateWithLifecycle()
     val exportedJson by guestVm.exportedJson.collectAsStateWithLifecycle()
     val guestBanner by guestVm.bannerMessage.collectAsStateWithLifecycle()
+    val studyGoals by guestVm.studyGoals.collectAsStateWithLifecycle()
+    val xpLedger by guestVm.xpLedger.collectAsStateWithLifecycle()
+    val userBadges by guestVm.badges.collectAsStateWithLifecycle()
 
     val learningRecords by learnVm.learningRecords.collectAsStateWithLifecycle()
     val mergedQuestions by learnVm.mergedQuestions.collectAsStateWithLifecycle()
@@ -100,6 +116,7 @@ fun GuestStudyQuestHost(
     val studyPlans by learnVm.studyPlans.collectAsStateWithLifecycle()
     val weakTopics by learnVm.weakTopics.collectAsStateWithLifecycle()
     val subjectAnalytics by learnVm.subjectAnalytics.collectAsStateWithLifecycle()
+    val dailyStudySeries by learnVm.dailyStudySeries.collectAsStateWithLifecycle()
     val examRemaining by learnVm.examRemainingSeconds.collectAsStateWithLifecycle()
     val assessmentResult by learnVm.lastAssessmentResult.collectAsStateWithLifecycle()
     val aiState by learnVm.aiState.collectAsStateWithLifecycle()
@@ -111,6 +128,24 @@ fun GuestStudyQuestHost(
 
     val activeBanner = authError ?: guestBanner ?: learnBanner
     val lang = prefs.uiLanguage
+
+    fun openPromotionExam() {
+        val qs = mergedQuestions.filter { it.classId == profile.classId }.ifEmpty { mergedQuestions }.take(8)
+        val tpl = ExamTemplate(
+            id = "promotion_${profile.classId}",
+            titleEn = "Annual Class Promotion Exam (${StudyQuestStrings.classLabel(profile.classId, lang)})",
+            titleBn = "বার্ষিক শ্রেণি প্রোমোশন পরীক্ষা (${StudyQuestStrings.classLabel(profile.classId, lang)})",
+            classId = profile.classId,
+            subjectIds = BangladeshCurriculumCatalog.subjectsForClass(profile.classId).map { it.id },
+            durationSeconds = 900,
+            totalMarks = 8,
+            negativeMarkingPerWrong = 0.0,
+            descriptionEn = "Pass 60%+ to advance your locked class.",
+            descriptionBn = "উত্তীর্ণ হতে ৬০%+ নম্বর অর্জন করুন।"
+        )
+        pendingLearnDest = LearnDestination.MockExamSession(tpl, qs)
+        selectedTab = 1
+    }
 
     Scaffold(
         bottomBar = {
@@ -217,6 +252,42 @@ fun GuestStudyQuestHost(
                                 },
                                 onOpenAiDoubtSolver = { showGlobalAiSheet = true },
                                 onOpenMessages = { selectedTab = 3 },
+                                subjectAnalytics = subjectAnalytics,
+                                dailyStudySeries = dailyStudySeries,
+                                dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(profile),
+                                onOpenSubjectCategory = { subj ->
+                                    pendingLearnDest = LearnDestination.SubjectDetail(subj)
+                                    selectedTab = 1
+                                },
+                                onOpenFlashcardsVault = {
+                                    pendingLearnDest = LearnDestination.FlashcardsAndVault
+                                    selectedTab = 1
+                                },
+                                onOpenPomodoro = {
+                                    pendingLearnDest = LearnDestination.PomodoroFocus
+                                    selectedTab = 1
+                                },
+                                onOpenDailyChallenge = {
+                                    pendingLearnDest = LearnDestination.DailyChallenge
+                                    selectedTab = 1
+                                },
+                                onOpenMasteryAnalytics = {
+                                    pendingLearnDest = LearnDestination.MasteryAnalytics
+                                    selectedTab = 1
+                                },
+                                onOpenAssignmentsAndGoals = {
+                                    pendingLearnDest = LearnDestination.AssignmentsAndGoals
+                                    selectedTab = 1
+                                },
+                                onOpenAiVideoStudio = {
+                                    pendingLearnDest = LearnDestination.AiVideoStudio
+                                    selectedTab = 1
+                                },
+                                onOpenBadgesAndXp = {
+                                    pendingLearnDest = LearnDestination.BadgesAndXp
+                                    selectedTab = 1
+                                },
+                                onRetakePromotionExam = { openPromotionExam() },
                                 isGuestMode = true,
                                 onRequestGoogleSignIn = onRequestGoogleSignIn
                             )
@@ -255,14 +326,47 @@ fun GuestStudyQuestHost(
                                     }
                                 },
                                 onClearAssessmentResult = { learnVm.clearAssessmentResult() },
-                                onReportQuestion = {
-                                    // Local note banner instead of Firestore write in Guest Mode
-                                },
+                                onReportQuestion = { },
                                 onAskAi = { prompt, studentQ, cls, subj ->
                                     learnVm.askAiDoubtSolver(prompt, studentQ, cls, subj, lang)
                                 },
                                 onResetAi = { learnVm.resetAiDoubtState() },
-                                reducedMotion = prefs.reducedMotion
+                                reducedMotion = prefs.reducedMotion,
+                                profile = profile,
+                                subjectAnalytics = subjectAnalytics,
+                                weakTopics = weakTopics,
+                                dailyChallengeQuestions = remember(mergedQuestions, profile.classId) {
+                                    learnVm.dailyChallengeQuestions(mergedQuestions, profile.classId)
+                                },
+                                dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(profile),
+                                dailyChallengeDateKey = learnVm.todayChallengeDateKey(),
+                                onCompletePomodoro = { subjId, mins ->
+                                    learnVm.completePomodoroSession(subjId, mins, isOnline) {
+                                        AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
+                                    }
+                                },
+                                onCompleteFlashcardDeck = { subjId, rev, mast ->
+                                    learnVm.recordFlashcardSession(subjId, rev, mast, isOnline) {
+                                        AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
+                                    }
+                                },
+                                onSubmitDailyChallenge = { qs, sel, txt ->
+                                    learnVm.completeDailyChallenge(qs, sel, txt, isOnline) {
+                                        AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
+                                    }
+                                },
+                                focusVm = focusVm,
+                                aiVideoVm = aiVideoVm,
+                                dailyStudySeries = dailyStudySeries,
+                                studyGoals = studyGoals,
+                                userBadges = userBadges,
+                                xpLedger = xpLedger,
+                                isGuestMode = true,
+                                onRequestGoogleSignIn = onRequestGoogleSignIn,
+                                onCreateStudyGoal = { t, gt, pt, s, tv, d -> guestVm.createStudyGoal(t, gt, pt, s, tv, d) },
+                                onClaimStudyGoal = { guestVm.claimStudyGoal(it) },
+                                onDeleteStudyGoal = { guestVm.deleteStudyGoal(it) },
+                                onSetExamOrQuizActive = { learnVm.setExamOrQuizActive(it) }
                             )
 
                             2 -> CompeteTabScreen(
@@ -384,7 +488,13 @@ fun GuestStudyQuestHost(
                                 },
                                 isGuestMode = true,
                                 onRequestGoogleSignIn = onRequestGoogleSignIn,
-                                onExitGuestMode = { guestVm.exitGuestModeToSignIn() }
+                                onExitGuestMode = { guestVm.exitGuestModeToSignIn() },
+                                userBadges = userBadges,
+                                xpLedger = xpLedger,
+                                dailyStudySeries = dailyStudySeries,
+                                onUpdateThemeMode = { guestVm.updateThemeMode(it) },
+                                onUpdateNotificationCategory = { c, e -> guestVm.updateNotificationCategory(c, e) },
+                                onRetakePromotionExam = { openPromotionExam() }
                             )
                         }
                     }
@@ -393,6 +503,11 @@ fun GuestStudyQuestHost(
 
             LottieCelebrationOverlay(
                 triggerKey = celebrationPulse,
+                reducedMotion = prefs.reducedMotion
+            )
+
+            GamificationCelebrationHost(
+                language = lang,
                 reducedMotion = prefs.reducedMotion
             )
         }

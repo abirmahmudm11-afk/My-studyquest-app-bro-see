@@ -7,8 +7,29 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+
+@Immutable
+data class StudyQuestSemanticColors(
+    val success: Color,
+    val successContainer: Color,
+    val onSuccessContainer: Color,
+    val warning: Color,
+    val warningContainer: Color
+)
+
+val LocalStudyQuestColors = staticCompositionLocalOf {
+    StudyQuestSemanticColors(
+        success = ScholarGreen,
+        successContainer = ScholarGreenContainer,
+        onSuccessContainer = OnScholarGreenContainer,
+        warning = AmberGold,
+        warningContainer = AmberGoldContainer
+    )
+}
 
 private val StudyQuestLightScheme = lightColorScheme(
     primary = CobaltPrimary,
@@ -23,14 +44,18 @@ private val StudyQuestLightScheme = lightColorScheme(
     onTertiary = PureWhite,
     tertiaryContainer = VioletContainer,
     onTertiaryContainer = OnVioletContainer,
-    background = PureWhite,
+    background = SoftSlateCanvas,
     onBackground = DeepInk,
     surface = PureWhite,
     onSurface = DeepInk,
-    surfaceVariant = CoolSurfaceVariant,
+    surfaceVariant = SoftSlateContainer,
     onSurfaceVariant = MutedSlate,
+    surfaceContainerLowest = PureWhite,
+    surfaceContainerLow = Color(0xFFF8FAFC),
+    surfaceContainer = SoftSlateContainer,
+    surfaceContainerHigh = CoolSurfaceVariant,
     outline = CoolOutline,
-    outlineVariant = CoolOutline,
+    outlineVariant = SubtleOutline,
     error = AccessibleRed,
     onError = PureWhite,
     errorContainer = AccessibleRedContainer,
@@ -56,6 +81,10 @@ private val StudyQuestDarkScheme = darkColorScheme(
     onSurface = DarkOnSurface,
     surfaceVariant = DarkMidnightSurfaceElevated,
     onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceContainerLowest = DarkMidnightBackground,
+    surfaceContainerLow = DarkMidnightSurface,
+    surfaceContainer = DarkMidnightSurfaceElevated,
+    surfaceContainerHigh = Color(0xFF263349),
     outline = DarkOutline,
     outlineVariant = DarkOutline.copy(alpha = 0.75f),
     error = DarkAccessibleRed,
@@ -79,10 +108,30 @@ fun StudyQuestTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) StudyQuestDarkScheme else StudyQuestLightScheme
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = studyQuestTypography(isBangla = isBangla),
-        shapes = StudyQuestShapes,
-        content = content
-    )
+    val semanticColors = if (darkTheme) {
+        StudyQuestSemanticColors(
+            success = DarkScholarGreen,
+            successContainer = DarkScholarGreenContainer,
+            onSuccessContainer = Color(0xFFDCFCE7),
+            warning = Color(0xFFFBBF24),
+            warningContainer = Color(0xFF78350F)
+        )
+    } else {
+        StudyQuestSemanticColors(
+            success = ScholarGreen,
+            successContainer = ScholarGreenContainer,
+            onSuccessContainer = OnScholarGreenContainer,
+            warning = AmberGold,
+            warningContainer = AmberGoldContainer
+        )
+    }
+
+    androidx.compose.runtime.CompositionLocalProvider(LocalStudyQuestColors provides semanticColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = studyQuestTypography(isBangla = isBangla),
+            shapes = StudyQuestShapes,
+            content = content
+        )
+    }
 }

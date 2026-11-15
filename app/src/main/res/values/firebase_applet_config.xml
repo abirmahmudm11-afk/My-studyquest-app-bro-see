@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <resources>
-    <string name="firestore_database_id" translatable="false">ai-studio-android-mystudyq-719c0ffb-55fd-44ef-90d5-ab98e99af24b</string>
-    <string name="recaptcha_site_key" translatable="false">6Ld-JiEuAAAAAEEFpdY950Mf19r-06wG2eyDcZkd</string>
+    <string name="firestore_database_id" translatable="false">ai-studio-android-mystudyq-37eddada-9e59-4998-ad25-20f895a8d606</string>
+    <string name="recaptcha_site_key" translatable="false">6Lf4dCEuAAAAAJzIJuM74G4nq39zFFhSWnbZ02Im</string>
 </resources>

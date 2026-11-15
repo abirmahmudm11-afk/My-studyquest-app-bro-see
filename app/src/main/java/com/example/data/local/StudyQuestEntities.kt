@@ -136,3 +136,63 @@ data class LocalStudyCircleNoteEntity(
     val reactionsCsv: String = "",
     val createdAtMs: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "local_study_sessions")
+data class LocalStudySessionEntity(
+    @PrimaryKey val id: String,
+    val userId: String,
+    val subjectId: String,
+    val mode: String,
+    val startedAtEpochMs: Long,
+    val endedAtEpochMs: Long,
+    val focusedSeconds: Long,
+    val pausedSeconds: Long,
+    val breakSeconds: Long,
+    val xpAwarded: Long,
+    val status: String,
+    val createdAtMs: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "local_study_goals")
+data class LocalStudyGoalEntity(
+    @PrimaryKey val id: String,
+    val userId: String,
+    val title: String,
+    val goalType: String,
+    val periodType: String,
+    val subjectId: String,
+    val targetValue: Long,
+    val currentValue: Long,
+    val difficulty: String,
+    val xpReward: Long,
+    val completed: Boolean,
+    val rewardClaimed: Boolean,
+    val deadlineEpochMs: Long,
+    val periodKey: String,
+    val updatedAtMs: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "local_badge_progress")
+data class LocalBadgeProgressEntity(
+    @PrimaryKey val badgeId: String,
+    val userId: String,
+    val progress: Long,
+    val target: Long,
+    val unlocked: Boolean,
+    val pinned: Boolean = false,
+    val favorite: Boolean = false,
+    val animationShown: Boolean = false,
+    val updatedAtMs: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "local_xp_ledger")
+data class LocalXpLedgerEntity(
+    @PrimaryKey val idempotencyKey: String,
+    val userId: String,
+    val sourceType: String,
+    val sourceId: String,
+    val xpDelta: Long,
+    val coinDelta: Long,
+    val description: String,
+    val createdAtMs: Long = System.currentTimeMillis()
+)

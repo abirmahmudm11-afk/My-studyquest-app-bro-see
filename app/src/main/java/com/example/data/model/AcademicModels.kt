@@ -184,3 +184,59 @@ data class QuestCatalogItem(
     val xpReward: Int,
     val coinReward: Int
 )
+
+enum class BadgeRarity(val id: String, val labelEn: String, val labelBn: String) {
+    COMMON("common", "Common", "সাধারণ"),
+    UNCOMMON("uncommon", "Uncommon", "বিরলপ্রায়"),
+    RARE("rare", "Rare", "বিরল"),
+    EPIC("epic", "Epic", "মহাকাব্যিক"),
+    LEGENDARY("legendary", "Legendary", "কিংবদন্তি")
+}
+
+enum class BadgeCategory(val id: String, val labelEn: String, val labelBn: String) {
+    STUDY("study", "Study", "অধ্যয়ন"),
+    STREAK("streak", "Streak", "স্ট্রিক"),
+    ASSIGNMENT("assignment", "Assignment", "অ্যাসাইনমেন্ট"),
+    EXAM("exam", "Exam", "পরীক্ষা"),
+    GOAL("goal", "Goal", "লক্ষ্য"),
+    CHALLENGE("challenge", "Challenge", "চ্যালেঞ্জ"),
+    COMMUNITY("community", "Community", "কমিউনিটি")
+}
+
+data class BadgeCatalogItem(
+    val id: String,
+    val category: BadgeCategory,
+    val rarity: BadgeRarity,
+    val titleEn: String,
+    val titleBn: String,
+    val descriptionEn: String,
+    val descriptionBn: String,
+    val metricKey: String,
+    val target: Long,
+    val xpBonus: Long
+)
+
+data class XpRuleConfig(
+    val lessonXp: Long = 20L,
+    val practiceXpPerCorrect: Long = 4L,
+    val examXpBase: Long = 30L,
+    val focusXpPerMinute: Long = 2L,
+    val dailyChallengeXp: Long = 45L,
+    val streakBonusPerDay: Long = 5L,
+    val communityHelpfulXp: Long = 15L,
+    val maxDailyFocusXp: Long = 240L,
+    val maxDailyCommunityXp: Long = 60L
+)
+
+data class FocusMusicTrack(
+    val id: String,
+    val category: String, // "focus", "relaxing", "background"
+    val titleEn: String,
+    val titleBn: String,
+    val subtitleEn: String,
+    val subtitleBn: String,
+    val baseFreqHz: Double,
+    val harmonicFreqHz: Double,
+    val tempoBpm: Int,
+    val mode: String // "binaural_pad", "rain_chime", "lofi_drone", "soft_bell"
+)

@@ -58,6 +58,8 @@ import com.example.core.StudyQuestStrings
 import com.example.data.local.LocalStudyCircleNoteEntity
 import com.example.data.model.BlockedUserDoc
 import com.example.data.model.ChatMessageDoc
+import com.example.data.model.CommunityCommentDoc
+import com.example.data.model.CommunityPostDoc
 import com.example.data.model.ConversationDoc
 import com.example.data.model.FriendRequestDoc
 import com.example.data.model.FriendshipDoc
@@ -110,7 +112,18 @@ fun FriendsTabScreen(
     onPostStudyCircleNote: (String, Boolean) -> Unit = { _, _ -> },
     onToggleCircleReaction: (LocalStudyCircleNoteEntity, String) -> Unit = { _, _ -> },
     onDeleteCircleNote: (String) -> Unit = {},
-    onRequestGoogleSignIn: () -> Unit = {}
+    onRequestGoogleSignIn: () -> Unit = {},
+    communityPosts: List<CommunityPostDoc> = emptyList(),
+    selectedCommunityPost: CommunityPostDoc? = null,
+    selectedPostComments: List<CommunityCommentDoc> = emptyList(),
+    onOpenCommunityPost: (CommunityPostDoc) -> Unit = {},
+    onCloseCommunityPost: () -> Unit = {},
+    onCreateCommunityPost: (subjectId: String, postType: String, title: String, body: String) -> Unit = { _, _, _, _ -> },
+    onAddCommunityComment: (CommunityPostDoc, String) -> Unit = { _, _ -> },
+    onToggleCommunityUpvote: (CommunityPostDoc) -> Unit = {},
+    onMarkCommentHelpful: (CommunityPostDoc, CommunityCommentDoc) -> Unit = { _, _ -> },
+    onReportCommunityPost: (CommunityPostDoc, String) -> Unit = { _, _ -> },
+    onDeleteOwnCommunityPost: (String) -> Unit = {}
 ) {
     if (activeConversation != null) {
         ChatConversationScreen(
@@ -180,6 +193,12 @@ fun FriendsTabScreen(
                 onClick = { selectedTab = 3 },
                 text = { Text(StudyQuestStrings.t(uiLanguage, "Groups", "গ্রুপ")) },
                 modifier = Modifier.testTag("friends_tab_groups")
+            )
+            Tab(
+                selected = selectedTab == 4,
+                onClick = { selectedTab = 4 },
+                text = { Text(StudyQuestStrings.t(uiLanguage, "Community", "কমিউনিটি")) },
+                modifier = Modifier.testTag("friends_tab_community")
             )
         }
 
@@ -528,6 +547,26 @@ fun FriendsTabScreen(
                     }
                 }
                 }
+            }
+
+            4 -> {
+                ClassCommunityBoard(
+                    myProfile = myProfile,
+                    uiLanguage = uiLanguage,
+                    posts = communityPosts,
+                    selectedPost = selectedCommunityPost,
+                    comments = selectedPostComments,
+                    isGuestMode = isGuestMode,
+                    onOpenPost = onOpenCommunityPost,
+                    onClosePost = onCloseCommunityPost,
+                    onCreatePost = onCreateCommunityPost,
+                    onAddComment = onAddCommunityComment,
+                    onToggleUpvote = onToggleCommunityUpvote,
+                    onMarkHelpful = onMarkCommentHelpful,
+                    onReportPost = onReportCommunityPost,
+                    onDeleteOwnPost = onDeleteOwnCommunityPost,
+                    onRequestGoogleSignIn = onRequestGoogleSignIn
+                )
             }
         }
     }

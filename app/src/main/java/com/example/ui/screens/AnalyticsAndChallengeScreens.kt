@@ -50,13 +50,17 @@ import com.example.data.local.LocalBookmarkEntity
 import com.example.data.model.PublicProfile
 import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
+import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.WeakTopicStat
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.ExamAccuracyTrendChart
 import com.example.ui.components.QuestionPracticeCard
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
+import com.example.ui.components.StudyTimeAndXpBarChart
+import com.example.ui.components.SubjectXpDistributionChart
 import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.RoseAlert
 import com.example.ui.theme.TealSecondary
@@ -229,6 +233,7 @@ fun MasteryAnalyticsScreen(
     reducedMotion: Boolean,
     subjectAnalytics: List<SubjectAnalyticsSummary>,
     weakTopics: List<WeakTopicStat>,
+    dailyStudySeries: List<DailyStudyMetric> = emptyList(),
     onBack: () -> Unit,
     onPracticeWeakTopic: (WeakTopicStat) -> Unit
 ) {
@@ -270,6 +275,27 @@ fun MasteryAnalyticsScreen(
                         containerColor = MaterialTheme.colorScheme.surface
                     )
                 }
+            )
+        }
+
+        item {
+            StudyTimeAndXpBarChart(
+                dailySeries = dailyStudySeries,
+                language = uiLanguage
+            )
+        }
+
+        item {
+            SubjectXpDistributionChart(
+                subjectAnalytics = subjectAnalytics,
+                language = uiLanguage
+            )
+        }
+
+        item {
+            ExamAccuracyTrendChart(
+                dailySeries = dailyStudySeries,
+                language = uiLanguage
             )
         }
 

@@ -707,6 +707,24 @@ fun AcademicSetupWizardScreen(
                 )
             }
         }
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("class_lock_policy_note")
+        ) {
+            Text(
+                text = StudyQuestStrings.t(
+                    language,
+                    "Academic Year Lock: Your selected class stays locked for this Bangladesh (Asia/Dhaka) academic year and automatically promotes every Jan 1 (even if you join late in December), unless the annual exam is not passed.",
+                    "শিক্ষাবর্ষ লক নীতি: নির্বাচিত শ্রেণি বর্তমান শিক্ষাবর্ষের জন্য লক থাকবে এবং প্রতি ১ জানুয়ারি স্বয়ংক্রিয়ভাবে পরবর্তী শ্রেণিতে উন্নীত হবে (বার্ষিক পরীক্ষায় অনুত্তীর্ণ না হলে)।"
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(12.dp)
+            )
+        }
 
         if (supportsGroups) {
             Text(

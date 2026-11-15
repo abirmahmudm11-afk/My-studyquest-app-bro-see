@@ -70,10 +70,15 @@ import com.example.data.model.PublicProfile
 import com.example.data.model.StudyPlanDoc
 import com.example.data.model.UserNotificationDoc
 import com.example.data.model.UserQuestDoc
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.WorkspacePremium
+import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.WeakTopicStat
 import com.example.ui.components.AnimatedCircularMasteryRing
 import com.example.ui.components.AnimatedCounterText
+import com.example.ui.components.CompactWeeklyStreakStrip
 import com.example.ui.components.GuestUpgradeBannerCard
 import com.example.ui.components.MascotTituCard
 import com.example.ui.components.QuestCard
@@ -82,9 +87,11 @@ import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
+import com.example.ui.components.StudyTimeAndXpBarChart
 import com.example.ui.components.SubjectCard
 import com.example.ui.components.SyncStatusPill
 import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.LocalStudyQuestColors
 import com.example.ui.theme.RoseAlert
 import com.example.ui.theme.SkyCyanAccent
 import com.example.ui.theme.TealSecondary
@@ -113,22 +120,31 @@ fun TodayTabScreen(
     onOpenAiDoubtSolver: () -> Unit,
     onOpenMessages: () -> Unit,
     subjectAnalytics: List<SubjectAnalyticsSummary> = emptyList(),
+    dailyStudySeries: List<DailyStudyMetric> = emptyList(),
     dailyChallengeDoneToday: Boolean = false,
     onOpenSubjectCategory: (AcademicSubject) -> Unit = {},
     onOpenFlashcardsVault: () -> Unit = {},
     onOpenPomodoro: () -> Unit = {},
     onOpenDailyChallenge: () -> Unit = {},
     onOpenMasteryAnalytics: () -> Unit = {},
+    onOpenAssignmentsAndGoals: () -> Unit = {},
+    onOpenAiVideoStudio: () -> Unit = {},
+    onOpenBadgesAndXp: () -> Unit = {},
+    onBuyStreakFreeze: () -> Unit = {},
+    onRetakePromotionExam: () -> Unit = {},
     isGuestMode: Boolean = false,
     onRequestGoogleSignIn: () -> Unit = {}
 ) {
     var showNotificationsSheet by remember { mutableStateOf(false) }
+    val semantic = LocalStudyQuestColors.current
 
     val dueRevisionCount = remember(revisions) {
         val now = System.currentTimeMillis()
         revisions.count { it.nextDueAtMs <= now }
     }
-    val xpWithinLevel = (profile.totalXp % 100L).toInt()
+    val (xpWithinLevel, xpRequiredForNext) = remember(profile.totalXp) {
+        StudyQuestStrings.xpIntoCurrentLevel(profile.totalXp)
+    }
     val dailyGoalProgress = (recentRecords.take(3).sumOf { it.xpAwarded.toInt() }).coerceAtMost(60)
     val categorySubjects = remember(profile.classId, profile.selectedSubjects) {
         val allForClass = BangladeshCurriculumCatalog.subjectsForClass(profile.classId)
@@ -238,13 +254,23 @@ fun TodayTabScreen(
                     }
                 ) {
                     LinearProgressIndicator(
-                        progress = { xpWithinLevel / 100f },
+                        progress = { (xpWithinLevel.toFloat() / xpRequiredForNext.toFloat()).coerceIn(0f, 1f) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(7.dp)
                             .clip(RoundedCornerShape(999.dp)),
                         color = SkyCyanAccent,
                         trackColor = Color.White.copy(alpha = 0.24f)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = StudyQuestStrings.t(
+                            language,
+                            "$xpWithinLevel / $xpRequiredForNext XP to Lv.${profile.overallLevel + 1}",
+                            "পরবর্তী লেভেলের জন্য ${StudyQuestStrings.formatDigits(xpWithinLevel, language)} / ${StudyQuestStrings.formatDigits(xpRequiredForNext, language)} XP"
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.85f)
                     )
                     Spacer(Modifier.height(10.dp))
                     FlowRow(
@@ -316,8 +342,101 @@ fun TodayTabScreen(
             }
         }
 
+        // Annual Class Holdback or Jan 1 Promotion Banner
+        if (profile.annualExamStatus == "failed") {
+            item {
+                StudyQuestCard(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.65f),
+                    modifier = Modifier.testTag("annual_exam_holdback_banner")
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = RoseAlert)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = StudyQuestStrings.t(
+                                    language,
+                                    "Class Holdback: Annual Exam Incomplete",
+                                    "শ্রেণি উন্নয়ন স্থগিত: বার্ষিক পরীক্ষা অসম্পূর্ণ"
+                                ),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = StudyQuestStrings.t(
+                                    language,
+                                    "You remain in ${StudyQuestStrings.classLabel(profile.classId, language)}. Pass the Promotion Exam (60%+) to advance.",
+                                    "আপনি বর্তমানে ${StudyQuestStrings.classLabel(profile.classId, language)}-এ আছেন। প্রোমোশন পরীক্ষায় ৬০%+ পেলে পরবর্তী শ্রেণিতে যাবেন।"
+                                ),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        Button(
+                            onClick = onRetakePromotionExam,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("retake_promotion_exam_btn")
+                        ) {
+                            Text(StudyQuestStrings.t(language, "Retake Exam", "পুনঃপরীক্ষা"))
+                        }
+                    }
+                }
+            }
+        } else if (!profile.promotedFromClassId.isNullOrBlank()) {
+            item {
+                StudyQuestCard(
+                    containerColor = semantic.successContainer,
+                    modifier = Modifier.testTag("annual_promotion_banner")
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = semantic.success)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = StudyQuestStrings.t(
+                                    language,
+                                    "Promoted to ${StudyQuestStrings.classLabel(profile.classId, language)}!",
+                                    "${StudyQuestStrings.classLabel(profile.classId, language)}-এ উন্নীত হয়েছেন!"
+                                ),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = semantic.onSuccessContainer
+                            )
+                            Text(
+                                text = StudyQuestStrings.t(
+                                    language,
+                                    "Jan 1 academic year promotion active (${profile.classLockedAcademicYear ?: ""}).",
+                                    "১ জানুয়ারি শিক্ষাবর্ষ অনুযায়ী স্বয়ংক্রিয় শ্রেণি উন্নয়ন সম্পন্ন হয়েছে।"
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = semantic.onSuccessContainer
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Duolingo-style 7-Day Daily Streak Strip + Streak Freeze
         item {
             StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
+                CompactWeeklyStreakStrip(
+                    streakCount = profile.streakCount,
+                    historyKeys = profile.streakHistoryKeys,
+                    freezeCount = profile.streakFreezeCount,
+                    language = language,
+                    onBuyFreeze = if (!isGuestMode) onBuyStreakFreeze else null,
+                    showBuyFreeze = !isGuestMode
+                )
+            }
+        }
+
+        item {
+            StaggeredEntrance(index = 3, reducedMotion = reducedMotion) {
                 val anyClaimable = quests.any { it.completed && !it.claimed }
                 MascotTituCard(
                     mood = if (anyClaimable) MascotMood.QUEST_COMPLETION else MascotMood.WELCOME,
@@ -450,8 +569,48 @@ fun TodayTabScreen(
                             Spacer(Modifier.width(6.dp))
                             Text(StudyQuestStrings.t(language, "AI Doubt Solver", "AI সমাধান"))
                         }
+                        FilledTonalButton(
+                            onClick = onOpenAssignmentsAndGoals,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("today_assignments_goals")
+                        ) {
+                            Icon(Icons.Filled.Assignment, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(StudyQuestStrings.t(language, "Goals & Tasks", "লক্ষ্য ও কাজ"))
+                        }
+                        FilledTonalButton(
+                            onClick = onOpenAiVideoStudio,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("today_ai_video_studio")
+                        ) {
+                            Icon(Icons.Filled.VideoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(StudyQuestStrings.t(language, "AI Storyboard", "AI ভিডিও স্টুডিও"))
+                        }
+                        FilledTonalButton(
+                            onClick = onOpenBadgesAndXp,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("today_badges_xp")
+                        ) {
+                            Icon(Icons.Filled.WorkspacePremium, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(StudyQuestStrings.t(language, "Badges & XP", "ব্যাজ ও XP"))
+                        }
                     }
                 }
+            }
+        }
+
+        // Native Compose Canvas 7-Day Study & XP Progress Chart
+        item {
+            StaggeredEntrance(index = 4, reducedMotion = reducedMotion) {
+                StudyTimeAndXpBarChart(
+                    dailySeries = dailyStudySeries,
+                    language = language
+                )
             }
         }
 

@@ -57,8 +57,11 @@ import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
+import androidx.compose.material.icons.filled.Schedule
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.GamificationCatalog
 import com.example.data.local.LocalSoloMatchEntity
+import com.example.data.model.CompetitionArchiveDoc
 import com.example.data.model.LeaderboardEntryDoc
 import com.example.data.model.MascotMood
 import com.example.data.model.MatchDoc
@@ -67,14 +70,19 @@ import com.example.data.model.MatchSubmissionDoc
 import com.example.data.model.PublicProfile
 import com.example.data.model.QuestionItem
 import com.example.data.model.TournamentDoc
+import com.example.data.repository.CompetitionRepository
+import com.example.data.repository.LeaderboardCategory
+import com.example.data.repository.LeaderboardPeriod
 import com.example.ui.components.EmptyStateView
 import com.example.ui.components.MascotTituCard
 import com.example.ui.components.RankTierBadge
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
+import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.LocalStudyQuestColors
 import com.example.ui.viewmodel.ActiveSoloSprintState
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -110,7 +118,12 @@ fun CompeteTabScreen(
     onStartSoloSprint: (classId: String, subjectId: String, mode: String, customTitle: String?) -> Unit = { _, _, _, _ -> },
     onAnswerSoloSprint: (isCorrect: Boolean, responseTimeMs: Long) -> Unit = { _, _ -> },
     onCloseSoloSprint: () -> Unit = {},
-    onRequestGoogleSignIn: () -> Unit = {}
+    onRequestGoogleSignIn: () -> Unit = {},
+    selectedCategory: LeaderboardCategory = LeaderboardCategory.XP,
+    selectedPeriod: LeaderboardPeriod = LeaderboardPeriod.WEEKLY,
+    competitionArchives: List<CompetitionArchiveDoc> = emptyList(),
+    onSelectCategory: (LeaderboardCategory) -> Unit = {},
+    onSelectPeriod: (LeaderboardPeriod) -> Unit = {}
 ) {
     if (activeSoloSprint != null) {
         SoloSpeedSprintScreen(
@@ -402,6 +415,11 @@ fun CompeteTabScreen(
                     uiLanguage = uiLanguage,
                     entries = leaderboard,
                     friendUids = friendProfiles.keys,
+                    selectedCategory = selectedCategory,
+                    selectedPeriod = selectedPeriod,
+                    competitionArchives = competitionArchives,
+                    onSelectCategory = onSelectCategory,
+                    onSelectPeriod = onSelectPeriod,
                     isGuestMode = isGuestMode
                 )
             }
@@ -530,22 +548,38 @@ private fun LeaderboardSubTab(
     uiLanguage: AppLanguage,
     entries: List<LeaderboardEntryDoc>,
     friendUids: Set<String>,
+    selectedCategory: LeaderboardCategory,
+    selectedPeriod: LeaderboardPeriod,
+    competitionArchives: List<CompetitionArchiveDoc>,
+    onSelectCategory: (LeaderboardCategory) -> Unit,
+    onSelectPeriod: (LeaderboardPeriod) -> Unit,
     isGuestMode: Boolean = false
 ) {
-    var scopeFilter by remember(isGuestMode) { mutableStateOf(if (isGuestMode) "class" else "friends") }
+    var scopeFilter by remember(isGuestMode) { mutableStateOf("class") }
+    val semantic = LocalStudyQuestColors.current
 
-    val filtered = remember(entries, scopeFilter, profile, friendUids, isGuestMode) {
+    val filtered = remember(entries, scopeFilter, selectedCategory, selectedPeriod, profile, friendUids, isGuestMode) {
         val base = when (scopeFilter) {
             "friends" -> entries.filter { it.userId == profile.userId || it.userId in friendUids }
             "class" -> entries.filter { it.classId == profile.classId }
             "national" -> if (isGuestMode) entries else entries.filter { it.optInNational }
             else -> entries
         }
-        when (scopeFilter) {
-            "weekly" -> base.sortedByDescending { it.weeklyPoints }
-            "seasonal" -> base.sortedByDescending { it.seasonalPoints }
-            else -> base.sortedByDescending { it.competitionRating }
-        }
+        base.sortedByDescending { CompetitionRepository.scoreFor(it, selectedCategory, selectedPeriod) }
+    }
+
+    val remainingMs = remember(selectedPeriod) {
+        GamificationCatalog.millisUntilPeriodEnd(selectedPeriod.id)
+    }
+    val remDays = (remainingMs / 86_400_000L).toInt()
+    val remHours = ((remainingMs % 86_400_000L) / 3_600_000L).toInt()
+
+    val categoryUnit = when (selectedCategory) {
+        LeaderboardCategory.XP -> "XP"
+        LeaderboardCategory.STUDY_TIME -> StudyQuestStrings.t(uiLanguage, "min", "মি.")
+        LeaderboardCategory.EXAM -> StudyQuestStrings.t(uiLanguage, "pts", "নম্বর")
+        LeaderboardCategory.ASSIGNMENT -> StudyQuestStrings.t(uiLanguage, "pts", "নম্বর")
+        LeaderboardCategory.CHALLENGE -> StudyQuestStrings.t(uiLanguage, "pts", "পয়েন্ট")
     }
 
     LazyColumn(
@@ -554,18 +588,74 @@ private fun LeaderboardSubTab(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
+            StudyQuestCard(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Filled.Schedule, contentDescription = null, tint = CobaltPrimary)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = StudyQuestStrings.t(
+                                uiLanguage,
+                                "${selectedPeriod.labelEn} ${selectedCategory.labelEn} Reset Countdown",
+                                "${selectedPeriod.labelBn} ${selectedCategory.labelBn} রিসেট"
+                            ),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = StudyQuestStrings.t(
+                                uiLanguage,
+                                "${remDays}d ${remHours}h remaining (Asia/Dhaka) • Top 3 earn Podium Badge!",
+                                "${StudyQuestStrings.formatDigits(remDays, uiLanguage)} দিন ${StudyQuestStrings.formatDigits(remHours, uiLanguage)} ঘণ্টা বাকি"
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        // Period Filter (Weekly / Two-Week / Monthly)
+        item {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                LeaderboardPeriod.entries.forEach { period ->
+                    FilterChip(
+                        selected = selectedPeriod == period,
+                        onClick = { onSelectPeriod(period) },
+                        label = { Text(StudyQuestStrings.t(uiLanguage, period.labelEn, period.labelBn)) },
+                        modifier = Modifier.testTag("lb_period_${period.id}")
+                    )
+                }
+            }
+        }
+
+        // 5 Category Filters (XP, Study Time, Exam, Assignment, Challenge)
+        item {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                LeaderboardCategory.entries.forEach { cat ->
+                    FilterChip(
+                        selected = selectedCategory == cat,
+                        onClick = { onSelectCategory(cat) },
+                        label = { Text(StudyQuestStrings.t(uiLanguage, cat.labelEn, cat.labelBn)) },
+                        modifier = Modifier.testTag("lb_cat_${cat.id}")
+                    )
+                }
+            }
+        }
+
+        // Scope Filter (My Class / Friends / National Opt-in)
+        item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(
-                    "friends" to StudyQuestStrings.t(uiLanguage, "Friends", "বন্ধু"),
                     "class" to StudyQuestStrings.t(uiLanguage, "My Class", "আমার শ্রেণি"),
-                    "weekly" to StudyQuestStrings.t(uiLanguage, "Weekly (Dhaka)", "সাপ্তাহিক"),
-                    "seasonal" to StudyQuestStrings.t(uiLanguage, "Season", "মৌসুম"),
+                    "friends" to StudyQuestStrings.t(uiLanguage, "Friends", "বন্ধু"),
                     "national" to StudyQuestStrings.t(uiLanguage, "National (Opt-in)", "জাতীয়")
                 ).forEach { (key, label) ->
                     FilterChip(
                         selected = scopeFilter == key,
                         onClick = { scopeFilter = key },
-                        label = { Text(label) }
+                        label = { Text(label) },
+                        modifier = Modifier.testTag("lb_scope_$key")
                     )
                 }
             }
@@ -590,7 +680,7 @@ private fun LeaderboardSubTab(
                     Text(
                         text = StudyQuestStrings.t(
                             uiLanguage,
-                            "Guest Leaderboard compares your progress against NCTB Tier Milestone Targets. Sign in with Google anytime to compete on live class & national rankings!",
+                            "Guest Leaderboard compares your progress against NCTB Tier Milestone Targets. Sign in with Google anytime to compete on live rankings!",
                             "গেস্ট লিডারবোর্ডে তোমার অগ্রগতি মাইলফলক লক্ষ্যমাত্রার সাথে তুলনা করা হচ্ছে।"
                         ),
                         style = MaterialTheme.typography.bodySmall
@@ -604,14 +694,27 @@ private fun LeaderboardSubTab(
                 EmptyStateView(
                     titleEn = "No leaderboard entries yet",
                     titleBn = "এখনো র‍্যাংকিং তৈরি হয়নি",
-                    subtitleEn = "Complete a live match to appear on StudyQuest leaderboards!",
-                    subtitleBn = "লাইভ ম্যাচ খেলে লিডারবোর্ডে স্থান করে নাও!",
+                    subtitleEn = "Complete a focus session, exam, assignment, or challenge to rank here!",
+                    subtitleBn = "ফোকাস, পরীক্ষা, অ্যাসাইনমেন্ট বা চ্যালেঞ্জ সম্পন্ন করে র‍্যাংকিংয়ে আসো!",
                     language = uiLanguage
                 )
             }
         } else {
             itemsIndexed(filtered, key = { _, e -> e.userId }) { idx, entry ->
                 val isMe = entry.userId == profile.userId
+                val score = CompetitionRepository.scoreFor(entry, selectedCategory, selectedPeriod)
+                val medal = when (idx) {
+                    0 -> "🥇 "
+                    1 -> "🥈 "
+                    2 -> "🥉 "
+                    else -> ""
+                }
+                val rankColor = when (idx) {
+                    0 -> AmberGold
+                    1 -> CobaltPrimary
+                    2 -> semantic.success
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
                 StudyQuestCard(
                     containerColor = if (isMe) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
                     else MaterialTheme.colorScheme.surface
@@ -621,12 +724,16 @@ private fun LeaderboardSubTab(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(
-                                text = "#${StudyQuestStrings.formatDigits(idx + 1, uiLanguage)}",
+                                text = "$medal#${StudyQuestStrings.formatDigits(idx + 1, uiLanguage)}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = CobaltPrimary
+                                color = rankColor
                             )
                             Column {
                                 Text(
@@ -635,7 +742,7 @@ private fun LeaderboardSubTab(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "${entry.studyQuestId} • ${entry.matchesWon}/${entry.matchesPlayed} W",
+                                    text = "${entry.studyQuestId} • ${entry.streakCount}d streak • ${entry.matchesWon}/${entry.matchesPlayed} W",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -643,12 +750,48 @@ private fun LeaderboardSubTab(
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             RankTierBadge(tier = entry.rankTier, language = uiLanguage)
-                            val pts = when (scopeFilter) {
-                                "weekly" -> "${entry.weeklyPoints} wk"
-                                "seasonal" -> "${entry.seasonalPoints} sea"
-                                else -> "${entry.competitionRating} pts"
-                            }
-                            Text(pts, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "${StudyQuestStrings.formatDigits(score, uiLanguage)} $categoryUnit",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (idx < 3) rankColor else CobaltPrimary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Previous Period Winners Archive
+        if (competitionArchives.isNotEmpty()) {
+            item {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = StudyQuestStrings.t(uiLanguage, "Previous Period Winners", "পূর্ববর্তী সময়ের বিজয়ীরা"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            items(competitionArchives.take(4), key = { it.id }) { arch ->
+                StudyQuestCard {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = AmberGold)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${arch.periodKey} • ${arch.category.uppercase()}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            val names = arch.winners.mapIndexed { i, w ->
+                                val name = w["displayName"]?.toString() ?: "Student"
+                                val sc = w["score"]?.toString() ?: "0"
+                                "#${i + 1} $name ($sc)"
+                            }.joinToString(" • ")
+                            Text(
+                                text = names.ifBlank { StudyQuestStrings.t(uiLanguage, "Archive recorded", "আর্কাইভ সংরক্ষিত") },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }

@@ -29,6 +29,15 @@
         "dailyGoalMinutes": { "type": "integer" },
         "streakCount": { "type": "integer" },
         "lastChallengeDateKey": { "type": "string" },
+        "classLockedAcademicYear": { "type": "integer" },
+        "annualExamStatus": { "type": "string", "enum": ["pending", "passed", "failed"] },
+        "promotedFromClassId": { "type": "string" },
+        "streakHistoryKeys": { "type": "array" },
+        "streakFreezeCount": { "type": "integer" },
+        "featuredBadgeId": { "type": "string" },
+        "pinnedBadgeIds": { "type": "array" },
+        "unlockedTrophyTitles": { "type": "array" },
+        "totalFocusMinutes": { "type": "integer" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -51,16 +60,26 @@
     },
     "UserPreferences": {
       "title": "UserPreferences",
-      "description": "Owner-only language, accessibility, motion, audio, and notification preferences.",
+      "description": "Owner-only language, theme, accessibility, motion, audio, and categorized notification preferences.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
         "uiLanguage": { "type": "string", "enum": ["bn", "en"] },
         "questionLanguage": { "type": "string", "enum": ["bn", "en"] },
         "darkMode": { "type": "boolean" },
+        "themeMode": { "type": "string", "enum": ["system", "light", "dark"] },
         "reducedMotion": { "type": "boolean" },
         "soundEnabled": { "type": "boolean" },
         "quietHoursEnabled": { "type": "boolean" },
+        "notifStudyEnabled": { "type": "boolean" },
+        "notifXpEnabled": { "type": "boolean" },
+        "notifBadgeEnabled": { "type": "boolean" },
+        "notifAssignmentEnabled": { "type": "boolean" },
+        "notifCompetitionEnabled": { "type": "boolean" },
+        "notifExamEnabled": { "type": "boolean" },
+        "notifCommunityEnabled": { "type": "boolean" },
+        "focusMusicVolume": { "type": "number" },
+        "musicDuringBreak": { "type": "boolean" },
         "dailyGoalXp": { "type": "integer" },
         "weeklyGoalMinutes": { "type": "integer" },
         "updatedAt": { "type": "string", "format": "date-time" }
@@ -69,11 +88,11 @@
     },
     "LearningRecord": {
       "title": "LearningRecord",
-      "description": "Owner-only persisted lesson completion, practice session, mock exam attempt, bookmark, or revision state.",
+      "description": "Owner-only persisted lesson completion, practice session, mock exam, focus, assignment, goal, or video activity.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "recordType": { "type": "string", "enum": ["lesson", "practice", "exam", "bookmark", "revision", "pomodoro", "flashcard", "daily_challenge"] },
+        "recordType": { "type": "string", "enum": ["lesson", "practice", "exam", "bookmark", "revision", "pomodoro", "flashcard", "daily_challenge", "focus_session", "assignment", "goal", "promotion_exam", "ai_video", "community"] },
         "refId": { "type": "string" },
         "subjectId": { "type": "string" },
         "chapterId": { "type": "string" },
@@ -91,7 +110,7 @@
     },
     "XpTransaction": {
       "title": "XpTransaction",
-      "description": "Append-only XP and Coin transaction ledger entry with idempotency key.",
+      "description": "Append-only XP and Coin transaction ledger entry with idempotency key and description.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
@@ -99,6 +118,7 @@
         "sourceId": { "type": "string" },
         "xpDelta": { "type": "integer" },
         "coinDelta": { "type": "integer" },
+        "description": { "type": "string" },
         "idempotencyKey": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
@@ -142,7 +162,7 @@
     },
     "UserNotification": {
       "title": "UserNotification",
-      "description": "In-app notification record.",
+      "description": "In-app categorized notification record.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
@@ -154,6 +174,133 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "category", "title", "body", "read", "createdAt"]
+    },
+    "UserBadge": {
+      "title": "UserBadge",
+      "description": "User-earned badge progress, pin/favorite state, and one-time unlock animation tracking.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "badgeId": { "type": "string" },
+        "category": { "type": "string", "enum": ["study", "streak", "assignment", "exam", "goal", "challenge", "community"] },
+        "rarity": { "type": "string", "enum": ["common", "uncommon", "rare", "epic", "legendary"] },
+        "progress": { "type": "integer" },
+        "target": { "type": "integer" },
+        "unlocked": { "type": "boolean" },
+        "pinned": { "type": "boolean" },
+        "favorite": { "type": "boolean" },
+        "animationShown": { "type": "boolean" },
+        "unlockedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "badgeId", "category", "rarity", "progress", "target", "unlocked", "updatedAt"]
+    },
+    "BadgeDefinition": {
+      "title": "BadgeDefinition",
+      "description": "Admin-configurable badge definition and threshold.",
+      "type": "object",
+      "properties": {
+        "badgeId": { "type": "string" },
+        "category": { "type": "string", "enum": ["study", "streak", "assignment", "exam", "goal", "challenge", "community"] },
+        "rarity": { "type": "string", "enum": ["common", "uncommon", "rare", "epic", "legendary"] },
+        "titleEn": { "type": "string" },
+        "titleBn": { "type": "string" },
+        "descriptionEn": { "type": "string" },
+        "descriptionBn": { "type": "string" },
+        "metricKey": { "type": "string" },
+        "target": { "type": "integer" },
+        "xpBonus": { "type": "integer" },
+        "enabled": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["badgeId", "category", "rarity", "titleEn", "titleBn", "target", "xpBonus", "enabled", "updatedAt"]
+    },
+    "StudySession": {
+      "title": "StudySession",
+      "description": "Timestamp-verified study focus session with anti-overlap and active focus time.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "mode": { "type": "string", "enum": ["pomodoro", "deep_focus", "custom"] },
+        "startedAtEpochMs": { "type": "integer" },
+        "endedAtEpochMs": { "type": "integer" },
+        "focusedSeconds": { "type": "integer" },
+        "pausedSeconds": { "type": "integer" },
+        "breakSeconds": { "type": "integer" },
+        "xpAwarded": { "type": "integer" },
+        "status": { "type": "string", "enum": ["completed", "stopped", "flagged"] },
+        "idempotencyKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "subjectId", "mode", "startedAtEpochMs", "endedAtEpochMs", "focusedSeconds", "xpAwarded", "status", "idempotencyKey", "createdAt"]
+    },
+    "StudyGoal": {
+      "title": "StudyGoal",
+      "description": "Personal daily/weekly/subject study goal with verified minimum thresholds.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "goalType": { "type": "string", "enum": ["time_minutes", "questions_solved", "chapters_finished", "sessions_count"] },
+        "periodType": { "type": "string", "enum": ["daily", "weekly", "custom"] },
+        "subjectId": { "type": "string" },
+        "targetValue": { "type": "integer" },
+        "currentValue": { "type": "integer" },
+        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+        "xpReward": { "type": "integer" },
+        "completed": { "type": "boolean" },
+        "rewardClaimed": { "type": "boolean" },
+        "deadlineEpochMs": { "type": "integer" },
+        "periodKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "goalType", "periodType", "subjectId", "targetValue", "currentValue", "difficulty", "xpReward", "completed", "rewardClaimed", "periodKey", "createdAt", "updatedAt"]
+    },
+    "AssignmentDefinition": {
+      "title": "AssignmentDefinition",
+      "description": "Curriculum assignment or multi-week study challenge.",
+      "type": "object",
+      "properties": {
+        "titleEn": { "type": "string" },
+        "titleBn": { "type": "string" },
+        "descriptionEn": { "type": "string" },
+        "descriptionBn": { "type": "string" },
+        "assignmentType": { "type": "string", "enum": ["daily", "weekly", "two_week", "monthly", "subject", "chapter", "timed", "question", "mcq", "challenge"] },
+        "classId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+        "targetCount": { "type": "integer" },
+        "durationLimitMinutes": { "type": "integer" },
+        "xpReward": { "type": "integer" },
+        "coinReward": { "type": "integer" },
+        "active": { "type": "boolean" },
+        "periodKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["titleEn", "titleBn", "assignmentType", "classId", "subjectId", "difficulty", "targetCount", "xpReward", "active", "periodKey", "createdAt", "updatedAt"]
+    },
+    "AssignmentSubmission": {
+      "title": "AssignmentSubmission",
+      "description": "Owner-only student assignment progress and verified one-time completion.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "assignmentId": { "type": "string" },
+        "periodKey": { "type": "string" },
+        "progress": { "type": "integer" },
+        "target": { "type": "integer" },
+        "completed": { "type": "boolean" },
+        "score": { "type": "number" },
+        "xpAwarded": { "type": "integer" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "assignmentId", "periodKey", "progress", "target", "completed", "xpAwarded", "updatedAt"]
     },
     "AcademicContent": {
       "title": "AcademicContent",
@@ -319,7 +466,7 @@
     },
     "LeaderboardEntry": {
       "title": "LeaderboardEntry",
-      "description": "Separated competition leaderboard entry for weekly, seasonal, class, subject, and opt-in national rankings.",
+      "description": "Segregated competition leaderboard entry across Study Time, XP, Exam, Assignment, and Challenge metrics and Weekly/Biweekly/Monthly periods.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
@@ -331,8 +478,25 @@
         "subjectId": { "type": "string" },
         "seasonId": { "type": "string" },
         "weekKey": { "type": "string" },
+        "biweekKey": { "type": "string" },
+        "monthKey": { "type": "string" },
         "weeklyPoints": { "type": "integer" },
         "seasonalPoints": { "type": "integer" },
+        "weeklyStudyMinutes": { "type": "integer" },
+        "weeklyXp": { "type": "integer" },
+        "weeklyExamScore": { "type": "integer" },
+        "weeklyAssignmentScore": { "type": "integer" },
+        "weeklyChallengeScore": { "type": "integer" },
+        "biweeklyStudyMinutes": { "type": "integer" },
+        "biweeklyXp": { "type": "integer" },
+        "biweeklyExamScore": { "type": "integer" },
+        "biweeklyAssignmentScore": { "type": "integer" },
+        "biweeklyChallengeScore": { "type": "integer" },
+        "monthlyStudyMinutes": { "type": "integer" },
+        "monthlyXp": { "type": "integer" },
+        "monthlyExamScore": { "type": "integer" },
+        "monthlyAssignmentScore": { "type": "integer" },
+        "monthlyChallengeScore": { "type": "integer" },
         "competitionRating": { "type": "integer" },
         "rankTier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master"] },
         "optInNational": { "type": "boolean" },
@@ -342,6 +506,20 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "displayName", "studyQuestId", "classId", "seasonId", "weekKey", "weeklyPoints", "seasonalPoints", "competitionRating", "rankTier", "optInNational", "updatedAt"]
+    },
+    "CompetitionArchive": {
+      "title": "CompetitionArchive",
+      "description": "Archived final top-3 winners and trophy snapshots for past weekly, biweekly, and monthly competition periods.",
+      "type": "object",
+      "properties": {
+        "periodKey": { "type": "string" },
+        "periodType": { "type": "string", "enum": ["weekly", "biweekly", "monthly"] },
+        "category": { "type": "string", "enum": ["study_time", "xp", "exam", "assignment", "challenge"] },
+        "classId": { "type": "string" },
+        "winners": { "type": "array" },
+        "archivedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["periodKey", "periodType", "category", "winners", "archivedAt"]
     },
     "Tournament": {
       "title": "Tournament",
@@ -361,13 +539,110 @@
       },
       "required": ["titleEn", "titleBn", "classId", "subjectId", "status", "participantUids", "maxParticipants", "rewardCoins", "createdAt", "updatedAt"]
     },
+    "CommunityPost": {
+      "title": "CommunityPost",
+      "description": "Class-locked peer learning community post.",
+      "type": "object",
+      "properties": {
+        "authorUid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatarId": { "type": "string" },
+        "authorClassId": { "type": "string" },
+        "classId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "postType": { "type": "string", "enum": ["question", "study_help", "discussion", "tip", "resource"] },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "upvoterUids": { "type": "array" },
+        "commentCount": { "type": "integer" },
+        "flagged": { "type": "boolean" },
+        "hidden": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorUid", "authorName", "classId", "subjectId", "postType", "title", "body", "createdAt", "updatedAt"]
+    },
+    "CommunityComment": {
+      "title": "CommunityComment",
+      "description": "Reply or helpful answer on a class community post.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "classId": { "type": "string" },
+        "body": { "type": "string" },
+        "upvoterUids": { "type": "array" },
+        "isHelpful": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "authorUid", "authorName", "classId", "body", "createdAt"]
+    },
+    "AiVideoJob": {
+      "title": "AiVideoJob",
+      "description": "User AI video storyboard generation job lifecycle.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "sourceType": { "type": "string", "enum": ["pdf", "text", "chapter"] },
+        "sourceTitle": { "type": "string" },
+        "classId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "status": { "type": "string", "enum": ["queued", "processing", "completed", "failed"] },
+        "progressPercent": { "type": "integer" },
+        "errorMessage": { "type": "string" },
+        "videoId": { "type": "string" },
+        "externalRenderStatus": { "type": "string", "enum": ["unconfigured", "queued", "completed", "failed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "sourceType", "sourceTitle", "classId", "subjectId", "status", "progressPercent", "createdAt", "updatedAt"]
+    },
+    "LearningVideo": {
+      "title": "LearningVideo",
+      "description": "Generated interactive AI storyboard video lesson with captions, script, and linked quiz.",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string" },
+        "title": { "type": "string" },
+        "classId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "durationSeconds": { "type": "integer" },
+        "summary": { "type": "string" },
+        "scenesJson": { "type": "string" },
+        "quizJson": { "type": "string" },
+        "visibility": { "type": "string", "enum": ["private", "public"] },
+        "savedByUids": { "type": "array" },
+        "lastWatchedScene": { "type": "integer" },
+        "externalRenderStatus": { "type": "string", "enum": ["unconfigured", "queued", "completed", "failed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "title", "classId", "subjectId", "durationSeconds", "scenesJson", "visibility", "createdAt", "updatedAt"]
+    },
+    "UserSubscription": {
+      "title": "UserSubscription",
+      "description": "Subscription tier and ad-free entitlement record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "tier": { "type": "string", "enum": ["free", "premium"] },
+        "billingProvider": { "type": "string", "enum": ["google_play_unconfigured", "google_play"] },
+        "adEnabled": { "type": "boolean" },
+        "expiresAtEpochMs": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "tier", "billingProvider", "adEnabled", "updatedAt"]
+    },
     "ModerationCase": {
       "title": "ModerationCase",
-      "description": "Safety report for message, user, group, question, or match dispute.",
+      "description": "Safety report for message, user, group, question, match, or community post.",
       "type": "object",
       "properties": {
         "reporterUid": { "type": "string" },
-        "targetType": { "type": "string", "enum": ["user", "message", "group", "question", "match"] },
+        "targetType": { "type": "string", "enum": ["user", "message", "group", "question", "match", "community_post", "community_comment"] },
         "targetId": { "type": "string" },
         "reason": { "type": "string" },
         "details": { "type": "string" },
@@ -408,7 +683,7 @@
     },
     "SystemSettings": {
       "title": "SystemSettings",
-      "description": "Global platform feature toggles and season metadata.",
+      "description": "Global platform feature toggles, XP rules, billing/ad provider config flags, and season metadata.",
       "type": "object",
       "properties": {
         "aiSolverEnabled": { "type": "boolean" },
@@ -416,6 +691,10 @@
         "seasonNameEn": { "type": "string" },
         "seasonNameBn": { "type": "string" },
         "weeklyResetTz": { "type": "string" },
+        "xpRulesJson": { "type": "string" },
+        "billingConfigured": { "type": "boolean" },
+        "adMobConfigured": { "type": "boolean" },
+        "externalVideoRendererConfigured": { "type": "boolean" },
         "updatedByUid": { "type": "string" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -431,6 +710,18 @@
     "/users/{userId}/quests/{questId}": { "schema": { "$ref": "#/entities/UserQuest" }, "description": "Owner-only quest progress" },
     "/users/{userId}/study_plans/{planId}": { "schema": { "$ref": "#/entities/StudyPlanItem" }, "description": "Owner-only study planner items" },
     "/users/{userId}/notifications/{notifId}": { "schema": { "$ref": "#/entities/UserNotification" }, "description": "Owner-only in-app notifications" },
+    "/users/{userId}/badges/{badgeId}": { "schema": { "$ref": "#/entities/UserBadge" }, "description": "Owner-only earned badge states and showcase pins" },
+    "/users/{userId}/study_sessions/{sessionId}": { "schema": { "$ref": "#/entities/StudySession" }, "description": "Owner-only verified focus session timestamps" },
+    "/users/{userId}/study_goals/{goalId}": { "schema": { "$ref": "#/entities/StudyGoal" }, "description": "Owner-only personal study goals" },
+    "/users/{userId}/assignment_submissions/{assignmentId}": { "schema": { "$ref": "#/entities/AssignmentSubmission" }, "description": "Owner-only verified assignment submissions" },
+    "/users/{userId}/ai_video_jobs/{jobId}": { "schema": { "$ref": "#/entities/AiVideoJob" }, "description": "Owner-only AI video storyboard generation jobs" },
+    "/users/{userId}/subscription/{docId}": { "schema": { "$ref": "#/entities/UserSubscription" }, "description": "Owner subscription tier & ad-free entitlement" },
+    "/badge_definitions/{badgeId}": { "schema": { "$ref": "#/entities/BadgeDefinition" }, "description": "Global badge catalog and unlock thresholds" },
+    "/assignments/{assignmentId}": { "schema": { "$ref": "#/entities/AssignmentDefinition" }, "description": "Global assignments and period challenges" },
+    "/competition_archives/{periodKey}": { "schema": { "$ref": "#/entities/CompetitionArchive" }, "description": "Archived weekly, biweekly, and monthly competition winners" },
+    "/community_posts/{postId}": { "schema": { "$ref": "#/entities/CommunityPost" }, "description": "Class-locked peer learning community posts" },
+    "/community_posts/{postId}/comments/{commentId}": { "schema": { "$ref": "#/entities/CommunityComment" }, "description": "Replies on class community posts" },
+    "/learning_videos/{videoId}": { "schema": { "$ref": "#/entities/LearningVideo" }, "description": "AI-generated interactive storyboard learning videos" },
     "/academic_content/{contentId}": { "schema": { "$ref": "#/entities/AcademicContent" }, "description": "Published & editorial Bangladesh curriculum content" },
     "/friend_requests/{requestId}": { "schema": { "$ref": "#/entities/FriendRequest" }, "description": "Friend discovery requests" },
     "/friendships/{friendshipId}": { "schema": { "$ref": "#/entities/Friendship" }, "description": "Mutual accepted friendships" },
@@ -440,7 +731,7 @@
     "/match_requests/{requestId}": { "schema": { "$ref": "#/entities/MatchRequest" }, "description": "Quick battle matchmaking tickets" },
     "/matches/{matchId}": { "schema": { "$ref": "#/entities/Match" }, "description": "Live multiplayer matches and private rooms" },
     "/matches/{matchId}/submissions/{submissionId}": { "schema": { "$ref": "#/entities/MatchSubmission" }, "description": "Verified match answer submissions" },
-    "/leaderboard_entries/{entryId}": { "schema": { "$ref": "#/entities/LeaderboardEntry" }, "description": "Weekly, seasonal, class, subject, and opt-in national leaderboard rows" },
+    "/leaderboard_entries/{entryId}": { "schema": { "$ref": "#/entities/LeaderboardEntry" }, "description": "Weekly, biweekly, monthly, seasonal, class, subject, and opt-in national leaderboard rows" },
     "/tournaments/{tournamentId}": { "schema": { "$ref": "#/entities/Tournament" }, "description": "Structured StudyQuest tournaments" },
     "/moderation_cases/{caseId}": { "schema": { "$ref": "#/entities/ModerationCase" }, "description": "Safety reports and moderation workflow" },
     "/admin_users/{uid}": { "schema": { "$ref": "#/entities/AdminUser" }, "description": "Role-based Admin Studio authorization" },

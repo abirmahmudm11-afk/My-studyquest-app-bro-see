@@ -138,4 +138,47 @@ interface StudyQuestDao {
 
     @Query("DELETE FROM local_study_circle_notes WHERE id = :noteId")
     suspend fun deleteStudyCircleNote(noteId: String)
+
+    // --- Local Focus Study Sessions ---
+    @Query("SELECT * FROM local_study_sessions WHERE userId = :userId ORDER BY endedAtEpochMs DESC")
+    fun observeLocalStudySessions(userId: String): Flow<List<LocalStudySessionEntity>>
+
+    @Query("SELECT * FROM local_study_sessions WHERE userId = :userId ORDER BY endedAtEpochMs DESC")
+    suspend fun getLocalStudySessions(userId: String): List<LocalStudySessionEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLocalStudySession(session: LocalStudySessionEntity)
+
+    // --- Local Personal Study Goals ---
+    @Query("SELECT * FROM local_study_goals WHERE userId = :userId ORDER BY updatedAtMs DESC")
+    fun observeLocalStudyGoals(userId: String): Flow<List<LocalStudyGoalEntity>>
+
+    @Query("SELECT * FROM local_study_goals WHERE userId = :userId")
+    suspend fun getLocalStudyGoals(userId: String): List<LocalStudyGoalEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertLocalStudyGoal(goal: LocalStudyGoalEntity)
+
+    @Query("DELETE FROM local_study_goals WHERE id = :goalId")
+    suspend fun deleteLocalStudyGoal(goalId: String)
+
+    // --- Local Badges ---
+    @Query("SELECT * FROM local_badge_progress WHERE userId = :userId")
+    fun observeLocalBadges(userId: String): Flow<List<LocalBadgeProgressEntity>>
+
+    @Query("SELECT * FROM local_badge_progress WHERE userId = :userId")
+    suspend fun getLocalBadges(userId: String): List<LocalBadgeProgressEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertLocalBadge(badge: LocalBadgeProgressEntity)
+
+    // --- Local XP Ledger ---
+    @Query("SELECT * FROM local_xp_ledger WHERE userId = :userId ORDER BY createdAtMs DESC LIMIT 100")
+    fun observeLocalXpLedger(userId: String): Flow<List<LocalXpLedgerEntity>>
+
+    @Query("SELECT * FROM local_xp_ledger WHERE idempotencyKey = :key LIMIT 1")
+    suspend fun getLocalXpEntry(key: String): LocalXpLedgerEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertLocalXpEntry(entry: LocalXpLedgerEntity)
 }

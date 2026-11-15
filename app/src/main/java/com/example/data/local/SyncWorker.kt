@@ -80,6 +80,11 @@ class SyncOfflineRecordsWorker(
                         )
                     )
                     if (action.xpAwarded > 0) {
+                        val pSnap = runCatching { profileRef.get().await() }.getOrNull()
+                        val curXp = pSnap?.getLong("totalXp") ?: 0L
+                        val nextXp = curXp + action.xpAwarded.toLong()
+                        val nextLevel = com.example.core.StudyQuestStrings.levelForXp(nextXp)
+                        val nextTitle = com.example.core.StudyQuestStrings.levelTitle(nextLevel.toInt(), AppLanguage.ENGLISH)
                         batch.set(
                             ledgerRef,
                             mapOf(
@@ -95,7 +100,9 @@ class SyncOfflineRecordsWorker(
                         batch.update(
                             profileRef,
                             mapOf(
-                                "totalXp" to FieldValue.increment(action.xpAwarded.toLong()),
+                                "totalXp" to nextXp,
+                                "overallLevel" to nextLevel,
+                                "levelTitle" to nextTitle,
                                 "coins" to FieldValue.increment(((action.xpAwarded / 3).coerceAtLeast(1)).toLong()),
                                 "updatedAt" to FieldValue.serverTimestamp()
                             )

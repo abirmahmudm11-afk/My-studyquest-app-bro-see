@@ -8,6 +8,7 @@ import com.example.core.ConnectivityObserver
 import com.example.core.LocalUserPreferences
 import com.example.core.StudyQuestPreferences
 import com.example.core.StudyQuestStrings
+import com.example.core.ThemeMode
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.local.LocalSoloMatchEntity
 import com.example.data.local.LocalStudyCircleNoteEntity
@@ -15,10 +16,14 @@ import com.example.data.model.LeaderboardEntryDoc
 import com.example.data.model.PublicProfile
 import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
+import com.example.data.model.StudyGoalDoc
 import com.example.data.model.TournamentDoc
+import com.example.data.model.UserBadgeDoc
 import com.example.data.model.UserNotificationDoc
 import com.example.data.model.UserQuestDoc
+import com.example.data.model.XpTransactionDoc
 import com.example.data.repository.AiDoubtSolverRepository
+import com.example.data.repository.GamificationEngine
 import com.example.data.repository.GuestDataRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,7 +58,8 @@ class GuestSessionViewModel(
     private val preferences: StudyQuestPreferences,
     private val guestRepo: GuestDataRepository,
     private val aiRepo: AiDoubtSolverRepository,
-    connectivityObserver: ConnectivityObserver
+    connectivityObserver: ConnectivityObserver,
+    private val gamificationEngine: GamificationEngine? = null
 ) : ViewModel() {
 
     val localPreferences: StateFlow<LocalUserPreferences> = preferences.preferencesFlow
@@ -92,6 +98,18 @@ class GuestSessionViewModel(
 
     val notifications: StateFlow<List<UserNotificationDoc>> = localPreferences
         .map { guestRepo.guestWelcomeNotifications(it.uiLanguage, it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val studyGoals: StateFlow<List<StudyGoalDoc>> = (gamificationEngine?.observeStudyGoals(GuestDataRepository.GUEST_UID)
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val xpLedger: StateFlow<List<XpTransactionDoc>> = (gamificationEngine?.observeXpLedger(GuestDataRepository.GUEST_UID)
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val badges: StateFlow<List<UserBadgeDoc>> = (gamificationEngine?.observeUserBadges(GuestDataRepository.GUEST_UID)
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
     private val _selectedCircleChannel = MutableStateFlow("ssc_math")
@@ -321,6 +339,10 @@ class GuestSessionViewModel(
         viewModelScope.launch { preferences.setDarkMode(enabled) }
     }
 
+    fun updateThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { preferences.setThemeMode(mode) }
+    }
+
     fun updateReducedMotion(enabled: Boolean) {
         viewModelScope.launch { preferences.setReducedMotion(enabled) }
     }
@@ -335,6 +357,41 @@ class GuestSessionViewModel(
 
     fun updateNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch { preferences.setNotificationsEnabled(enabled) }
+    }
+
+    fun updateNotificationCategory(category: String, enabled: Boolean) {
+        viewModelScope.launch { preferences.setNotificationCategoryEnabled(category, enabled) }
+    }
+
+    fun createStudyGoal(
+        title: String,
+        goalType: String,
+        periodType: String,
+        subjectId: String,
+        targetValue: Long,
+        difficulty: String
+    ) {
+        viewModelScope.launch {
+            val res = gamificationEngine?.createStudyGoal(
+                GuestDataRepository.GUEST_UID, title, goalType, periodType, subjectId, targetValue, difficulty
+            ) ?: Result.failure(IllegalStateException("Unavailable"))
+            res.onSuccess { _bannerMessage.value = "Goal saved locally!" }
+                .onFailure { _bannerMessage.value = it.localizedMessage }
+        }
+    }
+
+    fun claimStudyGoal(goal: StudyGoalDoc) {
+        viewModelScope.launch {
+            val res = gamificationEngine?.claimGoalReward(GuestDataRepository.GUEST_UID, goal)
+                ?: Result.failure(IllegalStateException("Unavailable"))
+            res.onSuccess { xp -> if (xp > 0) _bannerMessage.value = "+$xp XP claimed!" }
+        }
+    }
+
+    fun deleteStudyGoal(goalId: String) {
+        viewModelScope.launch {
+            gamificationEngine?.deleteStudyGoal(GuestDataRepository.GUEST_UID, goalId)
+        }
     }
 
     fun exportGuestData() {

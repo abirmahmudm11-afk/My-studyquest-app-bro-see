@@ -25,11 +25,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,9 +42,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
+import com.example.data.model.XpRuleConfig
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.theme.CobaltPrimary
 import com.example.ui.viewmodel.AdminStudioViewModel
+import org.json.JSONObject
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -59,9 +62,12 @@ fun AdminStudioScreen(
     val content by viewModel.academicContent.collectAsStateWithLifecycle()
     val cases by viewModel.moderationCases.collectAsStateWithLifecycle()
     val logs by viewModel.auditLogs.collectAsStateWithLifecycle()
+    val badgeDefs by viewModel.badgeDefinitions.collectAsStateWithLifecycle()
+    val allAssignments by viewModel.allAssignments.collectAsStateWithLifecycle()
+    val flaggedPosts by viewModel.flaggedPosts.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableStateOf(0) } // 0=Editorial, 1=Moderation, 2=System & Tournaments, 3=Audit
+    var selectedTab by remember { mutableIntStateOf(0) } // 0=Editorial, 1=Reports & Community, 2=XP/Badges/Tasks, 3=System, 4=Audit
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -89,11 +95,12 @@ fun AdminStudioScreen(
             }
         }
 
-        TabRow(selectedTabIndex = selectedTab) {
+        ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 12.dp) {
             Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Editorial") })
-            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Reports (${cases.count { it.status == "open" }})") })
-            Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("System") })
-            Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Audit") })
+            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Moderation (${cases.count { it.status == "open" } + flaggedPosts.size})") })
+            Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("XP & Tasks") })
+            Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("System") })
+            Tab(selected = selectedTab == 4, onClick = { selectedTab = 4 }, text = { Text("Audit") })
         }
 
         when (selectedTab) {
@@ -181,6 +188,31 @@ fun AdminStudioScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    if (flaggedPosts.isNotEmpty()) {
+                        item {
+                            Text("Flagged Class Community Posts (${flaggedPosts.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
+                        items(flaggedPosts, key = { "flag_${it.id}" }) { post ->
+                            StudyQuestCard {
+                                Text("${post.classId} • ${post.title}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                Text(post.body, style = MaterialTheme.typography.bodySmall)
+                                Text("Author: ${post.authorName} • Hidden: ${post.hidden}", style = MaterialTheme.typography.labelSmall)
+                                Spacer(Modifier.height(6.dp))
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = { viewModel.moderateCommunityPost(post.id, hidePost = true) }) {
+                                        Text("Hide Post")
+                                    }
+                                    OutlinedButton(onClick = { viewModel.moderateCommunityPost(post.id, hidePost = false) }) {
+                                        Text("Approve & Unflag")
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Text("Safety Reports Queue (${cases.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
                     items(cases, key = { it.id }) { c ->
                         StudyQuestCard {
                             Text("${c.targetType.uppercase()} • ${c.reason}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -200,7 +232,171 @@ fun AdminStudioScreen(
             }
 
             2 -> {
+                val parsedRules = remember(settings.xpRulesJson) {
+                    runCatching {
+                        settings.xpRulesJson?.takeIf { it.isNotBlank() }?.let { raw ->
+                            val obj = JSONObject(raw)
+                            XpRuleConfig(
+                                lessonXp = obj.optLong("lessonXp", 20L),
+                                practiceXpPerCorrect = obj.optLong("practiceXpPerCorrect", 4L),
+                                examXpBase = obj.optLong("examXpBase", 30L),
+                                focusXpPerMinute = obj.optLong("focusXpPerMinute", 2L),
+                                dailyChallengeXp = obj.optLong("dailyChallengeXp", 45L),
+                                streakBonusPerDay = obj.optLong("streakBonusPerDay", 5L),
+                                communityHelpfulXp = obj.optLong("communityHelpfulXp", 15L),
+                                maxDailyFocusXp = obj.optLong("maxDailyFocusXp", 240L),
+                                maxDailyCommunityXp = obj.optLong("maxDailyCommunityXp", 60L)
+                            )
+                        }
+                    }.getOrNull() ?: XpRuleConfig()
+                }
+                var lessonXpText by remember(parsedRules) { mutableStateOf(parsedRules.lessonXp.toString()) }
+                var examPassXpText by remember(parsedRules) { mutableStateOf(parsedRules.examXpBase.toString()) }
+                var dailyChallengeXpText by remember(parsedRules) { mutableStateOf(parsedRules.dailyChallengeXp.toString()) }
+                var focusXpText by remember(parsedRules) { mutableStateOf(parsedRules.focusXpPerMinute.toString()) }
+                var dailyCapText by remember(parsedRules) { mutableStateOf(parsedRules.maxDailyFocusXp.toString()) }
+
+                var assignTitleEn by remember { mutableStateOf("") }
+                var assignTitleBn by remember { mutableStateOf("") }
+                var assignType by remember { mutableStateOf("weekly") }
+                var assignClass by remember { mutableStateOf("class_10") }
+                var assignSubject by remember { mutableStateOf("math") }
+                var assignDifficulty by remember { mutableStateOf("medium") }
+                var assignTargetText by remember { mutableStateOf("3") }
+                var assignXpText by remember { mutableStateOf("80") }
+
+                var badgeIdInput by remember { mutableStateOf("badge_custom_scholar") }
+                var badgeTitleEn by remember { mutableStateOf("Term Star") }
+                var badgeTitleBn by remember { mutableStateOf("টার্ম তারকা") }
+                var badgeTargetText by remember { mutableStateOf("5") }
+                var badgeXpText by remember { mutableStateOf("75") }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        StudyQuestCard {
+                            Text("XP Rules & Anti-Farming Caps", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(6.dp))
+                            OutlinedTextField(value = lessonXpText, onValueChange = { lessonXpText = it.filter(Char::isDigit) }, label = { Text("Lesson XP") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = examPassXpText, onValueChange = { examPassXpText = it.filter(Char::isDigit) }, label = { Text("Exam Base XP") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = dailyChallengeXpText, onValueChange = { dailyChallengeXpText = it.filter(Char::isDigit) }, label = { Text("Daily Challenge XP") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = focusXpText, onValueChange = { focusXpText = it.filter(Char::isDigit) }, label = { Text("Focus XP per Minute") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = dailyCapText, onValueChange = { dailyCapText = it.filter(Char::isDigit) }, label = { Text("Daily Anti-Farming Focus XP Cap") }, modifier = Modifier.fillMaxWidth())
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    viewModel.saveXpRules(
+                                        parsedRules.copy(
+                                            lessonXp = lessonXpText.toLongOrNull() ?: parsedRules.lessonXp,
+                                            examXpBase = examPassXpText.toLongOrNull() ?: parsedRules.examXpBase,
+                                            dailyChallengeXp = dailyChallengeXpText.toLongOrNull() ?: parsedRules.dailyChallengeXp,
+                                            focusXpPerMinute = focusXpText.toLongOrNull() ?: parsedRules.focusXpPerMinute,
+                                            maxDailyFocusXp = dailyCapText.toLongOrNull() ?: parsedRules.maxDailyFocusXp
+                                        )
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth().testTag("admin_save_xp_rules_btn")
+                            ) {
+                                Text("Save XP Rules")
+                            }
+                        }
+                    }
+
+                    item {
+                        StudyQuestCard {
+                            Text("Publish Period Assignment", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(6.dp))
+                            OutlinedTextField(value = assignTitleEn, onValueChange = { assignTitleEn = it }, label = { Text("Title (EN)") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = assignTitleBn, onValueChange = { assignTitleBn = it }, label = { Text("Title (BN)") }, modifier = Modifier.fillMaxWidth())
+                            Spacer(Modifier.height(6.dp))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("daily", "weekly", "two_week", "monthly").forEach { tp ->
+                                    FilterChip(selected = assignType == tp, onClick = { assignType = tp }, label = { Text(tp) })
+                                }
+                            }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("easy", "medium", "hard").forEach { d ->
+                                    FilterChip(selected = assignDifficulty == d, onClick = { assignDifficulty = d }, label = { Text(d) })
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(value = assignClass, onValueChange = { assignClass = it }, label = { Text("Class ID") }, modifier = Modifier.weight(1f))
+                                OutlinedTextField(value = assignSubject, onValueChange = { assignSubject = it }, label = { Text("Subject ID") }, modifier = Modifier.weight(1f))
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(value = assignTargetText, onValueChange = { assignTargetText = it.filter(Char::isDigit) }, label = { Text("Target Count") }, modifier = Modifier.weight(1f))
+                                OutlinedTextField(value = assignXpText, onValueChange = { assignXpText = it.filter(Char::isDigit) }, label = { Text("XP Reward") }, modifier = Modifier.weight(1f))
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    if (assignTitleEn.isNotBlank()) {
+                                        viewModel.createAssignment(
+                                            titleEn = assignTitleEn,
+                                            titleBn = assignTitleBn.ifBlank { assignTitleEn },
+                                            descriptionEn = "Published by StudyQuest Admin",
+                                            assignmentType = assignType,
+                                            classId = assignClass,
+                                            subjectId = assignSubject,
+                                            difficulty = assignDifficulty,
+                                            targetCount = assignTargetText.toLongOrNull() ?: 3L,
+                                            xpReward = assignXpText.toLongOrNull() ?: 80L
+                                        )
+                                        assignTitleEn = ""
+                                        assignTitleBn = ""
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().testTag("admin_publish_assignment_btn")
+                            ) {
+                                Text("Publish Assignment (${allAssignments.size} total)")
+                            }
+                        }
+                    }
+
+                    item {
+                        StudyQuestCard {
+                            Text("Badge Definitions Override (${badgeDefs.size})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            OutlinedTextField(value = badgeIdInput, onValueChange = { badgeIdInput = it }, label = { Text("Badge ID") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = badgeTitleEn, onValueChange = { badgeTitleEn = it }, label = { Text("Title (EN)") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = badgeTitleBn, onValueChange = { badgeTitleBn = it }, label = { Text("Title (BN)") }, modifier = Modifier.fillMaxWidth())
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(value = badgeTargetText, onValueChange = { badgeTargetText = it.filter(Char::isDigit) }, label = { Text("Target") }, modifier = Modifier.weight(1f))
+                                OutlinedTextField(value = badgeXpText, onValueChange = { badgeXpText = it.filter(Char::isDigit) }, label = { Text("XP Bonus") }, modifier = Modifier.weight(1f))
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    if (badgeIdInput.isNotBlank()) {
+                                        viewModel.saveBadgeDefinition(
+                                            badgeId = badgeIdInput,
+                                            category = "study",
+                                            rarity = "rare",
+                                            titleEn = badgeTitleEn,
+                                            titleBn = badgeTitleBn,
+                                            descriptionEn = "Custom admin badge milestone",
+                                            target = badgeTargetText.toLongOrNull() ?: 5L,
+                                            xpBonus = badgeXpText.toLongOrNull() ?: 75L,
+                                            enabled = true
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Save Badge Definition")
+                            }
+                        }
+                    }
+                }
+            }
+
+            3 -> {
                 var aiEnabled by remember(settings.aiSolverEnabled) { mutableStateOf(settings.aiSolverEnabled) }
+                var billingEnabled by remember(settings.billingConfigured) { mutableStateOf(settings.billingConfigured) }
+                var adMobEnabled by remember(settings.adMobConfigured) { mutableStateOf(settings.adMobConfigured) }
+                var rendererEnabled by remember(settings.externalVideoRendererConfigured) { mutableStateOf(settings.externalVideoRendererConfigured) }
                 var seasonEn by remember(settings.seasonNameEn) { mutableStateOf(settings.seasonNameEn) }
                 var tourTitleEn by remember { mutableStateOf("SSC National Math Cup") }
                 var tourTitleBn by remember { mutableStateOf("এসএসসি জাতীয় গণিত কাপ") }
@@ -212,19 +408,36 @@ fun AdminStudioScreen(
                 ) {
                     item {
                         StudyQuestCard {
-                            Text("System & Season Controls", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Text("System, Integrations & Season Controls", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text("Enable AI Doubt Solver (Gemini)")
                                 Switch(checked = aiEnabled, onCheckedChange = { aiEnabled = it })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Play Billing Configured")
+                                Switch(checked = billingEnabled, onCheckedChange = { billingEnabled = it })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("AdMob Banner Configured")
+                                Switch(checked = adMobEnabled, onCheckedChange = { adMobEnabled = it })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("External MP4 Video Renderer Configured")
+                                Switch(checked = rendererEnabled, onCheckedChange = { rendererEnabled = it })
                             }
                             OutlinedTextField(value = seasonEn, onValueChange = { seasonEn = it }, label = { Text("Active Season Title") }, modifier = Modifier.fillMaxWidth())
                             Spacer(Modifier.height(8.dp))
                             Button(
-                                onClick = { viewModel.updateSystemSettings(aiEnabled, seasonEn, settings.seasonNameBn) },
+                                onClick = {
+                                    viewModel.updateSystemSettings(
+                                        aiEnabled = aiEnabled,
+                                        seasonEn = seasonEn,
+                                        seasonBn = settings.seasonNameBn,
+                                        billingConfigured = billingEnabled,
+                                        adMobConfigured = adMobEnabled,
+                                        externalVideoRendererConfigured = rendererEnabled
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Save System Settings")
@@ -248,7 +461,7 @@ fun AdminStudioScreen(
                 }
             }
 
-            3 -> {
+            4 -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),

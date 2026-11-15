@@ -83,6 +83,20 @@ import com.example.ui.theme.TealSecondary
 import com.example.ui.viewmodel.AiDoubtUiState
 import com.example.ui.viewmodel.AssessmentResultSummary
 
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.runtime.DisposableEffect
+import com.example.data.model.AssignmentDefinitionDoc
+import com.example.data.model.AssignmentSubmissionDoc
+import com.example.data.model.StudyGoalDoc
+import com.example.data.model.UserBadgeDoc
+import com.example.data.model.XpTransactionDoc
+import com.example.data.repository.DailyStudyMetric
+import com.example.ui.viewmodel.AiVideoViewModel
+import com.example.ui.viewmodel.FocusTimerViewModel
+
 sealed interface LearnDestination {
     data object Home : LearnDestination
     data class SubjectDetail(val subject: AcademicSubject) : LearnDestination
@@ -95,6 +109,9 @@ sealed interface LearnDestination {
     data object PomodoroFocus : LearnDestination
     data object DailyChallenge : LearnDestination
     data object MasteryAnalytics : LearnDestination
+    data object AssignmentsAndGoals : LearnDestination
+    data object AiVideoStudio : LearnDestination
+    data object BadgesAndXp : LearnDestination
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -144,7 +161,25 @@ fun LearnTabScreen(
     dailyChallengeDateKey: String = "",
     onCompletePomodoro: (subjectId: String, focusedMinutes: Int) -> Unit = { _, _ -> },
     onCompleteFlashcardDeck: (subjectId: String, reviewedCount: Int, masteredCount: Int) -> Unit = { _, _, _ -> },
-    onSubmitDailyChallenge: (List<QuestionItem>, Map<String, Set<Int>>, Map<String, String>) -> Unit = { _, _, _ -> }
+    onSubmitDailyChallenge: (List<QuestionItem>, Map<String, Set<Int>>, Map<String, String>) -> Unit = { _, _, _ -> },
+    focusVm: FocusTimerViewModel? = null,
+    aiVideoVm: AiVideoViewModel? = null,
+    dailyStudySeries: List<DailyStudyMetric> = emptyList(),
+    studyGoals: List<StudyGoalDoc> = emptyList(),
+    assignments: List<AssignmentDefinitionDoc> = emptyList(),
+    assignmentSubmissions: List<AssignmentSubmissionDoc> = emptyList(),
+    userBadges: List<UserBadgeDoc> = emptyList(),
+    xpLedger: List<XpTransactionDoc> = emptyList(),
+    externalVideoRendererConfigured: Boolean = false,
+    isGuestMode: Boolean = false,
+    onRequestGoogleSignIn: () -> Unit = {},
+    onCreateStudyGoal: (String, String, String, String, Long, String) -> Unit = { _, _, _, _, _, _ -> },
+    onClaimStudyGoal: (StudyGoalDoc) -> Unit = {},
+    onDeleteStudyGoal: (String) -> Unit = {},
+    onSubmitAssignment: (AssignmentDefinitionDoc) -> Unit = {},
+    onToggleBadgeFavorite: (String) -> Unit = {},
+    onToggleBadgePin: (String) -> Unit = {},
+    onSetExamOrQuizActive: (Boolean) -> Unit = {}
 ) {
     var destination by remember { mutableStateOf<LearnDestination>(LearnDestination.Home) }
     var selectedClassId by remember(initialClassId) { mutableStateOf(initialClassId) }
@@ -154,6 +189,17 @@ fun LearnTabScreen(
             destination = externalDestination
             onConsumeExternalDestination()
         }
+    }
+
+    LaunchedEffect(destination) {
+        val inQuizOrExam = destination is LearnDestination.PracticeSession ||
+            destination is LearnDestination.MockExamSession ||
+            destination is LearnDestination.DailyChallenge
+        onSetExamOrQuizActive(inQuizOrExam)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { onSetExamOrQuizActive(false) }
     }
 
     var aiSheetContext by remember { mutableStateOf<Pair<String, String>?>(null) } // prompt to subjectName
@@ -315,6 +361,36 @@ fun LearnTabScreen(
                                 Spacer(Modifier.width(6.dp))
                                 Text(StudyQuestStrings.t(uiLanguage, "AI Tutor", "AI টিউটর"))
                             }
+                            FilledTonalButton(
+                                onClick = { destination = LearnDestination.AssignmentsAndGoals },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("learn_assignments_goals")
+                            ) {
+                                Icon(Icons.Filled.Assignment, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "Goals & Tasks", "লক্ষ্য ও কাজ"))
+                            }
+                            FilledTonalButton(
+                                onClick = { destination = LearnDestination.AiVideoStudio },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("learn_ai_video_studio")
+                            ) {
+                                Icon(Icons.Filled.VideoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "AI Storyboard", "AI ভিডিও স্টুডিও"))
+                            }
+                            FilledTonalButton(
+                                onClick = { destination = LearnDestination.BadgesAndXp },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("learn_badges_xp")
+                            ) {
+                                Icon(Icons.Filled.WorkspacePremium, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "Badges & XP", "ব্যাজ ও XP"))
+                            }
                         }
                     }
                 }
@@ -340,6 +416,67 @@ fun LearnTabScreen(
                             masteryProgress = mastery,
                             onClick = { destination = LearnDestination.SubjectDetail(subject) }
                         )
+                    }
+                }
+
+                // Annual Class Promotion Exam Card
+                item {
+                    val promoTemplate = ExamTemplate(
+                        id = "promotion_${profile.classId}",
+                        titleEn = "Annual Class Promotion Exam (${StudyQuestStrings.classLabel(profile.classId, uiLanguage)})",
+                        titleBn = "বার্ষিক শ্রেণি প্রোমোশন পরীক্ষা (${StudyQuestStrings.classLabel(profile.classId, uiLanguage)})",
+                        classId = profile.classId,
+                        subjectIds = BangladeshCurriculumCatalog.subjectsForClass(profile.classId).map { it.id },
+                        durationSeconds = 900,
+                        totalMarks = 8,
+                        negativeMarkingPerWrong = 0.0,
+                        descriptionEn = if (profile.annualExamStatus == "failed") {
+                            "Required retake (60%+ passes & advances your locked class)."
+                        } else {
+                            "Pass 60%+ to secure Jan 1 academic year promotion."
+                        },
+                        descriptionBn = "বার্ষিক উত্তীর্ণ হতে ৬০%+ নম্বর অর্জন করুন।"
+                    )
+                    StudyQuestCard(
+                        containerColor = if (profile.annualExamStatus == "failed") {
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f)
+                        } else {
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f)
+                        },
+                        modifier = Modifier.testTag("promotion_exam_card")
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(Icons.Filled.School, contentDescription = null, tint = CobaltPrimary, modifier = Modifier.size(18.dp))
+                                    Text(
+                                        text = StudyQuestStrings.t(uiLanguage, promoTemplate.titleEn, promoTemplate.titleBn),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Text(
+                                    text = StudyQuestStrings.t(uiLanguage, promoTemplate.descriptionEn, promoTemplate.descriptionBn),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Button(
+                                onClick = {
+                                    val qs = allQuestions.filter { it.classId == profile.classId }.ifEmpty { allQuestions }.take(8)
+                                    destination = LearnDestination.MockExamSession(promoTemplate, qs)
+                                },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("start_promotion_exam_btn")
+                            ) {
+                                Text(StudyQuestStrings.t(uiLanguage, "Take Exam", "পরীক্ষা দিন"))
+                            }
+                        }
                     }
                 }
 
@@ -662,12 +799,21 @@ fun LearnTabScreen(
         }
 
         LearnDestination.PomodoroFocus -> {
-            PomodoroFocusScreen(
-                uiLanguage = uiLanguage,
-                classId = selectedClassId,
-                onBack = { destination = LearnDestination.Home },
-                onCompleteFocusSession = onCompletePomodoro
-            )
+            if (focusVm != null) {
+                FocusAndMusicScreen(
+                    uiLanguage = uiLanguage,
+                    classId = selectedClassId,
+                    focusVm = focusVm,
+                    onBack = { destination = LearnDestination.Home }
+                )
+            } else {
+                PomodoroFocusScreen(
+                    uiLanguage = uiLanguage,
+                    classId = selectedClassId,
+                    onBack = { destination = LearnDestination.Home },
+                    onCompleteFocusSession = onCompletePomodoro
+                )
+            }
         }
 
         LearnDestination.DailyChallenge -> {
@@ -704,6 +850,7 @@ fun LearnTabScreen(
                 reducedMotion = reducedMotion,
                 subjectAnalytics = subjectAnalytics,
                 weakTopics = weakTopics,
+                dailyStudySeries = dailyStudySeries,
                 onBack = { destination = LearnDestination.Home },
                 onPracticeWeakTopic = { wt ->
                     val topicQs = allQuestions.filter { it.topicId == wt.topicId }
@@ -714,6 +861,52 @@ fun LearnTabScreen(
                         topicQs
                     )
                 }
+            )
+        }
+
+        LearnDestination.AssignmentsAndGoals -> {
+            AssignmentsAndGoalsScreen(
+                uiLanguage = uiLanguage,
+                classId = profile.classId,
+                studyGoals = studyGoals,
+                assignments = assignments,
+                submissions = assignmentSubmissions,
+                isGuestMode = isGuestMode,
+                onCreateGoal = onCreateStudyGoal,
+                onClaimGoal = onClaimStudyGoal,
+                onDeleteGoal = onDeleteStudyGoal,
+                onSubmitAssignment = onSubmitAssignment,
+                onBack = { destination = LearnDestination.Home }
+            )
+        }
+
+        LearnDestination.AiVideoStudio -> {
+            if (aiVideoVm != null) {
+                AiVideoStudioScreen(
+                    uiLanguage = uiLanguage,
+                    classId = profile.classId,
+                    aiVideoVm = aiVideoVm,
+                    isOnline = isOnline,
+                    externalVideoRendererConfigured = externalVideoRendererConfigured,
+                    isGuestMode = isGuestMode,
+                    onRequestGoogleSignIn = onRequestGoogleSignIn,
+                    onBack = { destination = LearnDestination.Home }
+                )
+            } else {
+                destination = LearnDestination.Home
+            }
+        }
+
+        LearnDestination.BadgesAndXp -> {
+            BadgesAndXpScreen(
+                profile = profile,
+                uiLanguage = uiLanguage,
+                userBadges = userBadges,
+                xpLedger = xpLedger,
+                isGuestMode = isGuestMode,
+                onToggleFavorite = onToggleBadgeFavorite,
+                onTogglePin = onToggleBadgePin,
+                onBack = { destination = LearnDestination.Home }
             )
         }
     }

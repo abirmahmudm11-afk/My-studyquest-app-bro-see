@@ -33,7 +33,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import com.example.data.curriculum.GamificationCatalog
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import java.util.UUID
 import kotlin.math.roundToInt
 
@@ -56,20 +60,43 @@ data class SubjectAnalyticsSummary(
     val subjectLevel: Int
 )
 
+data class DailyStudyMetric(
+    val dayKey: String,
+    val shortLabel: String,
+    val xpEarned: Long,
+    val studyMinutes: Int,
+    val examAccuracy: Double,
+    val sessionsCount: Int
+)
+
 class AcademicProgressRepository(
     private val db: FirebaseFirestore,
     private val dao: StudyQuestDao,
     private val appContext: Context? = null,
     private val preferences: StudyQuestPreferences? = null,
-    private val guestRepo: GuestDataRepository? = null
+    private val guestRepo: GuestDataRepository? = null,
+    private val gamificationEngine: GamificationEngine? = null
 ) {
-    constructor(context: Context, dao: StudyQuestDao) : this(
+    constructor(
+        context: Context,
+        dao: StudyQuestDao,
+        preferences: StudyQuestPreferences? = null,
+        guestRepo: GuestDataRepository? = null,
+        gamificationEngine: GamificationEngine? = null
+    ) : this(
         FirebaseFirestore.getInstance(
             context.applicationContext.getString(R.string.firestore_database_id)
         ),
         dao,
-        context.applicationContext
+        context.applicationContext,
+        preferences,
+        guestRepo,
+        gamificationEngine
     )
+
+    private val resolvedEngine: GamificationEngine by lazy {
+        gamificationEngine ?: GamificationEngine(db, dao, preferences)
+    }
 
     fun observeLearningRecords(userId: String): Flow<List<LearningRecordDoc>> {
         if (userId == GuestDataRepository.GUEST_UID) {
@@ -276,7 +303,7 @@ class AcademicProgressRepository(
         lesson: StudyLesson,
         isOnline: Boolean
     ): Result<Int> {
-        val xp = 15
+        val xp = 20
         val idempotencyKey = "lesson_${lesson.id}"
         dao.markLessonCompleted(lesson.id)
         return recordActivityWithIdempotency(
@@ -292,7 +319,9 @@ class AcademicProgressRepository(
             xpAwarded = xp,
             idempotencyKey = idempotencyKey,
             summary = lesson.titleEn,
-            isOnline = isOnline
+            isOnline = isOnline,
+            qualifiesForStreak = true,
+            lessonsDelta = 1L
         )
     }
 
@@ -308,12 +337,18 @@ class AcademicProgressRepository(
         score: Double,
         totalMarks: Double,
         summary: String,
-        isOnline: Boolean
+        isOnline: Boolean,
+        isPromotionExam: Boolean = false
     ): Result<Int> {
-        val baseXp = if (recordType == "exam") 25 else 10
-        val bonusXp = correctCount * 2
+        val baseXp = if (recordType == "exam") 30 else 10
+        val bonusXp = correctCount * 3
         val totalXp = (baseXp + bonusXp).coerceAtMost(250)
         val accuracy = if (totalQuestions > 0) (correctCount.toDouble() / totalQuestions.toDouble()).coerceIn(0.0, 1.0) else 0.0
+        if (isPromotionExam && userId != GuestDataRepository.GUEST_UID) {
+            val passed = accuracy >= 0.40
+            resolvedEngine.recordAnnualPromotionExamOutcome(userId, passed, score, totalMarks)
+            return Result.success(if (passed) 80 else 20)
+        }
         val idempotencyKey = "${recordType}_${refId}_${System.currentTimeMillis()}"
         return recordActivityWithIdempotency(
             userId = userId,
@@ -328,7 +363,9 @@ class AcademicProgressRepository(
             xpAwarded = totalXp,
             idempotencyKey = idempotencyKey,
             summary = summary,
-            isOnline = isOnline
+            isOnline = isOnline,
+            questionsSolvedDelta = totalQuestions.toLong(),
+            examScoreDelta = if (recordType == "exam") score.toLong().coerceAtLeast(1L) else 0L
         )
     }
 
@@ -339,7 +376,7 @@ class AcademicProgressRepository(
         isOnline: Boolean
     ): Result<Int> {
         val mins = focusedMinutes.coerceAtLeast(1)
-        val xp = (mins * 2).coerceIn(10, 80)
+        val xp = (mins * 2).coerceIn(10, 120)
         val idempotencyKey = "pomodoro_${subjectId}_${mins}m_${System.currentTimeMillis()}"
         return recordActivityWithIdempotency(
             userId = userId,
@@ -354,7 +391,9 @@ class AcademicProgressRepository(
             xpAwarded = xp,
             idempotencyKey = idempotencyKey,
             summary = "Focused Study ($mins min)",
-            isOnline = isOnline
+            isOnline = isOnline,
+            studyMinutesDelta = mins.toLong(),
+            sessionsDelta = 1L
         )
     }
 
@@ -383,7 +422,8 @@ class AcademicProgressRepository(
             xpAwarded = xp,
             idempotencyKey = idempotencyKey,
             summary = "Flashcard Deck ($mastered/$reviewed mastered)",
-            isOnline = isOnline
+            isOnline = isOnline,
+            questionsSolvedDelta = reviewed.toLong()
         )
     }
 
@@ -397,9 +437,8 @@ class AcademicProgressRepository(
         summary: String,
         isOnline: Boolean
     ): Result<Int> {
-        val todayKey = AuthAndProfileRepository.currentDailyChallengeDateKey()
-        val yesterdayKey = AuthAndProfileRepository.yesterdayDailyChallengeDateKey()
-        val xp = (30 + correctCount * 5).coerceIn(30, 120)
+        val todayKey = GamificationCatalog.currentDayKey()
+        val xp = (40 + correctCount * 5).coerceIn(40, 150)
         val accuracy = if (totalQuestions > 0) (correctCount.toDouble() / totalQuestions.toDouble()).coerceIn(0.0, 1.0) else 0.0
         val idempotencyKey = "daily_challenge_$todayKey"
         return recordActivityWithIdempotency(
@@ -416,8 +455,9 @@ class AcademicProgressRepository(
             idempotencyKey = idempotencyKey,
             summary = summary,
             isOnline = isOnline,
-            dailyChallengeTodayKey = todayKey,
-            dailyChallengeYesterdayKey = yesterdayKey
+            qualifiesForStreak = true,
+            questionsSolvedDelta = totalQuestions.toLong(),
+            challengeScoreDelta = score.toLong().coerceAtLeast(10L)
         )
     }
 
@@ -435,8 +475,13 @@ class AcademicProgressRepository(
         idempotencyKey: String,
         summary: String,
         isOnline: Boolean,
-        dailyChallengeTodayKey: String? = null,
-        dailyChallengeYesterdayKey: String? = null
+        qualifiesForStreak: Boolean = false,
+        studyMinutesDelta: Long = 0L,
+        questionsSolvedDelta: Long = 0L,
+        lessonsDelta: Long = 0L,
+        sessionsDelta: Long = 0L,
+        examScoreDelta: Long = 0L,
+        challengeScoreDelta: Long = 0L
     ): Result<Int> {
         val safeDocId = idempotencyKey.replace(Regex("[^a-zA-Z0-9_\\-]"), "_").take(120)
         if (userId == GuestDataRepository.GUEST_UID) {
@@ -462,7 +507,21 @@ class AcademicProgressRepository(
                     synced = false
                 )
             )
-            preferences?.addGuestReward(xpDelta = xpAwarded.toLong(), coinDelta = coinBonus.toLong())
+            resolvedEngine.awardVerifiedActivity(
+                userId = GuestDataRepository.GUEST_UID,
+                sourceType = recordType,
+                sourceId = refId,
+                idempotencyKey = "xp_$safeDocId",
+                rawXpDelta = xpAwarded.toLong(),
+                coinDelta = coinBonus.toLong(),
+                description = summary,
+                qualifiesForStreak = qualifiesForStreak,
+                studyMinutesDelta = studyMinutesDelta,
+                questionsSolvedDelta = questionsSolvedDelta,
+                lessonsDelta = lessonsDelta,
+                sessionsDelta = sessionsDelta,
+                subjectId = subjectId
+            )
             guestRepo?.incrementGuestQuest(recordType)
             return Result.success(xpAwarded)
         }
@@ -493,37 +552,8 @@ class AcademicProgressRepository(
             if (existing.exists()) {
                 return Result.success(0)
             }
-            val profileRef = db.collection("public_profiles").document(userId)
-            val ledgerRef = db.collection("users").document(userId)
-                .collection("xp_ledger").document("xp_$safeDocId")
-            val lbRef = db.collection("leaderboard_entries").document(userId)
 
-            val coinBonus = (xpAwarded / 3).coerceAtLeast(1)
-            val profileSnap = profileRef.get().await()
-            val lbSnap = lbRef.get().await()
-            val oldXp = profileSnap.getLong("totalXp") ?: 0L
-            val newXp = oldXp + xpAwarded
-            val newLevel = (newXp / 100L) + 1L
-            val newTitle = StudyQuestStrings.levelTitle(newLevel.toInt(), AppLanguage.ENGLISH)
-
-            val oldStreak = profileSnap.getLong("streakCount") ?: 0L
-            val lastDateKey = profileSnap.getString("lastChallengeDateKey")
-            val updatedStreak = when {
-                dailyChallengeTodayKey == null -> oldStreak
-                lastDateKey == dailyChallengeTodayKey -> oldStreak
-                lastDateKey == dailyChallengeYesterdayKey -> oldStreak + 1L
-                else -> 1L
-            }
-
-            val weekKey = AuthAndProfileRepository.currentWeeklyPeriodKey()
-            val oldWeekly = if (lbSnap.getString("weekKey") == weekKey) lbSnap.getLong("weeklyPoints") ?: 0L else 0L
-            val oldSeasonal = lbSnap.getLong("seasonalPoints") ?: oldXp
-            val compRating = lbSnap.getLong("competitionRating") ?: (profileSnap.getLong("competitionRating") ?: 1000L)
-            val rankTier = lbSnap.getString("rankTier") ?: (profileSnap.getString("rankTier") ?: "Bronze")
-
-            val batch = db.batch()
-            batch.set(
-                recordRef,
+            recordRef.set(
                 mapOf(
                     "userId" to userId,
                     "recordType" to recordType,
@@ -540,58 +570,35 @@ class AcademicProgressRepository(
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
                 ).filterValues { it != null }
+            ).await()
+
+            val coinBonus = (xpAwarded / 3).coerceAtLeast(1)
+            val awardRes = resolvedEngine.awardVerifiedActivity(
+                userId = userId,
+                sourceType = recordType,
+                sourceId = refId,
+                idempotencyKey = "xp_$safeDocId",
+                rawXpDelta = xpAwarded.toLong(),
+                coinDelta = coinBonus.toLong(),
+                description = summary,
+                qualifiesForStreak = qualifiesForStreak,
+                studyMinutesDelta = studyMinutesDelta,
+                examScoreDelta = examScoreDelta,
+                challengeScoreDelta = challengeScoreDelta,
+                questionsSolvedDelta = questionsSolvedDelta,
+                lessonsDelta = lessonsDelta,
+                sessionsDelta = sessionsDelta,
+                perfectExam = (recordType == "exam" && accuracy >= 0.999),
+                highScoreExam = (recordType == "exam" && accuracy >= 0.85),
+                subjectId = subjectId
             )
-            batch.set(
-                ledgerRef,
-                mapOf(
-                    "userId" to userId,
-                    "sourceType" to recordType,
-                    "sourceId" to refId,
-                    "xpDelta" to xpAwarded.toLong(),
-                    "coinDelta" to coinBonus.toLong(),
-                    "idempotencyKey" to idempotencyKey,
-                    "createdAt" to FieldValue.serverTimestamp()
-                )
-            )
-            val profileUpdates = mutableMapOf<String, Any>(
-                "totalXp" to newXp,
-                "overallLevel" to newLevel,
-                "levelTitle" to newTitle,
-                "coins" to FieldValue.increment(coinBonus.toLong()),
-                "updatedAt" to FieldValue.serverTimestamp()
-            )
-            if (dailyChallengeTodayKey != null) {
-                profileUpdates["streakCount"] = updatedStreak
-                profileUpdates["lastChallengeDateKey"] = dailyChallengeTodayKey
+            if (awardRes.isFailure) {
+                return Result.failure(awardRes.exceptionOrNull() ?: IllegalStateException("Activity award failed"))
             }
-            batch.update(profileRef, profileUpdates)
-            batch.set(
-                lbRef,
-                mapOf(
-                    "userId" to userId,
-                    "displayName" to (profileSnap.getString("displayName") ?: "Scholar"),
-                    "studyQuestId" to (profileSnap.getString("studyQuestId") ?: "SQ-100000"),
-                    "avatarId" to (profileSnap.getString("avatarId") ?: "owl_classic"),
-                    "frameId" to profileSnap.getString("frameId"),
-                    "classId" to (profileSnap.getString("classId") ?: "class_10"),
-                    "subjectId" to subjectId,
-                    "seasonId" to "season_2026_11",
-                    "weekKey" to weekKey,
-                    "weeklyPoints" to (oldWeekly + xpAwarded.toLong()),
-                    "seasonalPoints" to (oldSeasonal + xpAwarded.toLong()),
-                    "competitionRating" to compRating,
-                    "rankTier" to rankTier,
-                    "optInNational" to (profileSnap.getBoolean("optInNationalLeaderboard") ?: false),
-                    "matchesPlayed" to (lbSnap.getLong("matchesPlayed") ?: 0L),
-                    "matchesWon" to (lbSnap.getLong("matchesWon") ?: 0L),
-                    "streakCount" to updatedStreak,
-                    "updatedAt" to FieldValue.serverTimestamp()
-                ).filterValues { it != null }
-            )
-            batch.commit().await()
+            val finalAwarded = awardRes.getOrDefault(xpAwarded.toLong()).toInt()
 
             incrementQuestProgress(userId, recordType)
-            Result.success(xpAwarded)
+            Result.success(finalAwarded)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -848,6 +855,60 @@ class AcademicProgressRepository(
                 subjectLevel = ((xp / 50L) + 1L).toInt()
             )
         }.sortedByDescending { it.totalXp }
+    }
+
+    fun computeDailyStudySeries(
+        records: List<LearningRecordDoc>,
+        focusSessions: List<com.example.data.model.StudySessionDoc> = emptyList(),
+        daysCount: Int = 7
+    ): List<DailyStudyMetric> {
+        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = GamificationCatalog.dhakaTimeZone }
+        val shortFmt = SimpleDateFormat("EEE", Locale.US).apply { timeZone = GamificationCatalog.dhakaTimeZone }
+        val nowMs = System.currentTimeMillis()
+        val cal = Calendar.getInstance(GamificationCatalog.dhakaTimeZone).apply {
+            timeInMillis = nowMs
+            add(Calendar.DAY_OF_YEAR, -(daysCount - 1))
+        }
+        val keys = (0 until daysCount).map {
+            val k = fmt.format(cal.timeInMillis)
+            val l = shortFmt.format(cal.timeInMillis)
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+            k to l
+        }
+
+        val xpByDay = mutableMapOf<String, Long>()
+        val countByDay = mutableMapOf<String, Int>()
+        val examAccByDay = mutableMapOf<String, MutableList<Double>>()
+        for (rec in records) {
+            val ts = (rec.createdAt?.seconds ?: 0L) * 1000L
+            if (ts <= 0L) continue
+            val day = fmt.format(ts)
+            xpByDay[day] = (xpByDay[day] ?: 0L) + rec.xpAwarded
+            countByDay[day] = (countByDay[day] ?: 0) + 1
+            if (rec.recordType in listOf("exam", "promotion_exam", "practice", "daily_challenge")) {
+                examAccByDay.getOrPut(day) { mutableListOf() }.add(rec.accuracy)
+            }
+        }
+        val minsByDay = mutableMapOf<String, Long>()
+        for (s in focusSessions) {
+            val ts = s.endedAtEpochMs.takeIf { it > 0L } ?: ((s.createdAt?.seconds ?: 0L) * 1000L)
+            if (ts <= 0L) continue
+            val day = fmt.format(ts)
+            minsByDay[day] = (minsByDay[day] ?: 0L) + (s.focusedSeconds / 60L)
+        }
+
+        return keys.map { (key, label) ->
+            val accList = examAccByDay[key]
+            val avgAcc = if (accList != null && accList.isNotEmpty()) accList.average() else 0.0
+            DailyStudyMetric(
+                dayKey = key,
+                shortLabel = label,
+                xpEarned = xpByDay[key] ?: 0L,
+                studyMinutes = (minsByDay[key] ?: 0L).toInt(),
+                examAccuracy = avgAcc,
+                sessionsCount = countByDay[key] ?: 0
+            )
+        }
     }
 
     companion object {

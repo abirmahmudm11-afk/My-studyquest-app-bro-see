@@ -75,7 +75,7 @@ service cloud.firestore {
         (!('titleBadge' in data) || data.titleBadge == null || (data.titleBadge is string && data.titleBadge.size() <= 40)) &&
         data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
         data.curriculumVersion in ['bangla', 'english'] &&
-        data.overallLevel is int && data.overallLevel >= 1 && data.overallLevel <= 100 &&
+        data.overallLevel is int && data.overallLevel >= 1 && data.overallLevel <= 200 &&
         (!('levelTitle' in data) || data.levelTitle == null || (data.levelTitle is string && data.levelTitle.size() <= 40)) &&
         data.totalXp is int && data.totalXp >= 0 &&
         data.coins is int && data.coins >= 0 &&
@@ -89,6 +89,15 @@ service cloud.firestore {
         (!('dailyGoalMinutes' in data) || (data.dailyGoalMinutes is int && data.dailyGoalMinutes >= 5 && data.dailyGoalMinutes <= 360)) &&
         (!('streakCount' in data) || (data.streakCount is int && data.streakCount >= 0)) &&
         (!('lastChallengeDateKey' in data) || data.lastChallengeDateKey == null || (data.lastChallengeDateKey is string && data.lastChallengeDateKey.size() <= 32)) &&
+        (!('classLockedAcademicYear' in data) || data.classLockedAcademicYear == null || (data.classLockedAcademicYear is int && data.classLockedAcademicYear >= 2024 && data.classLockedAcademicYear <= 2100)) &&
+        (!('annualExamStatus' in data) || data.annualExamStatus == null || data.annualExamStatus in ['pending', 'passed', 'failed']) &&
+        (!('promotedFromClassId' in data) || data.promotedFromClassId == null || (data.promotedFromClassId is string && data.promotedFromClassId.size() <= 32)) &&
+        (!('streakHistoryKeys' in data) || (data.streakHistoryKeys is list && data.streakHistoryKeys.size() <= 35 && (data.streakHistoryKeys.size() == 0 || data.streakHistoryKeys[0] is string))) &&
+        (!('streakFreezeCount' in data) || (data.streakFreezeCount is int && data.streakFreezeCount >= 0 && data.streakFreezeCount <= 10)) &&
+        (!('featuredBadgeId' in data) || data.featuredBadgeId == null || (data.featuredBadgeId is string && data.featuredBadgeId.size() <= 64)) &&
+        (!('pinnedBadgeIds' in data) || (data.pinnedBadgeIds is list && data.pinnedBadgeIds.size() <= 6)) &&
+        (!('unlockedTrophyTitles' in data) || (data.unlockedTrophyTitles is list && data.unlockedTrophyTitles.size() <= 30)) &&
+        (!('totalFocusMinutes' in data) || (data.totalFocusMinutes is int && data.totalFocusMinutes >= 0)) &&
         (!('selectedSubjects' in data) || (data.selectedSubjects is list && data.selectedSubjects.size() <= 20 && (data.selectedSubjects.size() == 0 || data.selectedSubjects[0] is string)));
     }
 
@@ -105,16 +114,26 @@ service cloud.firestore {
         data.uiLanguage in ['bn', 'en'] &&
         data.questionLanguage in ['bn', 'en'] &&
         (!('darkMode' in data) || data.darkMode is bool) &&
+        (!('themeMode' in data) || data.themeMode in ['system', 'light', 'dark']) &&
         (!('reducedMotion' in data) || data.reducedMotion is bool) &&
         (!('soundEnabled' in data) || data.soundEnabled is bool) &&
         (!('quietHoursEnabled' in data) || data.quietHoursEnabled is bool) &&
+        (!('notifStudyEnabled' in data) || data.notifStudyEnabled is bool) &&
+        (!('notifXpEnabled' in data) || data.notifXpEnabled is bool) &&
+        (!('notifBadgeEnabled' in data) || data.notifBadgeEnabled is bool) &&
+        (!('notifAssignmentEnabled' in data) || data.notifAssignmentEnabled is bool) &&
+        (!('notifCompetitionEnabled' in data) || data.notifCompetitionEnabled is bool) &&
+        (!('notifExamEnabled' in data) || data.notifExamEnabled is bool) &&
+        (!('notifCommunityEnabled' in data) || data.notifCommunityEnabled is bool) &&
+        (!('focusMusicVolume' in data) || (data.focusMusicVolume is number && data.focusMusicVolume >= 0.0 && data.focusMusicVolume <= 1.0)) &&
+        (!('musicDuringBreak' in data) || data.musicDuringBreak is bool) &&
         (!('dailyGoalXp' in data) || (data.dailyGoalXp is int && data.dailyGoalXp >= 10 && data.dailyGoalXp <= 2000)) &&
         (!('weeklyGoalMinutes' in data) || (data.weeklyGoalMinutes is int && data.weeklyGoalMinutes >= 15 && data.weeklyGoalMinutes <= 5000));
     }
 
     function isValidLearningRecord(data) {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
-        data.recordType in ['lesson', 'practice', 'exam', 'bookmark', 'revision', 'pomodoro', 'flashcard', 'daily_challenge'] &&
+        data.recordType in ['lesson', 'practice', 'exam', 'bookmark', 'revision', 'pomodoro', 'flashcard', 'daily_challenge', 'focus_session', 'assignment', 'goal', 'promotion_exam', 'ai_video', 'community'] &&
         data.refId is string && data.refId.size() >= 1 && data.refId.size() <= 128 &&
         data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
         data.idempotencyKey is string && data.idempotencyKey.size() >= 1 && data.idempotencyKey.size() <= 160 &&
@@ -123,7 +142,7 @@ service cloud.firestore {
         (!('score' in data) || data.score is number) &&
         (!('totalMarks' in data) || data.totalMarks is number) &&
         (!('accuracy' in data) || data.accuracy is number) &&
-        (!('xpAwarded' in data) || (data.xpAwarded is int && data.xpAwarded >= 0 && data.xpAwarded <= 500)) &&
+        (!('xpAwarded' in data) || (data.xpAwarded is int && data.xpAwarded >= 0 && data.xpAwarded <= 1000)) &&
         (!('summary' in data) || data.summary == null || (data.summary is string && data.summary.size() <= 500));
     }
 
@@ -131,8 +150,9 @@ service cloud.firestore {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
         data.sourceType is string && data.sourceType.size() >= 1 && data.sourceType.size() <= 40 &&
         data.sourceId is string && data.sourceId.size() >= 1 && data.sourceId.size() <= 128 &&
-        data.xpDelta is int && data.xpDelta >= 0 && data.xpDelta <= 500 &&
-        data.coinDelta is int && data.coinDelta >= -5000 && data.coinDelta <= 500 &&
+        data.xpDelta is int && data.xpDelta >= 0 && data.xpDelta <= 1000 &&
+        data.coinDelta is int && data.coinDelta >= -5000 && data.coinDelta <= 1000 &&
+        (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 200)) &&
         data.idempotencyKey is string && data.idempotencyKey.size() >= 1 && data.idempotencyKey.size() <= 160;
     }
 
@@ -166,6 +186,137 @@ service cloud.firestore {
         data.body is string && data.body.size() >= 1 && data.body.size() <= 400 &&
         data.read is bool &&
         (!('actionRoute' in data) || data.actionRoute == null || (data.actionRoute is string && data.actionRoute.size() <= 120));
+    }
+
+    function isValidUserBadge(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.badgeId is string && data.badgeId.size() >= 1 && data.badgeId.size() <= 64 &&
+        data.category in ['study', 'streak', 'assignment', 'exam', 'goal', 'challenge', 'community'] &&
+        data.rarity in ['common', 'uncommon', 'rare', 'epic', 'legendary'] &&
+        data.progress is int && data.progress >= 0 &&
+        data.target is int && data.target >= 1 &&
+        data.unlocked is bool &&
+        (!('pinned' in data) || data.pinned is bool) &&
+        (!('favorite' in data) || data.favorite is bool) &&
+        (!('animationShown' in data) || data.animationShown is bool);
+    }
+
+    function isValidBadgeDefinition(data) {
+      return data.badgeId is string && data.badgeId.size() >= 1 && data.badgeId.size() <= 64 &&
+        data.category in ['study', 'streak', 'assignment', 'exam', 'goal', 'challenge', 'community'] &&
+        data.rarity in ['common', 'uncommon', 'rare', 'epic', 'legendary'] &&
+        data.titleEn is string && data.titleEn.size() >= 1 && data.titleEn.size() <= 100 &&
+        data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 100 &&
+        data.target is int && data.target >= 1 && data.target <= 100000 &&
+        data.xpBonus is int && data.xpBonus >= 0 && data.xpBonus <= 1000 &&
+        data.enabled is bool;
+    }
+
+    function isValidStudySession(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.mode in ['pomodoro', 'deep_focus', 'custom'] &&
+        data.startedAtEpochMs is int && data.endedAtEpochMs is int &&
+        data.endedAtEpochMs > data.startedAtEpochMs &&
+        data.focusedSeconds is int && data.focusedSeconds >= 60 && data.focusedSeconds <= 28800 &&
+        (!('pausedSeconds' in data) || (data.pausedSeconds is int && data.pausedSeconds >= 0)) &&
+        (!('breakSeconds' in data) || (data.breakSeconds is int && data.breakSeconds >= 0)) &&
+        data.xpAwarded is int && data.xpAwarded >= 0 && data.xpAwarded <= 500 &&
+        data.status in ['completed', 'stopped', 'flagged'] &&
+        data.idempotencyKey is string && data.idempotencyKey.size() >= 1 && data.idempotencyKey.size() <= 160;
+    }
+
+    function isValidStudyGoal(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.goalType in ['time_minutes', 'questions_solved', 'chapters_finished', 'sessions_count'] &&
+        data.periodType in ['daily', 'weekly', 'custom'] &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.targetValue is int && data.targetValue >= 1 && data.targetValue <= 5000 &&
+        (data.goalType != 'time_minutes' || data.targetValue >= 5) &&
+        data.currentValue is int && data.currentValue >= 0 &&
+        data.difficulty in ['easy', 'medium', 'hard'] &&
+        data.xpReward is int && data.xpReward >= 0 && data.xpReward <= 500 &&
+        data.completed is bool &&
+        data.rewardClaimed is bool &&
+        data.periodKey is string && data.periodKey.size() >= 1 && data.periodKey.size() <= 32;
+    }
+
+    function isValidAssignmentDefinition(data) {
+      return data.titleEn is string && data.titleEn.size() >= 1 && data.titleEn.size() <= 140 &&
+        data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 140 &&
+        data.assignmentType in ['daily', 'weekly', 'two_week', 'monthly', 'subject', 'chapter', 'timed', 'question', 'mcq', 'challenge'] &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.difficulty in ['easy', 'medium', 'hard'] &&
+        data.targetCount is int && data.targetCount >= 1 && data.targetCount <= 500 &&
+        data.xpReward is int && data.xpReward >= 0 && data.xpReward <= 1000 &&
+        data.active is bool &&
+        data.periodKey is string && data.periodKey.size() >= 1 && data.periodKey.size() <= 32;
+    }
+
+    function isValidAssignmentSubmission(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.assignmentId is string && data.assignmentId.size() >= 1 && data.assignmentId.size() <= 128 &&
+        data.periodKey is string && data.periodKey.size() >= 1 && data.periodKey.size() <= 32 &&
+        data.progress is int && data.progress >= 0 &&
+        data.target is int && data.target >= 1 &&
+        data.completed is bool &&
+        data.xpAwarded is int && data.xpAwarded >= 0 && data.xpAwarded <= 1000;
+    }
+
+    function isValidCommunityPost(data) {
+      return data.authorUid is string && data.authorUid.size() >= 1 && data.authorUid.size() <= 128 &&
+        data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60 &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.postType in ['question', 'study_help', 'discussion', 'tip', 'resource'] &&
+        data.title is string && data.title.size() >= 3 && data.title.size() <= 140 &&
+        data.body is string && data.body.size() >= 3 && data.body.size() <= 2000 &&
+        (!('upvoterUids' in data) || (data.upvoterUids is list && data.upvoterUids.size() <= 500)) &&
+        (!('commentCount' in data) || (data.commentCount is int && data.commentCount >= 0)) &&
+        (!('flagged' in data) || data.flagged is bool) &&
+        (!('hidden' in data) || data.hidden is bool);
+    }
+
+    function isValidCommunityComment(data) {
+      return data.postId is string && data.postId.size() >= 1 && data.postId.size() <= 128 &&
+        data.authorUid is string && data.authorUid.size() >= 1 && data.authorUid.size() <= 128 &&
+        data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60 &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 1000 &&
+        (!('upvoterUids' in data) || (data.upvoterUids is list && data.upvoterUids.size() <= 500)) &&
+        (!('isHelpful' in data) || data.isHelpful is bool);
+    }
+
+    function isValidAiVideoJob(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.sourceType in ['pdf', 'text', 'chapter'] &&
+        data.sourceTitle is string && data.sourceTitle.size() >= 1 && data.sourceTitle.size() <= 160 &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.status in ['queued', 'processing', 'completed', 'failed'] &&
+        data.progressPercent is int && data.progressPercent >= 0 && data.progressPercent <= 100 &&
+        (!('externalRenderStatus' in data) || data.externalRenderStatus in ['unconfigured', 'queued', 'completed', 'failed']);
+    }
+
+    function isValidLearningVideo(data) {
+      return data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.durationSeconds is int && data.durationSeconds >= 10 && data.durationSeconds <= 3600 &&
+        data.scenesJson is string && data.scenesJson.size() >= 2 && data.scenesJson.size() <= 50000 &&
+        data.visibility in ['private', 'public'] &&
+        (!('lastWatchedScene' in data) || (data.lastWatchedScene is int && data.lastWatchedScene >= 0 && data.lastWatchedScene <= 100)) &&
+        (!('externalRenderStatus' in data) || data.externalRenderStatus in ['unconfigured', 'queued', 'completed', 'failed']);
+    }
+
+    function isValidUserSubscription(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.tier in ['free', 'premium'] &&
+        data.billingProvider in ['google_play_unconfigured', 'google_play'] &&
+        data.adEnabled is bool;
     }
 
     function isValidAcademicContent(data) {
@@ -287,6 +438,23 @@ service cloud.firestore {
         (!('subjectId' in data) || data.subjectId == null || (data.subjectId is string && data.subjectId.size() <= 64)) &&
         (!('avatarId' in data) || data.avatarId == null || (data.avatarId is string && data.avatarId.size() <= 40)) &&
         (!('frameId' in data) || data.frameId == null || (data.frameId is string && data.frameId.size() <= 40)) &&
+        (!('biweekKey' in data) || data.biweekKey == null || (data.biweekKey is string && data.biweekKey.size() <= 32)) &&
+        (!('monthKey' in data) || data.monthKey == null || (data.monthKey is string && data.monthKey.size() <= 32)) &&
+        (!('weeklyStudyMinutes' in data) || (data.weeklyStudyMinutes is int && data.weeklyStudyMinutes >= 0)) &&
+        (!('weeklyXp' in data) || (data.weeklyXp is int && data.weeklyXp >= 0)) &&
+        (!('weeklyExamScore' in data) || (data.weeklyExamScore is int && data.weeklyExamScore >= 0)) &&
+        (!('weeklyAssignmentScore' in data) || (data.weeklyAssignmentScore is int && data.weeklyAssignmentScore >= 0)) &&
+        (!('weeklyChallengeScore' in data) || (data.weeklyChallengeScore is int && data.weeklyChallengeScore >= 0)) &&
+        (!('biweeklyStudyMinutes' in data) || (data.biweeklyStudyMinutes is int && data.biweeklyStudyMinutes >= 0)) &&
+        (!('biweeklyXp' in data) || (data.biweeklyXp is int && data.biweeklyXp >= 0)) &&
+        (!('biweeklyExamScore' in data) || (data.biweeklyExamScore is int && data.biweeklyExamScore >= 0)) &&
+        (!('biweeklyAssignmentScore' in data) || (data.biweeklyAssignmentScore is int && data.biweeklyAssignmentScore >= 0)) &&
+        (!('biweeklyChallengeScore' in data) || (data.biweeklyChallengeScore is int && data.biweeklyChallengeScore >= 0)) &&
+        (!('monthlyStudyMinutes' in data) || (data.monthlyStudyMinutes is int && data.monthlyStudyMinutes >= 0)) &&
+        (!('monthlyXp' in data) || (data.monthlyXp is int && data.monthlyXp >= 0)) &&
+        (!('monthlyExamScore' in data) || (data.monthlyExamScore is int && data.monthlyExamScore >= 0)) &&
+        (!('monthlyAssignmentScore' in data) || (data.monthlyAssignmentScore is int && data.monthlyAssignmentScore >= 0)) &&
+        (!('monthlyChallengeScore' in data) || (data.monthlyChallengeScore is int && data.monthlyChallengeScore >= 0)) &&
         (!('streakCount' in data) || (data.streakCount is int && data.streakCount >= 0));
     }
 
@@ -303,7 +471,7 @@ service cloud.firestore {
 
     function isValidModerationCase(data) {
       return data.reporterUid is string && data.reporterUid.size() >= 1 && data.reporterUid.size() <= 128 &&
-        data.targetType in ['user', 'message', 'group', 'question', 'match'] &&
+        data.targetType in ['user', 'message', 'group', 'question', 'match', 'community_post', 'community_comment'] &&
         data.targetId is string && data.targetId.size() >= 1 && data.targetId.size() <= 128 &&
         data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 120 &&
         data.status in ['open', 'triaged', 'resolved', 'dismissed', 'appealed'] &&
@@ -420,6 +588,82 @@ service cloud.firestore {
         isValidUserNotification(incoming()) &&
         incoming().diff(existing()).affectedKeys().hasOnly(['read']);
       allow delete: if isOwner(userId) && isValidId(notifId);
+    }
+
+    match /users/{userId}/badges/{badgeId} {
+      allow get: if isOwner(userId) && isValidId(badgeId);
+      allow list: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidId(badgeId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidUserBadge(incoming());
+      allow delete: if isOwner(userId) && isValidId(badgeId);
+    }
+
+    match /users/{userId}/study_sessions/{sessionId} {
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(sessionId);
+      allow list: if isOwner(userId) || isAdmin();
+      // Append-only verified focus session records
+      allow create: if isOwner(userId) && isValidId(sessionId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) &&
+        isValidStudySession(incoming());
+      allow update: if isAdmin() && isValidId(sessionId);
+      allow delete: if isAdmin() && isValidId(sessionId);
+    }
+
+    match /users/{userId}/study_goals/{goalId} {
+      allow get: if isOwner(userId) && isValidId(goalId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(goalId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidStudyGoal(incoming());
+      allow update: if isOwner(userId) && isValidId(goalId) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidStudyGoal(incoming());
+      allow delete: if isOwner(userId) && isValidId(goalId);
+    }
+
+    match /users/{userId}/assignment_submissions/{assignmentId} {
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(assignmentId);
+      allow list: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) && isValidId(assignmentId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidAssignmentSubmission(incoming());
+      allow delete: if isAdmin() && isValidId(assignmentId);
+    }
+
+    match /users/{userId}/ai_video_jobs/{jobId} {
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(jobId);
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidId(jobId) &&
+        incoming().userId == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidAiVideoJob(incoming());
+      allow update: if (isOwner(userId) || isAdmin()) && isValidId(jobId) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidAiVideoJob(incoming());
+      allow delete: if (isOwner(userId) || isAdmin()) && isValidId(jobId);
+    }
+
+    match /users/{userId}/subscription/{docId} {
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(docId);
+      allow list: if isOwner(userId) || isAdmin();
+      // Only admins can grant premium tier without live verified store receipt; owners can only initialize free state
+      allow create, update: if isValidId(docId) &&
+        incoming().userId == userId &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidUserSubscription(incoming()) && (
+          isAdmin() ||
+          (isOwner(userId) && incoming().tier == 'free')
+        );
+      allow delete: if isAdmin() && isValidId(docId);
     }
 
     // --- 3. ACADEMIC CONTENT & EDITORIAL PIPELINE ---
@@ -697,6 +941,97 @@ service cloud.firestore {
         incoming().actorUid == request.auth.uid &&
         isValidTimestamp(incoming().createdAt);
       allow update, delete: if false;
+    }
+
+    match /badge_definitions/{badgeId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isAdmin() && isValidId(badgeId) &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidBadgeDefinition(incoming());
+      allow delete: if isAdmin() && isValidId(badgeId);
+    }
+
+    match /assignments/{assignmentId} {
+      allow get, list: if isSignedIn();
+      allow create: if isContentStaff() && isValidId(assignmentId) &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidAssignmentDefinition(incoming());
+      allow update: if isContentStaff() && isValidId(assignmentId) &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidAssignmentDefinition(incoming());
+      allow delete: if isAdmin() && isValidId(assignmentId);
+    }
+
+    match /competition_archives/{periodKey} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(periodKey) &&
+        incoming().periodKey == periodKey &&
+        incoming().periodType in ['weekly', 'biweekly', 'monthly'] &&
+        incoming().category in ['study_time', 'xp', 'exam', 'assignment', 'challenge'] &&
+        incoming().winners is list && incoming().winners.size() <= 10 &&
+        isValidTimestamp(incoming().archivedAt);
+      allow update, delete: if isAdmin() && isValidId(periodKey);
+    }
+
+    match /community_posts/{postId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(postId) &&
+        incoming().authorUid == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidCommunityPost(incoming());
+      allow update: if isSignedIn() && isValidId(postId) &&
+        incoming().authorUid == existing().authorUid &&
+        incoming().classId == existing().classId &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidCommunityPost(incoming()) && (
+          isModeratorStaff() ||
+          existing().authorUid == request.auth.uid ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['upvoterUids', 'commentCount', 'flagged', 'updatedAt'])
+        );
+      allow delete: if isSignedIn() && isValidId(postId) &&
+        (existing().authorUid == request.auth.uid || isModeratorStaff());
+
+      match /comments/{commentId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn() && isValidId(commentId) &&
+          incoming().authorUid == request.auth.uid &&
+          incoming().postId == postId &&
+          isValidTimestamp(incoming().createdAt) &&
+          isValidCommunityComment(incoming());
+        allow update: if isSignedIn() && isValidId(commentId) &&
+          incoming().authorUid == existing().authorUid &&
+          incoming().postId == existing().postId &&
+          incoming().createdAt == existing().createdAt &&
+          isValidCommunityComment(incoming()) && (
+            isModeratorStaff() ||
+            existing().authorUid == request.auth.uid ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['upvoterUids', 'isHelpful'])
+          );
+        allow delete: if isSignedIn() && isValidId(commentId) &&
+          (existing().authorUid == request.auth.uid || isModeratorStaff());
+      }
+    }
+
+    match /learning_videos/{videoId} {
+      allow get, list: if isSignedIn() &&
+        (resource.data.visibility == 'public' || resource.data.ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(videoId) &&
+        incoming().ownerUid == request.auth.uid &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidLearningVideo(incoming());
+      allow update: if isSignedIn() && isValidId(videoId) &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidLearningVideo(incoming()) && (
+          existing().ownerUid == request.auth.uid ||
+          isAdmin() ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['savedByUids', 'updatedAt'])
+        );
+      allow delete: if isSignedIn() && isValidId(videoId) &&
+        (existing().ownerUid == request.auth.uid || isAdmin());
     }
 
     match /system_settings/{settingId} {

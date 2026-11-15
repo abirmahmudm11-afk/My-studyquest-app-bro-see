@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.AppLanguage
+import com.example.core.StudyActivityMonitor
 import com.example.core.unwrapFirestoreMessage
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.local.CachedLessonEntity
@@ -19,6 +20,7 @@ import com.example.data.model.StudyPlanDoc
 import com.example.data.repository.AcademicProgressRepository
 import com.example.data.repository.AiDoubtSolverRepository
 import com.example.data.repository.AuthAndProfileRepository
+import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.GuestDataRepository
 import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.WeakTopicStat
@@ -107,6 +109,10 @@ class LearnAndExamViewModel(
         .map { academicRepo.computeSubjectAnalytics(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
+    val dailyStudySeries: StateFlow<List<DailyStudyMetric>> = learningRecords
+        .map { academicRepo.computeDailyStudySeries(it, emptyList(), daysCount = 7) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
     private val _aiState = MutableStateFlow<AiDoubtUiState>(AiDoubtUiState.Idle)
     val aiState: StateFlow<AiDoubtUiState> = _aiState.asStateFlow()
 
@@ -180,8 +186,13 @@ class LearnAndExamViewModel(
         }
     }
 
+    fun setExamOrQuizActive(active: Boolean) {
+        StudyActivityMonitor.isExamOrQuizActive.value = active
+    }
+
     fun startExamTimer(durationSeconds: Int, onTimeExpired: () -> Unit) {
         examTimerJob?.cancel()
+        StudyActivityMonitor.isExamOrQuizActive.value = true
         _examRemainingSeconds.value = durationSeconds
         examTimerJob = viewModelScope.launch {
             while (_examRemainingSeconds.value > 0) {
@@ -195,6 +206,7 @@ class LearnAndExamViewModel(
     fun stopExamTimer() {
         examTimerJob?.cancel()
         examTimerJob = null
+        StudyActivityMonitor.isExamOrQuizActive.value = false
     }
 
     fun submitPracticeOrExam(
@@ -284,7 +296,8 @@ class LearnAndExamViewModel(
                 score = finalScore,
                 totalMarks = totalMarks.coerceAtLeast(1.0),
                 summary = title,
-                isOnline = isOnline
+                isOnline = isOnline,
+                isPromotionExam = (template?.id?.startsWith("promotion_") == true)
             )
             val xpEarned = res.getOrNull() ?: 0
             if (xpEarned > 0) onXpEarned(xpEarned)
@@ -529,6 +542,7 @@ class LearnAndExamViewModel(
     override fun onCleared() {
         super.onCleared()
         examTimerJob?.cancel()
+        StudyActivityMonitor.isExamOrQuizActive.value = false
     }
 
     companion object {

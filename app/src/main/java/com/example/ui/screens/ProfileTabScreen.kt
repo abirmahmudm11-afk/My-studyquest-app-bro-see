@@ -57,12 +57,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.LocalUserPreferences
 import com.example.core.StudyQuestStrings
+import com.example.core.ThemeMode
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.GamificationCatalog
 import com.example.data.model.LearningRecordDoc
 import com.example.data.model.PublicProfile
+import com.example.data.model.UserBadgeDoc
+import com.example.data.model.UserSubscriptionDoc
+import com.example.data.model.XpTransactionDoc
+import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.WeakTopicStat
 import com.example.ui.components.AnimatedCircularMasteryRing
@@ -73,15 +84,19 @@ import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
+import com.example.ui.components.StudyTimeAndXpBarChart
 import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.LocalStudyQuestColors
 import com.example.ui.theme.TealSecondary
 import com.example.ui.theme.VioletTertiary
 import com.example.ui.viewmodel.AdminStudioViewModel
+import com.google.firebase.FirebaseApp
 
 sealed interface ProfileDestination {
     data object Home : ProfileDestination
     data object Analytics : ProfileDestination
+    data object BadgesAndXp : ProfileDestination
     data object CosmeticsShop : ProfileDestination
     data object SettingsAndSafety : ProfileDestination
     data object AdminStudio : ProfileDestination
@@ -116,11 +131,23 @@ fun ProfileTabScreen(
     adminViewModelProvider: @Composable () -> AdminStudioViewModel,
     isGuestMode: Boolean = false,
     onRequestGoogleSignIn: () -> Unit = {},
-    onExitGuestMode: () -> Unit = {}
+    onExitGuestMode: () -> Unit = {},
+    userBadges: List<UserBadgeDoc> = emptyList(),
+    xpLedger: List<XpTransactionDoc> = emptyList(),
+    dailyStudySeries: List<DailyStudyMetric> = emptyList(),
+    subscription: UserSubscriptionDoc = UserSubscriptionDoc(),
+    billingConfigured: Boolean = false,
+    onUpdateThemeMode: (ThemeMode) -> Unit = {},
+    onUpdateNotificationCategory: (String, Boolean) -> Unit = { _, _ -> },
+    onToggleBadgeFavorite: (String) -> Unit = {},
+    onToggleBadgePin: (String) -> Unit = {},
+    onTriggerBillingUpgrade: () -> Unit = {},
+    onRetakePromotionExam: () -> Unit = {}
 ) {
     var destination by remember { mutableStateOf<ProfileDestination>(ProfileDestination.Home) }
     val lang = preferences.uiLanguage
     val reducedMotion = preferences.reducedMotion
+    val semantic = LocalStudyQuestColors.current
 
     if (destination != ProfileDestination.Home) {
         BackHandler { destination = ProfileDestination.Home }
@@ -128,17 +155,11 @@ fun ProfileTabScreen(
 
     when (destination) {
         ProfileDestination.Home -> {
-            val unlockedAchievementCount = remember(learningRecords, friendCount, profile.competitionRating) {
-                BangladeshCurriculumCatalog.achievementsCatalog.count { ach ->
-                    when (ach.id) {
-                        "ach_first_lesson" -> learningRecords.any { it.recordType == "lesson" }
-                        "ach_subject_explorer" -> learningRecords.map { it.subjectId }.distinct().size >= 3
-                        "ach_first_mock" -> learningRecords.any { it.recordType == "exam" }
-                        "ach_first_friend" -> friendCount >= 1
-                        "ach_first_battle" -> profile.competitionRating > 1000L
-                        else -> false
-                    }
-                }
+            val unlockedBadgesCount = remember(userBadges) {
+                userBadges.count { it.unlocked }
+            }
+            val pinnedBadges = remember(userBadges) {
+                userBadges.filter { it.unlocked && it.pinned }.take(3)
             }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -161,7 +182,8 @@ fun ProfileTabScreen(
                 item {
                     StaggeredEntrance(index = 1, reducedMotion = reducedMotion) {
                         val cls = BangladeshCurriculumCatalog.classes.find { it.id == profile.classId }
-                        val xpWithinLevel = (profile.totalXp % 100L).toInt()
+                        val (xpWithinLevel, xpRequired) = StudyQuestStrings.xpIntoCurrentLevel(profile.totalXp)
+                        val levelPct = ((xpWithinLevel.toFloat() / xpRequired.toFloat()) * 100f).toInt().coerceIn(0, 100)
                         StudyQuestGradientHeroBanner(
                             eyebrow = "${profile.studyQuestId} • @${profile.username}",
                             title = profile.displayName,
@@ -190,8 +212,8 @@ fun ProfileTabScreen(
                                     )
                                 }
                                 AnimatedCircularMasteryRing(
-                                    progress = xpWithinLevel / 100f,
-                                    centerValueText = "${xpWithinLevel}%",
+                                    progress = (xpWithinLevel.toFloat() / xpRequired.toFloat()).coerceIn(0f, 1f),
+                                    centerValueText = "${levelPct}%",
                                     centerCaptionText = "Lv.${profile.overallLevel + 1}",
                                     reducedMotion = reducedMotion,
                                     size = 58.dp
@@ -201,12 +223,55 @@ fun ProfileTabScreen(
                     }
                 }
 
-                // Quick Achievements & Stats Showcase
+                // Locked Academic Year & Jan 1 Promotion Card
+                item {
+                    val daysToJan1 = (GamificationCatalog.millisUntilPeriodEnd("jan1") / 86_400_000L).toInt()
+                    StudyQuestCard(
+                        containerColor = if (profile.annualExamStatus == "failed") {
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        modifier = Modifier.testTag("profile_academic_lock_card")
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Icon(Icons.Filled.Lock, contentDescription = null, tint = CobaltPrimary)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = StudyQuestStrings.t(
+                                        lang,
+                                        "${StudyQuestStrings.classLabel(profile.classId, lang)} • Locked (${profile.classLockedAcademicYear ?: GamificationCatalog.currentAcademicYear()})",
+                                        "${StudyQuestStrings.classLabel(profile.classId, lang)} • লকড (${profile.classLockedAcademicYear ?: GamificationCatalog.currentAcademicYear()})"
+                                    ),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (profile.annualExamStatus == "failed") {
+                                        StudyQuestStrings.t(lang, "Promotion paused: pass Promotion Exam (60%+) to advance.", "প্রোমোশন স্থগিত: প্রোমোশন পরীক্ষায় ৬০%+ পেলে পরবর্তী শ্রেণিতে যাবেন।")
+                                    } else {
+                                        StudyQuestStrings.t(lang, "Next Jan 1 promotion in $daysToJan1 days (Asia/Dhaka)", "১ জানুয়ারি শ্রেণি উন্নয়ন $daysToJan1 দিন পর")
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (profile.annualExamStatus == "failed") {
+                                Button(onClick = onRetakePromotionExam) {
+                                    Text(StudyQuestStrings.t(lang, "Retake", "পুনঃপরীক্ষা"))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Badges, Trophy Cabinet & XP Ledger Card
                 item {
                     StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
                         StudyQuestCard(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
-                            onClick = { destination = ProfileDestination.Analytics }
+                            containerColor = semantic.successContainer.copy(alpha = 0.65f),
+                            onClick = { destination = ProfileDestination.BadgesAndXp },
+                            modifier = Modifier.testTag("profile_open_badges_xp")
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -215,26 +280,69 @@ fun ProfileTabScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = StudyQuestStrings.t(lang, "Badges & Mastery Overview", "ব্যাজ ও দক্ষতার সারসংক্ষেপ"),
+                                        text = StudyQuestStrings.t(lang, "Badges, Trophies & XP Ledger", "ব্যাজ, ট্রফি ও XP খাতা"),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         text = StudyQuestStrings.t(
                                             lang,
-                                            "$unlockedAchievementCount / ${BangladeshCurriculumCatalog.achievementsCatalog.size} Badges • ${subjectAnalytics.size} Active Subjects",
-                                            "${StudyQuestStrings.formatDigits(unlockedAchievementCount, lang)}টি ব্যাজ • ${StudyQuestStrings.formatDigits(subjectAnalytics.size, lang)}টি বিষয়"
+                                            "$unlockedBadgesCount / ${GamificationCatalog.badgesCatalog.size} Badges • ${pinnedBadges.size} Pinned • ${xpLedger.size} XP txns",
+                                            "${StudyQuestStrings.formatDigits(unlockedBadgesCount, lang)} / ${StudyQuestStrings.formatDigits(GamificationCatalog.badgesCatalog.size, lang)} ব্যাজ"
                                         ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 StatBadgePill(
-                                    icon = Icons.Filled.EmojiEvents,
+                                    icon = Icons.Filled.WorkspacePremium,
                                     label = "${profile.totalXp} XP",
-                                    tint = VioletTertiary,
+                                    tint = semantic.success,
                                     containerColor = MaterialTheme.colorScheme.surface
                                 )
+                            }
+                        }
+                    }
+                }
+
+                // Free vs Premium Membership Card (Play Billing Hook)
+                if (!isGuestMode) {
+                    item {
+                        StudyQuestCard(modifier = Modifier.testTag("profile_subscription_card")) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            lang,
+                                            if (subscription.tier == "premium") "StudyQuest Plus (Active)" else "Free Scholar Plan",
+                                            if (subscription.tier == "premium") "StudyQuest প্লাস (সক্রিয়)" else "ফ্রি স্টাডি প্ল্যান"
+                                        ),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            lang,
+                                            if (billingConfigured) "Google Play Billing ready • Zero ads during study & exams"
+                                            else "Play Billing unconfigured in build • 100% study features unlocked",
+                                            "সব পড়াশোনা, ফোকাস ও কুইজ সম্পূর্ণ আনলক"
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (subscription.tier != "premium") {
+                                    FilledTonalButton(
+                                        onClick = onTriggerBillingUpgrade,
+                                        modifier = Modifier.testTag("upgrade_premium_btn")
+                                    ) {
+                                        Text(StudyQuestStrings.t(lang, "Upgrade", "আপগ্রেড"))
+                                    }
+                                }
                             }
                         }
                     }
@@ -244,8 +352,8 @@ fun ProfileTabScreen(
                     StaggeredEntrance(index = 3, reducedMotion = reducedMotion) {
                         ProfileNavTile(
                             icon = Icons.Filled.Analytics,
-                            title = StudyQuestStrings.t(lang, "Academic Analytics & Achievements", "অ্যাকাডেমিক বিশ্লেষণ ও অর্জন"),
-                            subtitle = StudyQuestStrings.t(lang, "${learningRecords.size} records • Subject mastery & badges", "বিষয়ভিত্তিক দক্ষতা ও ব্যাজ গ্যালারি"),
+                            title = StudyQuestStrings.t(lang, "Academic Analytics & Charts", "অ্যাকাডেমিক বিশ্লেষণ ও চার্ট"),
+                            subtitle = StudyQuestStrings.t(lang, "${learningRecords.size} records • Subject mastery & trends", "বিষয়ভিত্তিক দক্ষতা ও গ্রাফ"),
                             onClick = { destination = ProfileDestination.Analytics },
                             testTag = "profile_open_analytics"
                         )
@@ -324,8 +432,22 @@ fun ProfileTabScreen(
                 learningRecords = learningRecords,
                 subjectAnalytics = subjectAnalytics,
                 weakTopics = weakTopics,
+                dailyStudySeries = dailyStudySeries,
                 friendCount = friendCount,
                 matchCount = profile.competitionRating.let { if (it > 1000L) 1 else 0 },
+                onBack = { destination = ProfileDestination.Home }
+            )
+        }
+
+        ProfileDestination.BadgesAndXp -> {
+            BadgesAndXpScreen(
+                profile = profile,
+                uiLanguage = lang,
+                userBadges = userBadges,
+                xpLedger = xpLedger,
+                isGuestMode = isGuestMode,
+                onToggleFavorite = onToggleBadgeFavorite,
+                onTogglePin = onToggleBadgePin,
                 onBack = { destination = ProfileDestination.Home }
             )
         }
@@ -351,11 +473,12 @@ fun ProfileTabScreen(
                 onBack = { destination = ProfileDestination.Home },
                 onUpdateUiLanguage = onUpdateUiLanguage,
                 onUpdateQuestionLanguage = onUpdateQuestionLanguage,
-                onUpdateDarkMode = onUpdateDarkMode,
+                onUpdateThemeMode = onUpdateThemeMode,
                 onUpdateReducedMotion = onUpdateReducedMotion,
                 onUpdateSound = onUpdateSound,
                 onUpdateQuietHours = onUpdateQuietHours,
                 onUpdateNotifications = onUpdateNotifications,
+                onUpdateNotificationCategory = onUpdateNotificationCategory,
                 onUpdateOptInNational = onUpdateOptInNational,
                 onUpdateOnlineStatusVisible = onUpdateOnlineStatusVisible,
                 onExportData = onExportData,
@@ -401,6 +524,7 @@ private fun AnalyticsAndAchievementsScreen(
     learningRecords: List<LearningRecordDoc>,
     subjectAnalytics: List<SubjectAnalyticsSummary>,
     weakTopics: List<WeakTopicStat>,
+    dailyStudySeries: List<DailyStudyMetric>,
     friendCount: Int,
     matchCount: Int,
     onBack: () -> Unit
@@ -415,6 +539,10 @@ private fun AnalyticsAndAchievementsScreen(
                 IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
                 Text(StudyQuestStrings.t(lang, "Analytics & Achievements", "বিশ্লেষণ ও অর্জন"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
+        }
+
+        item {
+            StudyTimeAndXpBarChart(dailySeries = dailyStudySeries, language = lang)
         }
 
         item {
@@ -576,11 +704,12 @@ private fun PreferencesAndSafetyScreen(
     onBack: () -> Unit,
     onUpdateUiLanguage: (AppLanguage) -> Unit,
     onUpdateQuestionLanguage: (AppLanguage) -> Unit,
-    onUpdateDarkMode: (Boolean) -> Unit,
+    onUpdateThemeMode: (ThemeMode) -> Unit,
     onUpdateReducedMotion: (Boolean) -> Unit,
     onUpdateSound: (Boolean) -> Unit,
     onUpdateQuietHours: (Boolean) -> Unit,
     onUpdateNotifications: (Boolean) -> Unit,
+    onUpdateNotificationCategory: (String, Boolean) -> Unit,
     onUpdateOptInNational: (Boolean) -> Unit,
     onUpdateOnlineStatusVisible: (Boolean) -> Unit,
     onExportData: () -> Unit,
@@ -627,19 +756,64 @@ private fun PreferencesAndSafetyScreen(
                         )
                     }
                 }
+                Spacer(Modifier.height(8.dp))
+                Text(StudyQuestStrings.t(lang, "Appearance Theme", "থিম নির্বাচন"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ThemeMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = preferences.themeMode == mode,
+                            onClick = { onUpdateThemeMode(mode) },
+                            label = { Text(StudyQuestStrings.t(lang, mode.labelEn, mode.labelBn)) },
+                            modifier = Modifier.testTag("settings_theme_${mode.code}")
+                        )
+                    }
+                }
             }
         }
 
         item {
             StudyQuestCard {
-                SettingToggleRow(StudyQuestStrings.t(lang, "Dark Theme", "ডার্ক থিম"), preferences.darkMode, onUpdateDarkMode)
                 SettingToggleRow(StudyQuestStrings.t(lang, "Reduced Motion (Accessibility)", "কম অ্যানিমেশন"), preferences.reducedMotion, onUpdateReducedMotion)
                 SettingToggleRow(StudyQuestStrings.t(lang, "Sound Effects & Haptics", "সাউন্ড ও হ্যাপটিক্স"), preferences.soundEnabled, onUpdateSound)
-                SettingToggleRow(StudyQuestStrings.t(lang, "Study Notifications", "নোটিফিকেশন"), preferences.notificationsEnabled, onUpdateNotifications)
-                SettingToggleRow(StudyQuestStrings.t(lang, "Quiet Hours (10 PM – 7 AM)", "নীরব সময় (রাত ১০টা – সকাল ৭টা)"), preferences.quietHoursEnabled, onUpdateQuietHours)
+                SettingToggleRow(StudyQuestStrings.t(lang, "All Study Notifications", "সকল নোটিফিকেশন"), preferences.notificationsEnabled, onUpdateNotifications)
+                SettingToggleRow(StudyQuestStrings.t(lang, "Quiet Hours (10 PM – 6 AM Dhaka)", "নীরব সময় (রাত ১০টা – সকাল ৬টা)"), preferences.quietHoursEnabled, onUpdateQuietHours)
                 if (!isGuestMode) {
                     SettingToggleRow(StudyQuestStrings.t(lang, "Opt-in National Leaderboard", "জাতীয় লিডারবোর্ডে অংশগ্রহণ"), profile.optInNationalLeaderboard, onUpdateOptInNational)
                     SettingToggleRow(StudyQuestStrings.t(lang, "Show Online Status to Friends", "অনলাইন অবস্থা দেখান"), profile.showOnlineStatus, onUpdateOnlineStatusVisible)
+                }
+            }
+        }
+
+        if (preferences.notificationsEnabled) {
+            item {
+                StudyQuestCard(modifier = Modifier.testTag("settings_notification_categories")) {
+                    Text(
+                        text = StudyQuestStrings.t(lang, "Notification Categories", "নোটিফিকেশনের ধরন"),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    SettingToggleRow(StudyQuestStrings.t(lang, "Study & Streak Reminders", "পড়া ও স্ট্রিক রিমাইন্ডার"), preferences.notifStudyEnabled) {
+                        onUpdateNotificationCategory("study", it)
+                    }
+                    SettingToggleRow(StudyQuestStrings.t(lang, "XP & Level-Up Alerts", "XP ও লেভেল আপ"), preferences.notifXpEnabled) {
+                        onUpdateNotificationCategory("xp", it)
+                    }
+                    SettingToggleRow(StudyQuestStrings.t(lang, "Badge Unlocks", "ব্যাজ আনলক"), preferences.notifBadgeEnabled) {
+                        onUpdateNotificationCategory("badge", it)
+                    }
+                    SettingToggleRow(StudyQuestStrings.t(lang, "Assignments & Deadlines", "অ্যাসাইনমেন্ট"), preferences.notifAssignmentEnabled) {
+                        onUpdateNotificationCategory("assignment", it)
+                    }
+                    SettingToggleRow(StudyQuestStrings.t(lang, "Competitions & Ranks", "প্রতিযোগিতা ও র‍্যাংক"), preferences.notifCompetitionEnabled) {
+                        onUpdateNotificationCategory("competition", it)
+                    }
+                    SettingToggleRow(StudyQuestStrings.t(lang, "Mock & Promotion Exams", "মডেল ও বার্ষিক পরীক্ষা"), preferences.notifExamEnabled) {
+                        onUpdateNotificationCategory("exam", it)
+                    }
+                    SettingToggleRow(StudyQuestStrings.t(lang, "Class Community Replies", "কমিউনিটি উত্তর"), preferences.notifCommunityEnabled) {
+                        onUpdateNotificationCategory("community", it)
+                    }
                 }
             }
         }
@@ -702,6 +876,11 @@ private fun PreferencesAndSafetyScreen(
         }
 
         item {
+            val ctx = LocalContext.current
+            val firebaseOpts = remember {
+                runCatching { FirebaseApp.getInstance().options }.getOrNull()
+            }
+            val dbId = stringResource(R.string.firestore_database_id)
             StudyQuestCard(modifier = Modifier.testTag("firebase_project_info_card")) {
                 Text(
                     text = StudyQuestStrings.t(lang, "Firebase Project & App Info", "ফায়ারবেস প্রোজেক্ট ও অ্যাপ তথ্য"),
@@ -710,12 +889,11 @@ private fun PreferencesAndSafetyScreen(
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "App Name: StudyQuest\n" +
-                        "Android Package: com.aistudio.studyquest.bdxkpq\n" +
-                        "Firebase Project ID: com-aistudio-studyquest-5811a\n" +
-                        "Firebase Project Number: 716745939273\n" +
-                        "Firestore Database ID: ai-studio-android-mystudyq-f4667920-563c-4888-a2b3-dd7d887506df\n" +
-                        "Storage Bucket: com-aistudio-studyquest-5811a.firebasestorage.app",
+                    text = "App Name: ${stringResource(R.string.app_name)}\n" +
+                        "Android Package: ${ctx.packageName}\n" +
+                        "Firebase Project ID: ${firebaseOpts?.projectId ?: "unconfigured"}\n" +
+                        "Firestore Database ID: $dbId\n" +
+                        "Storage Bucket: ${firebaseOpts?.storageBucket ?: "unconfigured"}",
                     fontFamily = JetBrainsMonoFontFamily,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
