@@ -213,7 +213,7 @@ fun StudyTimeAndXpBarChart(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = StudyQuestStrings.t(language, "7-Day Study & XP Trend", "৭ দিনের অধ্যয়ন ও XP গ্রাফ"),
+                text = StudyQuestStrings.t(language, "7-Day Study Activity", "৭ দিনের অধ্যয়ন ধারা"),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -318,14 +318,14 @@ fun SubjectXpDistributionChart(
 ) {
     StudyQuestCard(modifier = modifier.testTag("subject_xp_distribution_chart")) {
         Text(
-            text = StudyQuestStrings.t(language, "XP Across Subjects", "বিষয়ভিত্তিক XP বণ্টন"),
+            text = StudyQuestStrings.t(language, "Subject Mastery Distribution", "বিষয়ভিত্তিক দক্ষতা বণ্টন"),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(8.dp))
         if (subjectAnalytics.isEmpty()) {
             Text(
-                text = StudyQuestStrings.t(language, "No subject XP recorded yet.", "এখনো কোনো বিষয়ে XP জমা হয়নি।"),
+                text = StudyQuestStrings.t(language, "Complete lessons or drills to see subject mastery.", "বিষয়ভিত্তিক দক্ষতা দেখতে পাঠ বা অনুশীলন সম্পন্ন করো।"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

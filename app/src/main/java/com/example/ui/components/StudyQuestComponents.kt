@@ -373,7 +373,7 @@ fun QuestCard(
     )
     StudyQuestCard(
         modifier = modifier.testTag("quest_card_${quest.questId}"),
-        accentColor = if (quest.completed) EditorialSuccess else QuestGold
+        accentColor = if (quest.completed) EditorialSuccess else MaterialTheme.colorScheme.primary
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -394,10 +394,10 @@ fun QuestCard(
             }
             Spacer(Modifier.width(8.dp))
             StatBadgePill(
-                icon = Icons.Filled.Star,
-                label = "+${StudyQuestStrings.formatDigits(quest.xpReward, language)} XP",
-                tint = QuestGold,
-                containerColor = semantic.warningContainer
+                icon = Icons.Filled.CheckCircle,
+                label = "${StudyQuestStrings.formatDigits(quest.progress, language)}/${StudyQuestStrings.formatDigits(quest.target, language)}",
+                tint = MaterialTheme.colorScheme.primary,
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             )
         }
         Spacer(Modifier.height(10.dp))
@@ -405,7 +405,7 @@ fun QuestCard(
             progress = { progressRatio },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(7.dp)
+                .height(6.dp)
                 .clip(RoundedCornerShape(999.dp)),
             color = if (quest.completed) EditorialSuccess else MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -417,7 +417,11 @@ fun QuestCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${StudyQuestStrings.formatDigits(quest.progress, language)} / ${StudyQuestStrings.formatDigits(quest.target, language)}",
+                text = StudyQuestStrings.t(
+                    language,
+                    "Daily Goal • +${StudyQuestStrings.formatDigits(quest.xpReward, language)} pts",
+                    "দৈনিক লক্ষ্য • +${StudyQuestStrings.formatDigits(quest.xpReward, language)}"
+                ),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -427,7 +431,7 @@ fun QuestCard(
                         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = EditorialSuccess, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = StudyQuestStrings.t(language, "Claimed", "সংগৃহীত"),
+                            text = StudyQuestStrings.t(language, "Completed", "সম্পন্ন"),
                             style = MaterialTheme.typography.labelMedium,
                             color = EditorialSuccess,
                             fontWeight = FontWeight.Bold
@@ -442,19 +446,16 @@ fun QuestCard(
                             .testTag("claim_quest_${quest.questId}"),
                         colors = ButtonDefaults.buttonColors(containerColor = BrandForestGreen, contentColor = PureEditorialSurface)
                     ) {
-                        Text(StudyQuestStrings.t(language, "Claim +${quest.coinReward} Coins", "সংগ্রহ করুন"))
+                        Text(StudyQuestStrings.t(language, "Mark Complete", "সম্পন্ন করুন"))
                     }
                 }
                 else -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.MonetizationOn, contentDescription = null, tint = QuestGold, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "+${StudyQuestStrings.formatDigits(quest.coinReward, language)}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    Text(
+                        text = StudyQuestStrings.t(language, "In progress", "চলমান"),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
@@ -873,15 +874,15 @@ fun RankTierBadge(
         "Master" -> DeepForestGreen
         "Diamond" -> MineralTeal
         "Platinum" -> EditorialSuccess
-        "Gold" -> QuestGold
-        "Silver" -> Color(0xFF6B7770)
-        else -> WarmTerracotta
+        "Gold" -> BrandForestGreen
+        "Silver" -> Color(0xFF5D7083)
+        else -> SlateBotanical
     }
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(999.dp),
-        color = studyQuestGlassAwareSurfaceColor(tierColor.copy(alpha = 0.14f)),
-        border = BorderStroke(1.dp, tierColor.copy(alpha = 0.35f))
+        color = studyQuestGlassAwareSurfaceColor(tierColor.copy(alpha = 0.13f)),
+        border = BorderStroke(1.dp, tierColor.copy(alpha = 0.30f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -908,9 +909,9 @@ fun AvatarBadgeView(
     modifier: Modifier = Modifier
 ) {
     val frameBrush = when (frameId) {
-        "frame_mango" -> Brush.linearGradient(listOf(QuestGold, WarmTerracotta))
+        "frame_mango" -> Brush.linearGradient(listOf(SlateBotanical, MineralTeal))
         "frame_emerald" -> Brush.linearGradient(listOf(EditorialSuccess, MineralTeal))
-        else -> Brush.linearGradient(listOf(BrandForestGreen, QuestGold))
+        else -> Brush.linearGradient(listOf(BrandForestGreen, MineralTeal))
     }
     val initial = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "S"
     Surface(
@@ -920,10 +921,10 @@ fun AvatarBadgeView(
         color = MaterialTheme.colorScheme.primaryContainer
     ) {
         val bg = when (avatarId) {
-            "tiger_bengal", "scholar_coral" -> WarmTerracotta.copy(alpha = 0.22f)
-            "kingfisher_bd", "nexus_cyan" -> SlateBotanical.copy(alpha = 0.22f)
-            "emerald_badge" -> EditorialSuccess.copy(alpha = 0.22f)
-            else -> SoftSageGreen.copy(alpha = 0.55f)
+            "tiger_bengal", "scholar_coral" -> SlateBotanical.copy(alpha = 0.22f)
+            "kingfisher_bd", "nexus_cyan" -> MineralTeal.copy(alpha = 0.20f)
+            "emerald_badge" -> EditorialSuccess.copy(alpha = 0.20f)
+            else -> SoftSageGreen.copy(alpha = 0.60f)
         }
         Box(
             modifier = Modifier.background(bg),

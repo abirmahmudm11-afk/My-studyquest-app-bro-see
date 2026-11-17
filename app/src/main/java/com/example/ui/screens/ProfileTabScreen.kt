@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -199,8 +201,13 @@ fun ProfileTabScreen(
             val pinnedBadges = remember(userBadges) {
                 userBadges.filter { it.unlocked && it.pinned }.take(3)
             }
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter
+            ) {
             LazyColumn(
                 modifier = Modifier
+                    .widthIn(max = 980.dp)
                     .fillMaxSize()
                     .testTag("profile_home_list"),
                 contentPadding = PaddingValues(16.dp),
@@ -229,8 +236,8 @@ fun ProfileTabScreen(
                             title = profile.displayName,
                             subtitle = StudyQuestStrings.t(
                                 lang,
-                                "${cls?.labelEn ?: profile.classId} • ${profile.curriculumVersion.uppercase()} Version • Lv.${profile.overallLevel}",
-                                "${cls?.labelBn ?: profile.classId} • লেভেল ${StudyQuestStrings.formatDigits(profile.overallLevel, lang)}"
+                                "${cls?.labelEn ?: profile.classId} • ${profile.curriculumVersion.uppercase()} Version",
+                                "${cls?.labelBn ?: profile.classId} • ${profile.curriculumVersion.uppercase()}"
                             ),
                             reducedMotion = reducedMotion,
                             trailingSlot = {
@@ -243,18 +250,31 @@ fun ProfileTabScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    RankTierBadge(tier = profile.rankTier, language = lang)
                                     StatBadgePill(
-                                        icon = Icons.Filled.MonetizationOn,
-                                        label = "${StudyQuestStrings.formatDigits(profile.coins, lang)} Coins",
-                                        tint = AmberGold,
+                                        icon = Icons.Filled.Analytics,
+                                        label = StudyQuestStrings.t(
+                                            lang,
+                                            "${learningRecords.size} Sessions Logged",
+                                            "${StudyQuestStrings.formatDigits(learningRecords.size, lang)} সেশন"
+                                        ),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        containerColor = MaterialTheme.colorScheme.surface
+                                    )
+                                    StatBadgePill(
+                                        icon = Icons.Filled.CheckCircle,
+                                        label = StudyQuestStrings.t(
+                                            lang,
+                                            "${profile.streakCount}d Streak",
+                                            "${StudyQuestStrings.formatDigits(profile.streakCount, lang)} দিন"
+                                        ),
+                                        tint = semantic.success,
                                         containerColor = MaterialTheme.colorScheme.surface
                                     )
                                 }
                                 AnimatedCircularMasteryRing(
                                     progress = (xpWithinLevel.toFloat() / xpRequired.toFloat()).coerceIn(0f, 1f),
                                     centerValueText = "${levelPct}%",
-                                    centerCaptionText = "Lv.${profile.overallLevel + 1}",
+                                    centerCaptionText = StudyQuestStrings.t(lang, "Mastery", "দক্ষতা"),
                                     reducedMotion = reducedMotion,
                                     size = 58.dp
                                 )
@@ -529,6 +549,7 @@ fun ProfileTabScreen(
                         }
                     }
                 }
+            }
             }
         }
 

@@ -116,26 +116,30 @@ import com.example.data.model.XpTransactionDoc
 import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.WeakTopicStat
-import com.example.ui.components.AnimatedCircularMasteryRing
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.graphics.Brush
 import com.example.ui.components.EditorialSectionHeader
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.HeroCarouselSlide
+import com.example.ui.components.HeroDockAction
 import com.example.ui.components.LessonSuccessLottieDialog
-import com.example.ui.components.OpenBookQuestIllustration
+import com.example.ui.components.ReferenceHeroCarouselStage
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.SubjectCard
-import com.example.ui.theme.BrandForestGreen
-import com.example.ui.theme.DeepQuestGold
+import com.example.ui.theme.BrandTealPrimary
+import com.example.ui.theme.CeruleanSlate
+import com.example.ui.theme.CrispCoolSurface
+import com.example.ui.theme.DeepSlateInk
 import com.example.ui.theme.EditorialSuccess
+import com.example.ui.theme.HeroMintCardEnd
+import com.example.ui.theme.HeroMintCardStart
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.LocalStudyQuestSurfaceStyle
 import com.example.ui.theme.MineralTeal
-import com.example.ui.theme.PureEditorialSurface
-import com.example.ui.theme.QuestGold
+import com.example.ui.theme.MutedMintContainer
 import com.example.ui.theme.SlateBotanical
-import com.example.ui.theme.SoftQuestGold
-import com.example.ui.theme.SoftSageGreen
-import com.example.ui.theme.WarmTerracotta
+import com.example.ui.theme.SoftPowderBlue
 import com.example.ui.theme.studyQuestGlassAwareBorder
 import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 import com.example.ui.viewmodel.AiDoubtUiState
@@ -402,77 +406,235 @@ fun LearnTabScreen(
                 bookScopedQuestions.count { it.classId == selectedClassId }.coerceAtLeast(bookScopedQuestions.size)
             }
 
+            val activeCache = activeLockedBook?.let { b -> cachedBooks.firstOrNull { it.bookId == b.id } }
+            val installedOffline = activeCache?.downloadStatus == TextbookDownloadStatus.INSTALLED.id
+            val denom = classLessonIds.size.coerceAtLeast(1)
+            val lessonProgress = (completedLessonCount.toFloat() / denom.toFloat()).coerceIn(0f, 1f)
+
+            val carouselSlides = remember(
+                activeLockedBook,
+                filteredSubjects,
+                subjectMasteryMap,
+                uiLanguage,
+                installedOffline,
+                lessonProgress,
+                completedLessonCount,
+                denom,
+                classQuestionsCount
+            ) {
+                buildList {
+                    if (activeLockedBook != null) {
+                        add(
+                            HeroCarouselSlide(
+                                id = "learn_book_${activeLockedBook.id}",
+                                eyebrow = StudyQuestStrings.t(
+                                    uiLanguage,
+                                    "ACTIVE TEXTBOOK • ${activeLockedBook.academicYear}" + if (installedOffline) " • OFFLINE" else "",
+                                    "সক্রিয় পাঠ্যবই • ${activeLockedBook.academicYear}" + if (installedOffline) " • অফলাইন" else ""
+                                ),
+                                title = StudyQuestStrings.t(uiLanguage, activeLockedBook.titleEn, activeLockedBook.titleBn),
+                                subtitle = StudyQuestStrings.t(
+                                    uiLanguage,
+                                    "${activeLockedBook.bookCode} • ${cachedLessons.size} offline lessons • $classQuestionsCount scoped questions",
+                                    "${activeLockedBook.bookCode} • ${StudyQuestStrings.formatDigits(cachedLessons.size, uiLanguage)}টি পাঠ • ${StudyQuestStrings.formatDigits(classQuestionsCount, uiLanguage)} প্রশ্ন"
+                                ),
+                                metricValue = "${StudyQuestStrings.formatDigits(completedLessonCount, uiLanguage)}/${StudyQuestStrings.formatDigits(denom, uiLanguage)}",
+                                metricCaption = StudyQuestStrings.t(uiLanguage, "Lessons", "পাঠ"),
+                                progress = lessonProgress,
+                                actionLabel = StudyQuestStrings.t(uiLanguage, "Read Textbook", "বই পড়ুন"),
+                                actionIcon = Icons.Filled.MenuBook,
+                                gradientColors = listOf(HeroMintCardStart, HeroMintCardEnd),
+                                contentOnCard = DeepSlateInk,
+                                secondaryActionLabel = StudyQuestStrings.t(uiLanguage, "Switch", "পরিবর্তন"),
+                                secondaryActionTestTag = "learn_switch_book_btn",
+                                onSecondaryAction = { showSwitchBookSheet = true },
+                                cardTestTag = "learn_active_book_card",
+                                primaryActionTestTag = "learn_open_reader_btn",
+                                onClick = { pushDest(LearnDestination.TextbookReader) }
+                            )
+                        )
+                    }
+                    filteredSubjects.forEachIndexed { idx, subject ->
+                        val mastery = subjectMasteryMap[subject.id] ?: 0f
+                        val chCount = BangladeshCurriculumCatalog.chapters.count { it.subjectId == subject.id }
+                        val gradient = when ((idx + if (activeLockedBook != null) 1 else 0) % 3) {
+                            0 -> listOf(HeroMintCardStart, HeroMintCardEnd)
+                            1 -> listOf(Color(0xFFD7E6F5), Color(0xFFB5CFE8))
+                            else -> listOf(Color(0xFF3E6A90), Color(0xFF2B5273))
+                        }
+                        val ink = if ((idx + if (activeLockedBook != null) 1 else 0) % 3 == 2) Color.White else DeepSlateInk
+                        add(
+                            HeroCarouselSlide(
+                                id = "learn_subj_${subject.id}",
+                                eyebrow = "${subject.code} • ${StudyQuestStrings.classLabel(selectedClassId, uiLanguage)}",
+                                title = StudyQuestStrings.t(uiLanguage, subject.titleEn, subject.titleBn),
+                                subtitle = StudyQuestStrings.t(
+                                    uiLanguage,
+                                    "$chCount chapters • Curated NCTB syllabus",
+                                    "${StudyQuestStrings.formatDigits(chCount, uiLanguage)}টি অধ্যায় • এনসিটিবি পাঠ্যক্রম"
+                                ),
+                                metricValue = "${StudyQuestStrings.formatDigits((mastery * 100).toInt(), uiLanguage)}%",
+                                metricCaption = StudyQuestStrings.t(uiLanguage, "Progress", "অগ্রগতি"),
+                                progress = mastery,
+                                actionLabel = StudyQuestStrings.t(uiLanguage, "Open Course", "বিষয় খুলুন"),
+                                actionIcon = Icons.AutoMirrored.Filled.MenuBook,
+                                gradientColors = gradient,
+                                contentOnCard = ink,
+                                onClick = { pushDest(LearnDestination.SubjectDetail(subject)) }
+                            )
+                        )
+                    }
+                }
+            }
+
+            val learnDockActions = remember(activeLockedBook, uiLanguage, bookScopedQuestions, selectedClassId) {
+                listOf(
+                    HeroDockAction(
+                        id = "learn_dock_bank",
+                        label = StudyQuestStrings.t(uiLanguage, "Question Bank", "প্রশ্নব্যাংক"),
+                        icon = Icons.Filled.Quiz,
+                        onClick = { pushDest(LearnDestination.QuestionBank) }
+                    ),
+                    HeroDockAction(
+                        id = "learn_dock_drill",
+                        label = StudyQuestStrings.t(uiLanguage, "Quick Drill", "দ্রুত চর্চা"),
+                        icon = Icons.Filled.Bolt,
+                        onClick = {
+                            val qs = bookScopedQuestions.filter { it.classId == selectedClassId }.ifEmpty { bookScopedQuestions }.take(6)
+                            pushDest(LearnDestination.PracticeSession(StudyQuestStrings.t(uiLanguage, "Quick Practice", "কুইক প্র্যাকটিস"), qs))
+                        }
+                    ),
+                    HeroDockAction(
+                        id = "learn_dock_ai",
+                        label = StudyQuestStrings.t(uiLanguage, "AI Tutor", "AI টিউটর"),
+                        icon = Icons.Filled.AutoAwesome,
+                        onClick = { pushDest(LearnDestination.AiLab) }
+                    )
+                )
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .testTag("learn_hub_list"),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 1. Learn Hub Editorial Header + Live Search & Status Filter Chips
+                // 1. Slate Blue-Gray Learn Hero Stage with Search, Class Filter, & Horizontal Subject Carousel
                 item {
-                    StaggeredEntrance(index = 0, reducedMotion = reducedMotion) {
-                        val cls = BangladeshCurriculumCatalog.classes.find { it.id == selectedClassId }
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = StudyQuestStrings.t(uiLanguage, "NCTB WORLD OF KNOWLEDGE", "এনসিটিবি শিক্ষার বিশ্ব"),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = StudyQuestStrings.t(uiLanguage, "Learn Hub", "শেখার বিশ্ব"),
-                                        style = MaterialTheme.typography.headlineLarge,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(999.dp),
-                                    color = if (visualConfig.isDark) MaterialTheme.colorScheme.primaryContainer else SoftSageGreen
-                                ) {
-                                    Text(
-                                        text = StudyQuestStrings.t(
-                                            uiLanguage,
-                                            "${cls?.labelEn ?: selectedClassId} • $classQuestionsCount Qs",
-                                            "${cls?.labelBn ?: selectedClassId} • ${StudyQuestStrings.formatDigits(classQuestionsCount, uiLanguage)} প্রশ্ন"
-                                        ),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                    )
+                    val cls = BangladeshCurriculumCatalog.classes.find { it.id == selectedClassId }
+                    if (carouselSlides.isNotEmpty()) {
+                        ReferenceHeroCarouselStage(
+                            slides = carouselSlides,
+                            dockActions = learnDockActions,
+                            reducedMotion = reducedMotion,
+                            headerSlot = {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = StudyQuestStrings.t(uiLanguage, "CURRICULUM LIBRARY", "পাঠ্যক্রম ও কোর্সসমূহ"),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White.copy(alpha = 0.80f)
+                                            )
+                                            Text(
+                                                text = StudyQuestStrings.t(uiLanguage, "Learn Hub", "শেখার বিশ্ব"),
+                                                style = MaterialTheme.typography.headlineMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                        }
+                                        Surface(
+                                            shape = RoundedCornerShape(999.dp),
+                                            color = Color.White.copy(alpha = 0.18f),
+                                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+                                        ) {
+                                            Text(
+                                                text = StudyQuestStrings.t(
+                                                    uiLanguage,
+                                                    "${cls?.labelEn ?: selectedClassId} • $classQuestionsCount Qs",
+                                                    "${cls?.labelBn ?: selectedClassId} • ${StudyQuestStrings.formatDigits(classQuestionsCount, uiLanguage)} প্রশ্ন"
+                                                ),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White,
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.65f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        OutlinedTextField(
+                                            value = searchQuery,
+                                            onValueChange = { searchQuery = it },
+                                            placeholder = {
+                                                Text(
+                                                    StudyQuestStrings.t(
+                                                        uiLanguage,
+                                                        "Search subjects, lessons, or codes...",
+                                                        "বিষয় বা পাঠ খুঁজুন..."
+                                                    )
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                            },
+                                            trailingIcon = {
+                                                if (searchQuery.isNotEmpty()) {
+                                                    IconButton(
+                                                        onClick = { searchQuery = "" },
+                                                        modifier = Modifier.testTag("learn_search_clear_btn")
+                                                    ) {
+                                                        Icon(Icons.Filled.Close, contentDescription = StudyQuestStrings.t(uiLanguage, "Clear search", "খোঁজ মুছুন"))
+                                                    }
+                                                }
+                                            },
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(16.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .testTag("learn_search_input")
+                                        )
+                                    }
                                 }
                             }
-
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .widthIn(max = 980.dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = StudyQuestStrings.t(uiLanguage, "Learn Hub", "শেখার বিশ্ব"),
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold
+                            )
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
-                                placeholder = {
-                                    Text(
-                                        StudyQuestStrings.t(
-                                            uiLanguage,
-                                            "Search subjects, lessons, or codes...",
-                                            "বিষয় বা পাঠ খুঁজুন..."
-                                        )
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                },
+                                placeholder = { Text(StudyQuestStrings.t(uiLanguage, "Search subjects, lessons, or codes...", "বিষয় বা পাঠ খুঁজুন...")) },
+                                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                                 trailingIcon = {
                                     if (searchQuery.isNotEmpty()) {
                                         IconButton(
                                             onClick = { searchQuery = "" },
                                             modifier = Modifier.testTag("learn_search_clear_btn")
                                         ) {
-                                            Icon(Icons.Filled.Close, contentDescription = StudyQuestStrings.t(uiLanguage, "Clear search", "খোঁজ মুছুন"))
+                                            Icon(Icons.Filled.Close, contentDescription = "Clear search")
                                         }
                                     }
                                 },
@@ -482,189 +644,51 @@ fun LearnTabScreen(
                                     .fillMaxWidth()
                                     .testTag("learn_search_input")
                             )
-
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                val filters = listOf(
-                                    Triple(LearnStatusFilter.ALL, "learn_filter_all", StudyQuestStrings.t(uiLanguage, "All", "সব")),
-                                    Triple(LearnStatusFilter.IN_PROGRESS, "learn_filter_in_progress", StudyQuestStrings.t(uiLanguage, "In Progress", "চলমান")),
-                                    Triple(LearnStatusFilter.NOT_STARTED, "learn_filter_not_started", StudyQuestStrings.t(uiLanguage, "Not Started", "শুরু হয়নি")),
-                                    Triple(LearnStatusFilter.COMPLETED, "learn_filter_completed", StudyQuestStrings.t(uiLanguage, "Completed", "সম্পন্ন"))
-                                )
-                                items(filters, key = { it.second }) { (filter, tag, label) ->
-                                    FilterChip(
-                                        selected = statusFilter == filter,
-                                        onClick = { statusFilter = filter },
-                                        label = { Text(label) },
-                                        modifier = Modifier.testTag(tag)
-                                    )
-                                }
-                            }
-
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(BangladeshCurriculumCatalog.classes, key = { it.id }) { clsItem ->
-                                    FilterChip(
-                                        selected = selectedClassId == clsItem.id,
-                                        onClick = { if (clsItem.futureReadyTag == null) selectedClassId = clsItem.id },
-                                        enabled = clsItem.futureReadyTag == null,
-                                        label = { Text(StudyQuestStrings.t(uiLanguage, clsItem.labelEn, clsItem.labelBn)) },
-                                        modifier = Modifier.testTag("learn_class_${clsItem.id}")
-                                    )
-                                }
-                            }
                         }
                     }
                 }
 
-                // 2. Featured Learning Spotlight (Active Locked Textbook or Curriculum Focus)
-                if (activeLockedBook != null) {
-                    item {
-                        val activeCache = cachedBooks.firstOrNull { it.bookId == activeLockedBook.id }
-                        val installedOffline = activeCache?.downloadStatus == TextbookDownloadStatus.INSTALLED.id
-                        val denom = classLessonIds.size.coerceAtLeast(1)
-                        val lessonProgress = (completedLessonCount.toFloat() / denom.toFloat()).coerceIn(0f, 1f)
-                        Surface(
-                            shape = RoundedCornerShape(22.dp),
-                            color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-                            border = studyQuestGlassAwareBorder(BrandForestGreen.copy(alpha = 0.28f)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("learn_active_book_card")
+                // Search & Class Filters Bar below Hero
+                item {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = 980.dp)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-                                val wide = maxWidth >= 500.dp
-                                val details: @Composable (Modifier) -> Unit = { mod ->
-                                    Column(
-                                        modifier = mod,
-                                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Surface(
-                                                shape = RoundedCornerShape(999.dp),
-                                                color = if (visualConfig.isDark) MaterialTheme.colorScheme.primaryContainer else SoftSageGreen
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                ) {
-                                                    Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
-                                                    Text(
-                                                        text = StudyQuestStrings.t(
-                                                            uiLanguage,
-                                                            "ACTIVE LOCKED TEXTBOOK • ${activeLockedBook.academicYear}",
-                                                            "লককৃত সক্রিয় বই • ${activeLockedBook.academicYear}"
-                                                        ),
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
-                                            }
-                                            if (installedOffline) {
-                                                Icon(
-                                                    Icons.Filled.CloudDone,
-                                                    contentDescription = StudyQuestStrings.t(uiLanguage, "Installed Offline", "অফলাইন প্রস্তুত"),
-                                                    tint = EditorialSuccess,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        }
+                            val filters = listOf(
+                                Triple(LearnStatusFilter.ALL, "learn_filter_all", StudyQuestStrings.t(uiLanguage, "All", "সব")),
+                                Triple(LearnStatusFilter.IN_PROGRESS, "learn_filter_in_progress", StudyQuestStrings.t(uiLanguage, "In Progress", "চলমান")),
+                                Triple(LearnStatusFilter.NOT_STARTED, "learn_filter_not_started", StudyQuestStrings.t(uiLanguage, "Not Started", "শুরু হয়নি")),
+                                Triple(LearnStatusFilter.COMPLETED, "learn_filter_completed", StudyQuestStrings.t(uiLanguage, "Completed", "সম্পন্ন"))
+                            )
+                            items(filters, key = { it.second }) { (filter, tag, label) ->
+                                FilterChip(
+                                    selected = statusFilter == filter,
+                                    onClick = { statusFilter = filter },
+                                    label = { Text(label) },
+                                    modifier = Modifier.testTag(tag)
+                                )
+                            }
+                        }
 
-                                        Text(
-                                            text = StudyQuestStrings.t(uiLanguage, activeLockedBook.titleEn, activeLockedBook.titleBn),
-                                            style = MaterialTheme.typography.headlineSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-
-                                        Text(
-                                            text = StudyQuestStrings.t(
-                                                uiLanguage,
-                                                "${activeLockedBook.bookCode} • ${cachedLessons.size} offline lessons • $classQuestionsCount scoped questions",
-                                                "${activeLockedBook.bookCode} • ${StudyQuestStrings.formatDigits(cachedLessons.size, uiLanguage)}টি অফলাইন পাঠ • ${StudyQuestStrings.formatDigits(classQuestionsCount, uiLanguage)} প্রশ্ন"
-                                            ),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Button(
-                                                onClick = { pushDest(LearnDestination.TextbookReader) },
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = BrandForestGreen,
-                                                    contentColor = PureEditorialSurface
-                                                ),
-                                                shape = RoundedCornerShape(14.dp),
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .minimumInteractiveComponentSize()
-                                                    .testTag("learn_open_reader_btn")
-                                            ) {
-                                                Icon(Icons.Filled.MenuBook, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                Spacer(Modifier.width(6.dp))
-                                                Text(StudyQuestStrings.t(uiLanguage, "Read Textbook", "বই পড়ো"))
-                                            }
-                                            FilledTonalButton(
-                                                onClick = { showSwitchBookSheet = true },
-                                                shape = RoundedCornerShape(14.dp),
-                                                modifier = Modifier
-                                                    .minimumInteractiveComponentSize()
-                                                    .testTag("learn_switch_book_btn")
-                                            ) {
-                                                Icon(Icons.Filled.SwapHoriz, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                Spacer(Modifier.width(4.dp))
-                                                Text(StudyQuestStrings.t(uiLanguage, "Switch", "পরিবর্তন"))
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (wide) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        details(Modifier.weight(1.4f))
-                                        Column(
-                                            modifier = Modifier.weight(0.6f),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            AnimatedCircularMasteryRing(
-                                                progress = lessonProgress,
-                                                centerValueText = "${StudyQuestStrings.formatDigits(completedLessonCount, uiLanguage)}/${StudyQuestStrings.formatDigits(denom, uiLanguage)}",
-                                                centerCaptionText = StudyQuestStrings.t(uiLanguage, "Lessons", "পাঠ"),
-                                                reducedMotion = reducedMotion,
-                                                size = 82.dp,
-                                                ringColor = BrandForestGreen,
-                                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                                valueColor = MaterialTheme.colorScheme.onSurface,
-                                                captionColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        details(Modifier.weight(1f))
-                                    }
-                                }
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(BangladeshCurriculumCatalog.classes, key = { it.id }) { clsItem ->
+                                FilterChip(
+                                    selected = selectedClassId == clsItem.id,
+                                    onClick = { if (clsItem.futureReadyTag == null) selectedClassId = clsItem.id },
+                                    enabled = clsItem.futureReadyTag == null,
+                                    label = { Text(StudyQuestStrings.t(uiLanguage, clsItem.labelEn, clsItem.labelBn)) },
+                                    modifier = Modifier.testTag("learn_class_${clsItem.id}")
+                                )
                             }
                         }
                     }
@@ -673,40 +697,47 @@ fun LearnTabScreen(
                 // Empty / No-Match Search Recovery State
                 if (filteredSubjects.isEmpty() && filteredLessons.isEmpty()) {
                     item {
-                        EmptyStateView(
-                            titleEn = "No matching lessons or subjects",
-                            titleBn = "কোনো মিল পাওয়া যায়নি",
-                            subtitleEn = "Try clearing your search or status filter to explore all NCTB subjects.",
-                            subtitleBn = "সব বিষয় ও পাঠ দেখতে ফিল্টার বা খোঁজ পরিষ্কার করুন।",
-                            language = uiLanguage,
-                            actionLabelEn = "Clear Filters",
-                            actionLabelBn = "ফিল্টার মুছুন",
-                            onAction = {
-                                searchQuery = ""
-                                statusFilter = LearnStatusFilter.ALL
-                            },
-                            actionTestTag = "learn_clear_filters_btn",
-                            modifier = Modifier.testTag("learn_empty_search_state")
-                        )
+                        Box(modifier = Modifier.widthIn(max = 980.dp).fillMaxWidth().padding(horizontal = 16.dp)) {
+                            EmptyStateView(
+                                titleEn = "No matching lessons or subjects",
+                                titleBn = "কোনো মিল পাওয়া যায়নি",
+                                subtitleEn = "Try clearing your search or status filter to explore all NCTB subjects.",
+                                subtitleBn = "সব বিষয় ও পাঠ দেখতে ফিল্টার বা খোঁজ পরিষ্কার করুন।",
+                                language = uiLanguage,
+                                actionLabelEn = "Clear Filters",
+                                actionLabelBn = "ফিল্টার মুছুন",
+                                onAction = {
+                                    searchQuery = ""
+                                    statusFilter = LearnStatusFilter.ALL
+                                },
+                                actionTestTag = "learn_clear_filters_btn",
+                                modifier = Modifier.testTag("learn_empty_search_state")
+                            )
+                        }
                     }
                 }
 
-                // 3. Explore Learning Worlds — Responsive Subject Mosaic
+                // 2. Layered Subjects & Courses Grid
                 if (filteredSubjects.isNotEmpty()) {
                     item {
-                        StaggeredEntrance(index = 1, reducedMotion = reducedMotion) {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        StaggeredEntrance(index = 0, reducedMotion = reducedMotion) {
+                            Column(
+                                modifier = Modifier
+                                    .widthIn(max = 980.dp)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
                                 EditorialSectionHeader(
-                                    eyebrow = StudyQuestStrings.t(uiLanguage, "EXPLORE WORLDS", "বিষয় জগৎ"),
-                                    title = StudyQuestStrings.t(uiLanguage, "Subjects Mosaic", "বিষয়সমূহ"),
+                                    eyebrow = StudyQuestStrings.t(uiLanguage, "CURRICULUM SUBJECTS", "বিষয়সমূহ"),
+                                    title = StudyQuestStrings.t(uiLanguage, "Featured Courses", "কোর্স ও বিষয়"),
                                     actionLabel = StudyQuestStrings.t(uiLanguage, "Question Bank", "প্রশ্নব্যাংক"),
                                     onAction = { pushDest(LearnDestination.QuestionBank) }
                                 )
 
                                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                                     val columns = when {
-                                        maxWidth >= 880.dp -> 3
-                                        maxWidth >= 560.dp -> 2
+                                        maxWidth >= 820.dp -> 3
                                         else -> 2
                                     }
                                     val rows = filteredSubjects.chunked(columns)
@@ -740,15 +771,15 @@ fun LearnTabScreen(
                     }
                 }
 
-                // 4. Visual Learning Paths Strip (Dynamic Progression Nodes)
+                // 3. Structured Learning Path Strip
                 item {
-                    StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
+                    StaggeredEntrance(index = 1, reducedMotion = reducedMotion) {
                         val completedChapters = bookChapters.count { it.completed }
                         val firstSubj = scopedSubjects.firstOrNull()
                         val pathNodes = listOf(
                             Triple(
                                 StudyQuestStrings.t(uiLanguage, "1. Foundation", "১. মূল পাঠ"),
-                                if (activeLockedBook != null) StudyQuestStrings.t(uiLanguage, "Read chapter", "অধ্যায় পড়ো")
+                                if (activeLockedBook != null) StudyQuestStrings.t(uiLanguage, "Read chapter", "অধ্যায় পড়ুন")
                                 else StudyQuestStrings.t(uiLanguage, "Pick topic", "বিষয় নির্বাচন"),
                                 completedChapters > 0
                             ) to {
@@ -772,15 +803,21 @@ fun LearnTabScreen(
                             ) to { pushDest(LearnDestination.QuestionBank) },
                             Triple(
                                 StudyQuestStrings.t(uiLanguage, "4. Board Check", "৪. পরীক্ষা প্রস্তুতি"),
-                                StudyQuestStrings.t(uiLanguage, "Mock exam", "মডেল টেস্ট"),
+                                StudyQuestStrings.t(uiLanguage, "Daily check", "দৈনিক পরীক্ষা"),
                                 dailyChallengeDoneToday
                             ) to { pushDest(LearnDestination.DailyChallenge) }
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .widthIn(max = 980.dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                             EditorialSectionHeader(
                                 eyebrow = StudyQuestStrings.t(uiLanguage, "STRUCTURED PROGRESSION", "ধারাবাহিক শেখা"),
-                                title = StudyQuestStrings.t(uiLanguage, "Learning Paths", "শেখার ধাপ")
+                                title = StudyQuestStrings.t(uiLanguage, "Learning Sequence", "শেখার ধাপ")
                             )
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(0.dp),
@@ -796,16 +833,16 @@ fun LearnTabScreen(
                                             onClick = onClick,
                                             shape = RoundedCornerShape(16.dp),
                                             color = if (done) {
-                                                if (visualConfig.isDark) MaterialTheme.colorScheme.primaryContainer else SoftSageGreen
+                                                if (visualConfig.isDark) MaterialTheme.colorScheme.primaryContainer else SoftPowderBlue
                                             } else {
                                                 studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface)
                                             },
                                             border = BorderStroke(
                                                 1.2.dp,
-                                                if (done) BrandForestGreen else MaterialTheme.colorScheme.outline
+                                                if (done) BrandTealPrimary else MaterialTheme.colorScheme.outlineVariant
                                             ),
                                             modifier = Modifier
-                                                .width(136.dp)
+                                                .width(142.dp)
                                                 .minimumInteractiveComponentSize()
                                         ) {
                                             Column(
@@ -830,7 +867,7 @@ fun LearnTabScreen(
                                         if (idx < pathNodes.lastIndex) {
                                             Canvas(modifier = Modifier.width(22.dp).height(10.dp)) {
                                                 drawLine(
-                                                    color = if (done) QuestGold else BrandForestGreen.copy(alpha = 0.40f),
+                                                    color = if (done) BrandTealPrimary else CeruleanSlate.copy(alpha = 0.35f),
                                                     start = Offset(2.dp.toPx(), size.height / 2f),
                                                     end = Offset(size.width - 2.dp.toPx(), size.height / 2f),
                                                     strokeWidth = 2.dp.toPx(),
@@ -846,11 +883,17 @@ fun LearnTabScreen(
                     }
                 }
 
-                // 5. Discover Lessons Horizontal Shelf
+                // 4. Discover Lessons Horizontal Shelf
                 if (filteredLessons.isNotEmpty()) {
                     item {
-                        StaggeredEntrance(index = 3, reducedMotion = reducedMotion) {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
+                            Column(
+                                modifier = Modifier
+                                    .widthIn(max = 980.dp)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
                                 EditorialSectionHeader(
                                     eyebrow = StudyQuestStrings.t(uiLanguage, "CURATED CHAPTER LESSONS", "নির্বাচিত পাঠ"),
                                     title = StudyQuestStrings.t(uiLanguage, "Discover Lessons", "পাঠ অন্বেষণ করুন")
@@ -864,12 +907,12 @@ fun LearnTabScreen(
                                     items(filteredLessons.take(12), key = { it.id }) { lesson ->
                                         val isDone = cachedLessons.any { it.id == lesson.id && it.completed }
                                         val parentSubj = BangladeshCurriculumCatalog.subjects.find { it.id == lesson.subjectId }
-                                        val accent = parentSubj?.let { Color(it.accentHex) } ?: BrandForestGreen
+                                        val accent = parentSubj?.let { Color(it.accentHex) } ?: BrandTealPrimary
                                         Surface(
                                             onClick = { pushDest(LearnDestination.LessonDetail(lesson)) },
                                             shape = RoundedCornerShape(18.dp),
                                             color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-                                            border = studyQuestGlassAwareBorder(if (isDone) EditorialSuccess else accent.copy(alpha = 0.45f)),
+                                            border = studyQuestGlassAwareBorder(if (isDone) EditorialSuccess else accent.copy(alpha = 0.35f)),
                                             modifier = Modifier
                                                 .width(224.dp)
                                                 .minimumInteractiveComponentSize()
@@ -886,7 +929,7 @@ fun LearnTabScreen(
                                                 ) {
                                                     Surface(
                                                         shape = RoundedCornerShape(8.dp),
-                                                        color = accent.copy(alpha = 0.14f)
+                                                        color = accent.copy(alpha = 0.13f)
                                                     ) {
                                                         Text(
                                                             text = parentSubj?.let { StudyQuestStrings.t(uiLanguage, it.titleEn, it.titleBn) }
@@ -913,8 +956,8 @@ fun LearnTabScreen(
                                                 Text(
                                                     text = StudyQuestStrings.t(
                                                         uiLanguage,
-                                                        "${lesson.estimatedMinutes} min • +15 XP",
-                                                        "${StudyQuestStrings.formatDigits(lesson.estimatedMinutes, uiLanguage)} মি. • +১৫ XP"
+                                                        "${lesson.estimatedMinutes} min • Guided lesson",
+                                                        "${StudyQuestStrings.formatDigits(lesson.estimatedMinutes, uiLanguage)} মি. • পাঠ"
                                                     ),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -928,22 +971,22 @@ fun LearnTabScreen(
                     }
                 }
 
-                // 6. Study Tools & AI Shelf
+                // 5. Organized Learning Collections Grid (Compact Multi-Column Cards)
                 item {
-                    StaggeredEntrance(index = 4, reducedMotion = reducedMotion) {
+                    StaggeredEntrance(index = 3, reducedMotion = reducedMotion) {
                         val toolShortcuts = listOf(
                             LearnToolShortcut(
                                 tag = "open_question_bank",
                                 label = StudyQuestStrings.t(uiLanguage, "Question Bank", "প্রশ্নব্যাংক"),
                                 subtitle = StudyQuestStrings.t(uiLanguage, "MCQ, CQ & Board Qs", "বোর্ড ও সৃজনশীল"),
                                 icon = Icons.Filled.Quiz,
-                                accent = BrandForestGreen,
+                                accent = BrandTealPrimary,
                                 onClick = { pushDest(LearnDestination.QuestionBank) }
                             ),
                             LearnToolShortcut(
                                 tag = "learn_quick_practice",
                                 label = StudyQuestStrings.t(uiLanguage, "Quick Practice", "দ্রুত অনুশীলন"),
-                                subtitle = StudyQuestStrings.t(uiLanguage, "6-question sprint", "৬ প্রশ্নের স্প্রিন্ট"),
+                                subtitle = StudyQuestStrings.t(uiLanguage, "6-question drill", "৬ প্রশ্নের চর্চা"),
                                 icon = Icons.Filled.Bolt,
                                 accent = MineralTeal,
                                 onClick = {
@@ -961,7 +1004,7 @@ fun LearnTabScreen(
                                 label = StudyQuestStrings.t(uiLanguage, "Flashcards & Vault", "ফ্ল্যাশকার্ড ও সূত্র"),
                                 subtitle = StudyQuestStrings.t(uiLanguage, "Active recall deck", "দ্রুত পুনরাবৃত্তি"),
                                 icon = Icons.Filled.Style,
-                                accent = DeepQuestGold,
+                                accent = SlateBotanical,
                                 onClick = { pushDest(LearnDestination.FlashcardsAndVault) }
                             ),
                             LearnToolShortcut(
@@ -969,23 +1012,23 @@ fun LearnTabScreen(
                                 label = StudyQuestStrings.t(uiLanguage, "Revision & Planner", "রিভিশন ও প্ল্যানার"),
                                 subtitle = StudyQuestStrings.t(uiLanguage, "Spaced review", "স্মার্ট রিভিশন"),
                                 icon = Icons.Filled.Replay,
-                                accent = SlateBotanical,
+                                accent = CeruleanSlate,
                                 onClick = { pushDest(LearnDestination.RevisionAndPlanner) }
                             ),
                             LearnToolShortcut(
                                 tag = "learn_pomodoro",
-                                label = StudyQuestStrings.t(uiLanguage, "Pomodoro Focus", "পমোডোরো ফোকাস"),
-                                subtitle = StudyQuestStrings.t(uiLanguage, "Timer & ambient audio", "ফোকাস টাইমার"),
+                                label = StudyQuestStrings.t(uiLanguage, "Focus Timer", "ফোকাস টাইমার"),
+                                subtitle = StudyQuestStrings.t(uiLanguage, "Timer & study audio", "ফোকাস ও অডিও"),
                                 icon = Icons.Filled.Timer,
-                                accent = WarmTerracotta,
+                                accent = BrandTealPrimary,
                                 onClick = { pushDest(LearnDestination.PomodoroFocus) }
                             ),
                             LearnToolShortcut(
                                 tag = "learn_daily_challenge",
-                                label = StudyQuestStrings.t(uiLanguage, "Daily Streak", "দৈনিক চ্যালেঞ্জ"),
-                                subtitle = StudyQuestStrings.t(uiLanguage, "Keep your momentum", "ধারাবাহিকতা ধরে রাখো"),
-                                icon = Icons.Filled.LocalFireDepartment,
-                                accent = DeepQuestGold,
+                                label = StudyQuestStrings.t(uiLanguage, "Daily Quiz", "দৈনিক কুইজ"),
+                                subtitle = StudyQuestStrings.t(uiLanguage, "Daily check-in set", "দৈনিক মূল্যায়ন"),
+                                icon = Icons.Filled.CheckCircle,
+                                accent = MineralTeal,
                                 onClick = { pushDest(LearnDestination.DailyChallenge) }
                             ),
                             LearnToolShortcut(
@@ -993,23 +1036,23 @@ fun LearnTabScreen(
                                 label = StudyQuestStrings.t(uiLanguage, "Mastery Analytics", "দক্ষতা বিশ্লেষণ"),
                                 subtitle = StudyQuestStrings.t(uiLanguage, "Accuracy & trends", "সঠিকতা ও ধারা"),
                                 icon = Icons.Filled.Analytics,
-                                accent = BrandForestGreen,
+                                accent = SlateBotanical,
                                 onClick = { pushDest(LearnDestination.MasteryAnalytics) }
                             ),
                             LearnToolShortcut(
                                 tag = "learn_ai_lab",
-                                label = StudyQuestStrings.t(uiLanguage, "StudyQuest AI Lab", "StudyQuest AI ল্যাব"),
-                                subtitle = StudyQuestStrings.t(uiLanguage, "Multi-turn AI tutor", "বিস্তারিত AI টিউটর"),
+                                label = StudyQuestStrings.t(uiLanguage, "AI Study Lab", "AI স্টাডি ল্যাব"),
+                                subtitle = StudyQuestStrings.t(uiLanguage, "Interactive AI tutor", "বিস্তারিত AI টিউটর"),
                                 icon = Icons.Filled.AutoAwesome,
-                                accent = MineralTeal,
+                                accent = CeruleanSlate,
                                 onClick = { pushDest(LearnDestination.AiLab) }
                             ),
                             LearnToolShortcut(
                                 tag = "learn_quick_doubt",
                                 label = StudyQuestStrings.t(uiLanguage, "Quick Doubt", "দ্রুত সমাধান"),
-                                subtitle = StudyQuestStrings.t(uiLanguage, "Instant Gemini Q&A", "তাৎক্ষণিক প্রশ্নোত্তর"),
+                                subtitle = StudyQuestStrings.t(uiLanguage, "Instant Q&A help", "তাৎক্ষণিক প্রশ্নোত্তর"),
                                 icon = Icons.Filled.AutoAwesome,
-                                accent = WarmTerracotta,
+                                accent = BrandTealPrimary,
                                 onClick = {
                                     aiSheetContext = "" to StudyQuestStrings.t(uiLanguage, "General Study", "সাধারণ পড়াশোনা")
                                 }
@@ -1019,7 +1062,7 @@ fun LearnTabScreen(
                                 label = StudyQuestStrings.t(uiLanguage, "Goals & Tasks", "লক্ষ্য ও কাজ"),
                                 subtitle = StudyQuestStrings.t(uiLanguage, "Track weekly plans", "সাপ্তাহিক লক্ষ্য"),
                                 icon = Icons.Filled.Assignment,
-                                accent = SlateBotanical,
+                                accent = MineralTeal,
                                 onClick = { pushDest(LearnDestination.AssignmentsAndGoals) }
                             ),
                             LearnToolShortcut(
@@ -1027,68 +1070,82 @@ fun LearnTabScreen(
                                 label = StudyQuestStrings.t(uiLanguage, "Video Library", "ভিডিও লাইব্রেরি"),
                                 subtitle = StudyQuestStrings.t(uiLanguage, "Concept explainers", "ধারণা ভিডিও"),
                                 icon = Icons.Filled.VideoLibrary,
-                                accent = BrandForestGreen,
+                                accent = SlateBotanical,
                                 onClick = { pushDest(LearnDestination.AiVideoStudio) }
-                            ),
-                            LearnToolShortcut(
-                                tag = "learn_badges_xp",
-                                label = StudyQuestStrings.t(uiLanguage, "Badges & XP", "ব্যাজ ও XP"),
-                                subtitle = StudyQuestStrings.t(uiLanguage, "Earned milestones", "অর্জিত সম্মাননা"),
-                                icon = Icons.Filled.WorkspacePremium,
-                                accent = DeepQuestGold,
-                                onClick = { pushDest(LearnDestination.BadgesAndXp) }
                             )
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .widthIn(max = 980.dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                             EditorialSectionHeader(
-                                eyebrow = StudyQuestStrings.t(uiLanguage, "PRACTICE & AI WORKSPACE", "অনুশীলন ও টুলস"),
-                                title = StudyQuestStrings.t(uiLanguage, "Study Tools", "শেখার সহায়িকা")
+                                eyebrow = StudyQuestStrings.t(uiLanguage, "ORGANIZED COLLECTIONS", "শেখার সংকলন"),
+                                title = StudyQuestStrings.t(uiLanguage, "Study Tools & Collections", "অধ্যয়ন সহায়িকা")
                             )
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            BoxWithConstraints(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("learn_tools_shelf")
                             ) {
-                                items(toolShortcuts, key = { it.tag }) { tool ->
-                                    Surface(
-                                        onClick = tool.onClick,
-                                        shape = RoundedCornerShape(18.dp),
-                                        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-                                        border = studyQuestGlassAwareBorder(tool.accent.copy(alpha = 0.40f)),
-                                        modifier = Modifier
-                                            .width(172.dp)
-                                            .minimumInteractiveComponentSize()
-                                            .testTag(tool.tag)
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(14.dp),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                val cols = if (maxWidth >= 760.dp) 3 else 2
+                                val toolRows = toolShortcuts.chunked(cols)
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    toolRows.forEach { rowTools ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                                         ) {
-                                            Surface(
-                                                shape = RoundedCornerShape(12.dp),
-                                                color = tool.accent.copy(alpha = 0.14f),
-                                                modifier = Modifier.size(36.dp)
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Icon(tool.icon, contentDescription = null, tint = tool.accent, modifier = Modifier.size(18.dp))
+                                            rowTools.forEach { tool ->
+                                                Surface(
+                                                    onClick = tool.onClick,
+                                                    shape = RoundedCornerShape(18.dp),
+                                                    color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
+                                                    border = studyQuestGlassAwareBorder(tool.accent.copy(alpha = 0.28f)),
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .minimumInteractiveComponentSize()
+                                                        .testTag(tool.tag)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(14.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                    ) {
+                                                        Surface(
+                                                            shape = RoundedCornerShape(12.dp),
+                                                            color = tool.accent.copy(alpha = 0.13f),
+                                                            modifier = Modifier.size(38.dp)
+                                                        ) {
+                                                            Box(contentAlignment = Alignment.Center) {
+                                                                Icon(tool.icon, contentDescription = null, tint = tool.accent, modifier = Modifier.size(19.dp))
+                                                            }
+                                                        }
+                                                        Column(modifier = Modifier.weight(1f)) {
+                                                            Text(
+                                                                text = tool.label,
+                                                                style = MaterialTheme.typography.titleSmall,
+                                                                fontWeight = FontWeight.Bold,
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
+                                                            Text(
+                                                                text = tool.subtitle,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             }
-                                            Text(
-                                                text = tool.label,
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = tool.subtitle,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                            repeat(cols - rowTools.size) {
+                                                Spacer(Modifier.weight(1f))
+                                            }
                                         }
                                     }
                                 }
@@ -1097,9 +1154,9 @@ fun LearnTabScreen(
                     }
                 }
 
-                // 7. Timed Mock Exams & Promotion Track Shelf
+                // 6. Timed Mock Exams & Promotion Assessment Shelf
                 item {
-                    StaggeredEntrance(index = 5, reducedMotion = reducedMotion) {
+                    StaggeredEntrance(index = 4, reducedMotion = reducedMotion) {
                         val promoTemplate = ExamTemplate(
                             id = "promotion_${profile.classId}",
                             titleEn = "Annual Class Promotion Exam (${StudyQuestStrings.classLabel(profile.classId, uiLanguage)})",
@@ -1110,14 +1167,20 @@ fun LearnTabScreen(
                             totalMarks = 8,
                             negativeMarkingPerWrong = 0.0,
                             descriptionEn = if (profile.annualExamStatus == "failed") {
-                                "Required retake (60%+ passes & advances your locked class)."
+                                "Required retake (60%+ passes & advances your class)."
                             } else {
-                                "Pass 60%+ to secure Jan 1 academic year promotion."
+                                "Pass 60%+ to advance in the annual academic cycle."
                             },
                             descriptionBn = "বার্ষিক উত্তীর্ণ হতে ৬০%+ নম্বর অর্জন করুন।"
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .widthIn(max = 980.dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                             EditorialSectionHeader(
                                 eyebrow = StudyQuestStrings.t(uiLanguage, "ASSESSMENTS", "মূল্যায়ন ও মডেল টেস্ট"),
                                 title = StudyQuestStrings.t(uiLanguage, "Timed Mock Exams", "সময়নির্ভর মডেল টেস্ট")
@@ -1133,11 +1196,11 @@ fun LearnTabScreen(
                                         color = if (profile.annualExamStatus == "failed") {
                                             MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f)
                                         } else if (visualConfig.isDark) {
-                                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.50f)
+                                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f)
                                         } else {
-                                            SoftQuestGold
+                                            MutedMintContainer
                                         },
-                                        border = BorderStroke(1.dp, QuestGold.copy(alpha = 0.55f)),
+                                        border = BorderStroke(1.dp, BrandTealPrimary.copy(alpha = 0.35f)),
                                         modifier = Modifier
                                             .width(276.dp)
                                             .testTag("promotion_exam_card")
@@ -1150,12 +1213,12 @@ fun LearnTabScreen(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
-                                                Icon(Icons.Filled.School, contentDescription = null, tint = BrandForestGreen, modifier = Modifier.size(18.dp))
+                                                Icon(Icons.Filled.School, contentDescription = null, tint = BrandTealPrimary, modifier = Modifier.size(18.dp))
                                                 Text(
                                                     text = StudyQuestStrings.t(uiLanguage, "PROMOTION EXAM", "প্রোমোশন পরীক্ষা"),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = DeepQuestGold
+                                                    color = BrandTealPrimary
                                                 )
                                             }
                                             Text(
@@ -1176,8 +1239,8 @@ fun LearnTabScreen(
                                                     pushDest(LearnDestination.MockExamSession(promoTemplate, qs))
                                                 },
                                                 colors = ButtonDefaults.buttonColors(
-                                                    containerColor = BrandForestGreen,
-                                                    contentColor = PureEditorialSurface
+                                                    containerColor = BrandTealPrimary,
+                                                    contentColor = CrispCoolSurface
                                                 ),
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -1313,7 +1376,7 @@ fun LearnTabScreen(
                                     Icon(
                                         imageVector = if (isCached) Icons.Filled.DownloadDone else Icons.Filled.DownloadForOffline,
                                         contentDescription = StudyQuestStrings.t(uiLanguage, "Download offline", "অফলাইন ডাউনলোড"),
-                                        tint = BrandForestGreen
+                                        tint = BrandTealPrimary
                                     )
                                 }
                             }
@@ -1336,7 +1399,7 @@ fun LearnTabScreen(
                                             Icon(
                                                 if (completed) Icons.Filled.CheckCircle else Icons.AutoMirrored.Filled.MenuBook,
                                                 contentDescription = null,
-                                                tint = if (completed) EditorialSuccess else BrandForestGreen,
+                                                tint = if (completed) EditorialSuccess else BrandTealPrimary,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                             Spacer(Modifier.width(8.dp))
@@ -1355,28 +1418,30 @@ fun LearnTabScreen(
                                     }
                                 }
                             }
-                            if (chapterQuestions.isNotEmpty()) {
-                                Spacer(Modifier.height(6.dp))
-                                Button(
-                                    onClick = {
-                                        pushDest(
-                                            LearnDestination.PracticeSession(
-                                                StudyQuestStrings.t(uiLanguage, chapter.titleEn, chapter.titleBn),
-                                                chapterQuestions
+                                val accent = Color(subject.accentHex)
+                                if (chapterQuestions.isNotEmpty()) {
+                                    Spacer(Modifier.height(6.dp))
+                                    Button(
+                                        onClick = {
+                                            pushDest(
+                                                LearnDestination.PracticeSession(
+                                                    StudyQuestStrings.t(uiLanguage, chapter.titleEn, chapter.titleBn),
+                                                    chapterQuestions
+                                                )
+                                            )
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = CrispCoolSurface),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            StudyQuestStrings.t(
+                                                uiLanguage,
+                                                "Practice ${chapterQuestions.size} Questions",
+                                                "${StudyQuestStrings.formatDigits(chapterQuestions.size, uiLanguage)}টি প্রশ্ন অনুশীলন"
                                             )
                                         )
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        StudyQuestStrings.t(
-                                            uiLanguage,
-                                            "Practice ${chapterQuestions.size} Questions",
-                                            "${StudyQuestStrings.formatDigits(chapterQuestions.size, uiLanguage)}টি প্রশ্ন অনুশীলন"
-                                        )
-                                    )
+                                    }
                                 }
-                            }
                         }
                     }
                 }
@@ -1760,7 +1825,7 @@ fun LearnTabScreen(
                 choices.take(12).forEach { choice ->
                     val selected = choice.id == activeLockedBook?.id
                     StudyQuestCard(
-                        accentColor = if (selected) BrandForestGreen else SlateBotanical,
+                        accentColor = if (selected) BrandTealPrimary else SlateBotanical,
                         onClick = {
                             onSwitchActiveBook(choice)
                             showSwitchBookSheet = false
@@ -1784,7 +1849,7 @@ fun LearnTabScreen(
                                 )
                             }
                             if (selected) {
-                                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = BrandForestGreen)
+                                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = BrandTealPrimary)
                             }
                         }
                     }
@@ -1918,8 +1983,8 @@ private fun LessonDetailScreen(
                         .testTag("complete_lesson_${lesson.id}")
                 ) {
                     Text(
-                        if (isCompleted) StudyQuestStrings.t(uiLanguage, "Completed (+15 XP)", "সম্পন্ন হয়েছে")
-                        else StudyQuestStrings.t(uiLanguage, "Mark Complete (+15 XP)", "সম্পন্ন করুন (+১৫ XP)")
+                        if (isCompleted) StudyQuestStrings.t(uiLanguage, "Completed", "সম্পন্ন হয়েছে")
+                        else StudyQuestStrings.t(uiLanguage, "Mark Lesson Complete", "পাঠ সম্পন্ন করুন")
                     )
                 }
                 FilledTonalButton(

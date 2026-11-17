@@ -263,19 +263,19 @@ fun AiVideoStudioScreen(
                             Box(modifier = Modifier.fillMaxWidth().height(235.dp)) {
                                 Canvas(modifier = Modifier.matchParentSize()) {
                                     val accentColor = when (currentVid.animationStyle) {
-                                        "diagram_focus" -> Color(0xFF166534)
-                                        "step_cards" -> Color(0xFF1F2937)
-                                        else -> Color(0xFF14532D)
+                                        "diagram_focus" -> Color(0xFF1F5D6B)
+                                        "step_cards" -> Color(0xFF283A4E)
+                                        else -> Color(0xFF237B7A)
                                     }
                                     drawRect(
                                         brush = Brush.linearGradient(
-                                            colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B), accentColor),
+                                            colors = listOf(Color(0xFF0E1621), Color(0xFF1B2B3C), accentColor),
                                             start = Offset.Zero,
                                             end = Offset(size.width, size.height)
                                         )
                                     )
                                     drawCircle(
-                                        color = Color(0xFF4ADE80).copy(alpha = 0.12f),
+                                        color = Color(0xFF79C7BA).copy(alpha = 0.16f),
                                         radius = size.minDimension * 0.42f,
                                         center = Offset(size.width * 0.88f, size.height * 0.22f)
                                     )
@@ -326,7 +326,7 @@ fun AiVideoStudioScreen(
                                                         text = sc.formulaOrDiagram,
                                                         fontFamily = JetBrainsMonoFontFamily,
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = Color(0xFF86EFAC),
+                                                        color = Color(0xFF9EDCCF),
                                                         modifier = Modifier.padding(10.dp)
                                                     )
                                                 }
@@ -339,7 +339,7 @@ fun AiVideoStudioScreen(
                                         }
                                         LinearProgressIndicator(
                                             progress = { (sceneElapsed.toFloat() / sc.durationSec.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f) },
-                                            color = Color(0xFF4ADE80),
+                                            color = Color(0xFF79C7BA),
                                             trackColor = Color.White.copy(alpha = 0.25f),
                                             modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(999.dp))
                                         )

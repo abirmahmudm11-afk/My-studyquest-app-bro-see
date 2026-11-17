@@ -37,31 +37,31 @@ val JetBrainsMonoFontFamily = FontFamily(
 
 fun studyQuestTypography(isBangla: Boolean): Typography {
     val bodyFamily = if (isBangla) NotoSansBengaliFontFamily else PlusJakartaFontFamily
-    val editorialDisplayFamily = if (isBangla) NotoSansBengaliFontFamily else FrauncesFontFamily
+    val editorialDisplayFamily = if (isBangla) NotoSansBengaliFontFamily else PlusJakartaFontFamily
     val subDisplayFamily = if (isBangla) NotoSansBengaliFontFamily else PlusJakartaFontFamily
     val lineHeightBoost = if (isBangla) 1.15f else 1.0f
 
     return Typography(
         displaySmall = TextStyle(
             fontFamily = editorialDisplayFamily,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             fontSize = 32.sp,
             lineHeight = (40 * lineHeightBoost).sp,
-            letterSpacing = (-0.4).sp
+            letterSpacing = (-0.5).sp
         ),
         headlineLarge = TextStyle(
             fontFamily = editorialDisplayFamily,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             fontSize = 28.sp,
             lineHeight = (36 * lineHeightBoost).sp,
-            letterSpacing = (-0.3).sp
+            letterSpacing = (-0.4).sp
         ),
         headlineMedium = TextStyle(
             fontFamily = editorialDisplayFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 24.sp,
             lineHeight = (32 * lineHeightBoost).sp,
-            letterSpacing = (-0.2).sp
+            letterSpacing = (-0.25).sp
         ),
         headlineSmall = TextStyle(
             fontFamily = editorialDisplayFamily,

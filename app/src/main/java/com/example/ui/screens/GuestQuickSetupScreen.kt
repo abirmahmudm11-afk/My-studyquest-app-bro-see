@@ -55,7 +55,7 @@ import com.example.ui.components.StudyQuestAmbientBackdrop
 import com.example.ui.components.StudyQuestBrandMark
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
-import com.example.ui.theme.BrandForestGreen
+import com.example.ui.theme.BrandTealPrimary
 import com.example.ui.theme.PureEditorialSurface
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -282,8 +282,8 @@ fun QuickGuestSetupScreen(
                 StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
                     QuestCoachCard(
                         mood = QuestCoachMood.LEARNING_ASSISTANCE,
-                        messageEn = "You'll start with 30 bonus Coins, instant offline pack installation for '${activeLockedBook.titleEn}', solo sprints & AI answers!",
-                        messageBn = "শুরুতেই ৩০ কয়েন বোনাস সহ '${activeLockedBook.titleBn}' অফলাইনে সংরক্ষিত হবে এবং সোলো স্প্রিন্ট ও AI সাহায্য চালু থাকবে!",
+                        messageEn = "Offline access for '${activeLockedBook.titleEn}', practice sets, and AI explanations will be ready right after setup.",
+                        messageBn = "সেটআপের পরপরই '${activeLockedBook.titleBn}' অফলাইনে পড়া, অনুশীলন ও AI ব্যাখ্যা চালু হয়ে যাবে।",
                         language = language,
                         reducedMotion = reducedMotion
                     )
@@ -314,7 +314,7 @@ fun QuickGuestSetupScreen(
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = BrandForestGreen,
+                        containerColor = BrandTealPrimary,
                         contentColor = PureEditorialSurface
                     ),
                     shape = RoundedCornerShape(16.dp),

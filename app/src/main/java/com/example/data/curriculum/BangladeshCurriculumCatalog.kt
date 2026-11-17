@@ -20,16 +20,16 @@ object BangladeshCurriculumCatalog {
     )
 
     val subjects: List<AcademicSubject> = listOf(
-        AcademicSubject("math", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "Mathematics", "গণিত", "MATH", 0xFF1B5E3A),
-        AcademicSubject("english", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "English", "ইংরেজি", "ENG", 0xFF2E8B57),
-        AcademicSubject("bangla", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "Bangla", "বাংলা", "BAN", 0xFFD97706),
-        AcademicSubject("gen_science", listOf("class_6", "class_7", "class_8"), listOf("general"), "General Science", "সাধারণ বিজ্ঞান", "SCI", 0xFF0D9488),
-        AcademicSubject("physics", listOf("class_9", "class_10", "ssc"), listOf("science"), "Physics", "পদার্থবিজ্ঞান", "PHY", 0xFF0F766E),
-        AcademicSubject("chemistry", listOf("class_9", "class_10", "ssc"), listOf("science"), "Chemistry", "রসায়ন", "CHEM", 0xFFB45309),
-        AcademicSubject("biology", listOf("class_9", "class_10", "ssc"), listOf("science"), "Biology", "জীববিজ্ঞান", "BIO", 0xFF15803D),
-        AcademicSubject("ict", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "ICT", "তথ্য ও যোগাযোগ প্রযুক্তি", "ICT", 0xFF3E6373),
-        AcademicSubject("social_studies", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "business", "humanities"), "Bangladesh & Global Studies", "বাংলাদেশ ও বিশ্বপরিচয়", "BGS", 0xFFC97343),
-        AcademicSubject("gk", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "General Knowledge", "সাধারণ জ্ঞান", "GK", 0xFF286A50)
+        AcademicSubject("math", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "Mathematics", "গণিত", "MATH", 0xFF237B7A),
+        AcademicSubject("english", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "English", "ইংরেজি", "ENG", 0xFF3B6B94),
+        AcademicSubject("bangla", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "Bangla", "বাংলা", "BAN", 0xFF4F6F98),
+        AcademicSubject("gen_science", listOf("class_6", "class_7", "class_8"), listOf("general"), "General Science", "সাধারণ বিজ্ঞান", "SCI", 0xFF2B8C8A),
+        AcademicSubject("physics", listOf("class_9", "class_10", "ssc"), listOf("science"), "Physics", "পদার্থবিজ্ঞান", "PHY", 0xFF336D8F),
+        AcademicSubject("chemistry", listOf("class_9", "class_10", "ssc"), listOf("science"), "Chemistry", "রসায়ন", "CHEM", 0xFF476988),
+        AcademicSubject("biology", listOf("class_9", "class_10", "ssc"), listOf("science"), "Biology", "জীববিজ্ঞান", "BIO", 0xFF228475),
+        AcademicSubject("ict", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "ICT", "তথ্য ও যোগাযোগ প্রযুক্তি", "ICT", 0xFF3E6385),
+        AcademicSubject("social_studies", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "business", "humanities"), "Bangladesh & Global Studies", "বাংলাদেশ ও বিশ্বপরিচয়", "BGS", 0xFF557394),
+        AcademicSubject("gk", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "General Knowledge", "সাধারণ জ্ঞান", "GK", 0xFF2B7A8C)
     )
 
     fun subjectsForClass(classId: String): List<AcademicSubject> =

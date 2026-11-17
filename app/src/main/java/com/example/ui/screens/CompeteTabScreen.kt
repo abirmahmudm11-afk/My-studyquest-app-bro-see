@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -175,8 +177,19 @@ fun CompeteTabScreen(
         selectedTab = 0
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+    Column(
+        modifier = Modifier
+            .widthIn(max = 980.dp)
+            .fillMaxSize()
+    ) {
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
@@ -505,6 +518,7 @@ fun CompeteTabScreen(
                 }
             }
         }
+    }
     }
 
     if (showChallengeDialog) {

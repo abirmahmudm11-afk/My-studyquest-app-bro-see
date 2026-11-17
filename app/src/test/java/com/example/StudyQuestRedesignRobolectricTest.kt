@@ -27,6 +27,7 @@ import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.LeaderboardCategory
 import com.example.data.repository.LeaderboardPeriod
 import com.example.ui.screens.AiDoubtSolverScreen
+import com.example.ui.screens.LanguagePickerLaunchScreen
 import com.example.ui.screens.LeaderboardScopeFilter
 import com.example.ui.screens.LeaderboardScreen
 import com.example.ui.screens.ProfileTabScreen
@@ -435,5 +436,60 @@ class StudyQuestRedesignRobolectricTest {
 
         composeRule.onNodeWithTag("welcome_guest_mode_btn").performScrollTo().assertIsDisplayed().performClick()
         assertTrue(guestEntered)
+    }
+
+    @Test
+    fun languagePickerLaunchScreen_rendersLiveShowcaseAndSelectsLanguages() {
+        var selectedLanguage: AppLanguage? = null
+        composeRule.setContent {
+            StudyQuestTheme(darkTheme = false, isBangla = false) {
+                LanguagePickerLaunchScreen(
+                    onSelectLanguage = { selectedLanguage = it },
+                    reducedMotion = true
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("launch_live_pillar_pager").assertIsDisplayed()
+        composeRule.onNodeWithTag("launch_pillar_card_nctb").assertIsDisplayed()
+        composeRule.onNodeWithTag("launch_pillar_dot_ai").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("pick_lang_bn").performScrollTo().performClick()
+        assertEquals(AppLanguage.BANGLA, selectedLanguage)
+        composeRule.onNodeWithTag("pick_lang_en").performScrollTo().performClick()
+        assertEquals(AppLanguage.ENGLISH, selectedLanguage)
+    }
+
+    @Test
+    fun welcomeAuthScreen_interactive3dCarouselAndGlassAuthCardWork() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        ensureFirebaseAppInitialized(context)
+
+        composeRule.setContent {
+            StudyQuestTheme(darkTheme = false, isBangla = false) {
+                WelcomeAndGoogleSignInScreen(
+                    language = AppLanguage.ENGLISH,
+                    reducedMotion = true,
+                    isSigningIn = false,
+                    authError = null,
+                    onSetLanguage = {},
+                    onSigningInChanged = {},
+                    onIdTokenReceived = {},
+                    onAuthError = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("auth_preview_carousel").assertIsDisplayed()
+        composeRule.onNodeWithTag("auth_carousel_next_btn").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("auth_carousel_prev_btn").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("welcome_sign_in_btn").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("auth_email_input").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("auth_back_to_welcome_btn").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("welcome_create_account_btn").performScrollTo().assertIsDisplayed()
     }
 }

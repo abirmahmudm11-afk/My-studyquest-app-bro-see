@@ -2,103 +2,149 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light Theme — Premium Soft Minimalism & Editorial Quest Palette
-val WarmParchmentCanvas = Color(0xFFF7F8F4)       // Background
-val PureEditorialSurface = Color(0xFFFFFFFF)      // Primary surface
-val SoftStoneSurface = Color(0xFFF1F3ED)          // Subtle secondary fill
-val EditorialSurfaceVariant = Color(0xFFEDF0E8)   // Tonal card / chip fill
+// Light Theme — Cool Blue-Gray Soft Minimalism & Reference-Inspired Palette
+val CoolIceGrayCanvas = Color(0xFFF3F6FA)         // Primary background canvas
+val CrispCoolSurface = Color(0xFFFFFFFF)          // Crisp elevated surface cards
+val SoftCoolMistSurface = Color(0xFFE9EFF6)       // Secondary cool surface fill
+val CoolSurfaceVariant = Color(0xFFE1E8F2)        // Tonal card / chip fill
 
-// Brand Forest Greens & Quest Gold
-val BrandForestGreen = Color(0xFF286A50)          // Brand green primary CTA & highlights
-val DeepForestGreen = Color(0xFF1F553F)           // Deep green hover / contrast hero
-val SoftSageGreen = Color(0xFFE8F1EB)             // Soft green active capsules & highlights
-val OnSoftSageGreen = Color(0xFF163D2D)
+// Hero Stage Slate Blue-Gray & Atmospheric Accents
+val HeroSlateBlueTop = Color(0xFF6F8CA9)          // Atmospheric slate blue-gray hero band top
+val HeroSlateBlueBottom = Color(0xFF5C7A97)       // Atmospheric slate blue-gray hero band bottom
+val HeroGlassStageLight = Color(0x38FFFFFF)       // Central frosted glass frame in hero
+val HeroGlassBorderLight = Color(0x80FFFFFF)      // Crisp translucent glass edge
+val HeroDarkDockSlate = Color(0xDB435568)         // Floating dark translucent 3-action pill dock
 
-val QuestGold = Color(0xFFE7B95F)                 // Quest gold milestones & streak ribbons
-val DeepQuestGold = Color(0xFFB38326)             // High-contrast gold ink on light
-val SoftQuestGold = Color(0xFFFAF1DD)             // Soft gold streaks & positive highlights
-val OnSoftQuestGold = Color(0xFF543C0A)
+// Brand Soft Teal, Muted Mint & Powder Blue
+val BrandTealPrimary = Color(0xFF237B7A)          // Primary CTA & active teal highlights
+val DeepSlateTeal = Color(0xFF1A5E63)             // High-contrast deep teal
+val SoftPowderBlue = Color(0xFFE0EDF7)            // Active pills & powder-blue containers
+val OnSoftPowderBlue = Color(0xFF143547)
 
-// Botanical & Mineral Supporting Accents (restrained, harmonious)
-val MineralTeal = Color(0xFF2D7D6F)
-val SoftMineralTeal = Color(0xFFE1F1EE)
-val OnSoftMineralTeal = Color(0xFF12423A)
+val MutedMintFocal = Color(0xFF45B3A2)            // Muted mint focal highlight
+val MutedMintDarkInk = Color(0xFF196E64)          // High-contrast mint-teal ink on light
+val MutedMintContainer = Color(0xFFD9F1EC)        // Soft muted mint card tint
+val OnMutedMintContainer = Color(0xFF103C37)
+val HeroMintCardStart = Color(0xFF9EDCCF)         // Soft muted mint focal hero card gradient start
+val HeroMintCardEnd = Color(0xFF79C7BA)           // Soft muted mint focal hero card gradient end
 
-val WarmTerracotta = Color(0xFFC97343)
-val SoftTerracotta = Color(0xFFFAECE4)
-val OnSoftTerracotta = Color(0xFF5D2D12)
+// Cool Supporting Accents (Slate Blue, Mineral Teal, Cerulean-Indigo)
+val MineralTeal = Color(0xFF2C8085)
+val SoftMineralTeal = Color(0xFFDEF0F2)
+val OnSoftMineralTeal = Color(0xFF113E42)
 
-val SlateBotanical = Color(0xFF3E6373)
-val SoftSlateBotanical = Color(0xFFE5EEF2)
+val CeruleanSlate = Color(0xFF496F96)
+val SoftCeruleanSlate = Color(0xFFE3ECF6)
+val OnSoftCeruleanSlate = Color(0xFF1B3450)
 
-// Editorial Ink & Hairline Borders
-val DeepForestInk = Color(0xFF202C27)             // Main text
-val MutedMossInk = Color(0xFF758078)              // Secondary text
-val SubtleForestInk = Color(0xFF47544D)
-val EditorialBorder = Color(0xFFE7EBE5)           // Primary hairline border
-val StrongEditorialBorder = Color(0xFFD2D9CF)
+val SlateBotanical = Color(0xFF476988)
+val SoftSlateBotanical = Color(0xFFE2ECF5)
+
+// Deep Slate Typography & Cool Hairline Borders
+val DeepSlateInk = Color(0xFF162230)              // Primary deep slate text
+val MutedSlateInk = Color(0xFF5E7083)             // Secondary cool slate text
+val SubtleSlateInk = Color(0xFF3A4C60)
+val CoolHairlineBorder = Color(0xFFDFE6F0)        // Primary hairline border
+val StrongCoolBorder = Color(0xFFC7D3E2)
 
 // Semantic Status Tokens
-val EditorialSuccess = Color(0xFF27865C)
-val EditorialSuccessContainer = Color(0xFFE2F3EB)
-val OnEditorialSuccessContainer = Color(0xFF134830)
+val EditorialSuccess = Color(0xFF20846C)
+val EditorialSuccessContainer = Color(0xFFDCF2EC)
+val OnEditorialSuccessContainer = Color(0xFF0F4437)
 
-val EditorialError = Color(0xFFC34F50)
-val EditorialErrorContainer = Color(0xFFFAE6E6)
-val OnEditorialErrorContainer = Color(0xFF6B1E1F)
+val EditorialError = Color(0xFFC44D58)
+val EditorialErrorContainer = Color(0xFFF9E5E8)
+val OnEditorialErrorContainer = Color(0xFF661B23)
 
-// Selective Frosted Liquid Glass Tokens (whisper-light editorial translucency)
-val GlassLightSurface = Color(0xE6FFFFFF)         // 90% frosted editorial white
-val GlassLightElevated = Color(0xDDE8F1EB)        // 86% frosted sage mist
-val GlassLightBorder = Color(0xD9FFFFFF)
-val GlassDarkSurface = Color(0xBF17221E)          // 75% dark pine glass
-val GlassDarkElevated = Color(0xCC1E2C27)         // 80% elevated dark pine glass
-val GlassDarkBorder = Color(0x409AA8A0)
+// Selective Frosted Liquid Glass Tokens
+val GlassLightSurface = Color(0xECFFFFFF)          // 92% frosted cool white
+val GlassLightElevated = Color(0xDEE0EDF7)         // 87% frosted powder-blue mist
+val GlassLightBorder = Color(0xE0FFFFFF)
+val GlassDarkSurface = Color(0xC715202E)           // 78% deep slate-navy glass
+val GlassDarkElevated = Color(0xD41C2A3B)          // 83% elevated slate-navy glass
+val GlassDarkBorder = Color(0x478CA4BE)
 
-// Coordinated Dark Theme — Deep Charcoal-Green Night Studio
-val DarkForestBackground = Color(0xFF111916)
-val DarkForestSurface = Color(0xFF17221E)
-val DarkForestSurfaceElevated = Color(0xFF1E2C27)
-val DarkForestSurfaceHigh = Color(0xFF263731)
-val DarkForestPrimary = Color(0xFF499F7C)
-val DarkForestPrimaryContainer = Color(0xFF1F3B30)
-val DarkForestSecondary = Color(0xFF6EC2A3)
-val DarkForestSecondaryContainer = Color(0xFF183D32)
-val DarkForestTertiary = Color(0xFFE7B95F)
-val DarkForestTertiaryContainer = Color(0xFF362B14)
-val DarkOnSurface = Color(0xFFEDF2EE)
-val DarkOnSurfaceVariant = Color(0xFF9AA8A0)
-val DarkOutline = Color(0xFF283932)
-val DarkErrorRose = Color(0xFFE27C7D)
-val DarkErrorContainer = Color(0xFF4B2122)
+// Coordinated Dark Theme — Deep Slate-Navy Studio
+val DarkSlateBackground = Color(0xFF0E1621)
+val DarkSlateSurface = Color(0xFF15202E)
+val DarkSlateSurfaceElevated = Color(0xFF1C2A3B)
+val DarkSlateSurfaceHigh = Color(0xFF243549)
+val DarkHeroSlateTop = Color(0xFF1E3146)
+val DarkHeroSlateBottom = Color(0xFF142334)
+val DarkSlatePrimary = Color(0xFF56C2B2)
+val DarkSlatePrimaryContainer = Color(0xFF183842)
+val DarkSlateSecondary = Color(0xFF7CA7D6)
+val DarkSlateSecondaryContainer = Color(0xFF1B2E46)
+val DarkSlateTertiary = Color(0xFF74D6C5)
+val DarkSlateTertiaryContainer = Color(0xFF173A3A)
+val DarkOnSurface = Color(0xFFEDF2F8)
+val DarkOnSurfaceVariant = Color(0xFF97A9BD)
+val DarkOutline = Color(0xFF283A4E)
+val DarkErrorRose = Color(0xFFE57F88)
+val DarkErrorContainer = Color(0xFF4D2028)
 
-// Unified Compatibility Aliases (ensures all existing modules inherit the editorial forest palette)
-val PureCardWhite = PureEditorialSurface
-val PureWhite = PureEditorialSurface
-val VividLightCanvas = WarmParchmentCanvas
-val CrispWhiteCanvas = WarmParchmentCanvas
-val SoftSlateCanvas = WarmParchmentCanvas
-val VividSoftFill = SoftStoneSurface
-val CoolNeutralFill = SoftStoneSurface
-val SoftSlateContainer = SoftStoneSurface
-val VividSurfaceVariant = EditorialSurfaceVariant
-val CoolSurfaceVariant = EditorialSurfaceVariant
+// Unified Compatibility Aliases (propagates the cool blue-gray / soft-teal / muted-mint system across all modules)
+val WarmParchmentCanvas = CoolIceGrayCanvas
+val PureEditorialSurface = CrispCoolSurface
+val SoftStoneSurface = SoftCoolMistSurface
+val EditorialSurfaceVariant = CoolSurfaceVariant
 
-val ElectricIndigo = BrandForestGreen
-val ElectricIndigoDark = DeepForestGreen
-val ForestGreenPrimary = BrandForestGreen
-val ForestGreenDark = DeepForestGreen
-val CobaltPrimary = BrandForestGreen
-val CobaltDark = DeepForestGreen
-val IndigoContainer = SoftSageGreen
-val SageContainer = SoftSageGreen
-val CobaltContainer = SoftSageGreen
-val OnIndigoContainer = OnSoftSageGreen
-val OnSageContainer = OnSoftSageGreen
-val OnCobaltContainer = OnSoftSageGreen
+val BrandForestGreen = BrandTealPrimary
+val DeepForestGreen = DeepSlateTeal
+val SoftSageGreen = SoftPowderBlue
+val OnSoftSageGreen = OnSoftPowderBlue
+
+val QuestGold = MutedMintFocal
+val DeepQuestGold = MutedMintDarkInk
+val SoftQuestGold = MutedMintContainer
+val OnSoftQuestGold = OnMutedMintContainer
+
+val WarmTerracotta = CeruleanSlate
+val SoftTerracotta = SoftCeruleanSlate
+val OnSoftTerracotta = OnSoftCeruleanSlate
+
+val DeepForestInk = DeepSlateInk
+val MutedMossInk = MutedSlateInk
+val SubtleForestInk = SubtleSlateInk
+val EditorialBorder = CoolHairlineBorder
+val StrongEditorialBorder = StrongCoolBorder
+
+val DarkForestBackground = DarkSlateBackground
+val DarkForestSurface = DarkSlateSurface
+val DarkForestSurfaceElevated = DarkSlateSurfaceElevated
+val DarkForestSurfaceHigh = DarkSlateSurfaceHigh
+val DarkForestPrimary = DarkSlatePrimary
+val DarkForestPrimaryContainer = DarkSlatePrimaryContainer
+val DarkForestSecondary = DarkSlateSecondary
+val DarkForestSecondaryContainer = DarkSlateSecondaryContainer
+val DarkForestTertiary = DarkSlateTertiary
+val DarkForestTertiaryContainer = DarkSlateTertiaryContainer
+
+val PureCardWhite = CrispCoolSurface
+val PureWhite = CrispCoolSurface
+val VividLightCanvas = CoolIceGrayCanvas
+val CrispWhiteCanvas = CoolIceGrayCanvas
+val SoftSlateCanvas = CoolIceGrayCanvas
+val VividSoftFill = SoftCoolMistSurface
+val CoolNeutralFill = SoftCoolMistSurface
+val SoftSlateContainer = SoftCoolMistSurface
+val VividSurfaceVariant = CoolSurfaceVariant
+
+val ElectricIndigo = BrandTealPrimary
+val ElectricIndigoDark = DeepSlateTeal
+val ForestGreenPrimary = BrandTealPrimary
+val ForestGreenDark = DeepSlateTeal
+val CobaltPrimary = SlateBotanical
+val CobaltDark = DeepSlateTeal
+val IndigoContainer = SoftPowderBlue
+val SageContainer = SoftPowderBlue
+val CobaltContainer = SoftPowderBlue
+val OnIndigoContainer = OnSoftPowderBlue
+val OnSageContainer = OnSoftPowderBlue
+val OnCobaltContainer = OnSoftPowderBlue
 
 val VividEmerald = EditorialSuccess
-val VividEmeraldDark = DeepForestGreen
+val VividEmeraldDark = DeepSlateTeal
 val NaturalGreen = EditorialSuccess
 val ScholarGreen = EditorialSuccess
 val TealSecondary = MineralTeal
@@ -111,49 +157,48 @@ val OnNaturalGreenContainer = OnEditorialSuccessContainer
 val OnScholarGreenContainer = OnEditorialSuccessContainer
 val OnTealContainer = OnSoftMineralTeal
 
-val BerryViolet = MineralTeal
-val VioletTertiary = MineralTeal
-val BerryVioletContainer = SoftMineralTeal
-val VioletContainer = SoftMineralTeal
-val OnBerryVioletContainer = OnSoftMineralTeal
-val OnVioletContainer = OnSoftMineralTeal
+val BerryViolet = SlateBotanical
+val VioletTertiary = CeruleanSlate
+val BerryVioletContainer = SoftSlateBotanical
+val VioletContainer = SoftCeruleanSlate
+val OnBerryVioletContainer = DeepSlateInk
+val OnVioletContainer = OnSoftCeruleanSlate
 
-val SkyCyan = SlateBotanical
-val SkyCyanAccent = SlateBotanical
-val SkyCyanContainer = SoftSlateBotanical
-val OnSkyCyanContainer = DeepForestInk
+val SkyCyan = MineralTeal
+val SkyCyanAccent = MutedMintFocal
+val SkyCyanContainer = SoftMineralTeal
+val OnSkyCyanContainer = DeepSlateInk
 
-val SunsetCoral = WarmTerracotta
-val SunsetCoralContainer = SoftTerracotta
-val OnSunsetCoralContainer = OnSoftTerracotta
+val SunsetCoral = CeruleanSlate
+val SunsetCoralContainer = SoftCeruleanSlate
+val OnSunsetCoralContainer = OnSoftCeruleanSlate
 
-val DeepInk = DeepForestInk
-val MutedSlate = MutedMossInk
-val SubtleSlateAccent = SubtleForestInk
-val CoolOutline = StrongEditorialBorder
-val SubtleOutline = EditorialBorder
+val DeepInk = DeepSlateInk
+val MutedSlate = MutedSlateInk
+val SubtleSlateAccent = SubtleSlateInk
+val CoolOutline = StrongCoolBorder
+val SubtleOutline = CoolHairlineBorder
 
-val AmberGold = QuestGold
-val AmberGoldContainer = SoftQuestGold
-val SilverAccent = Color(0xFF8C9790)
-val BronzeAccent = Color(0xFFB77B42)
+val AmberGold = MutedMintFocal
+val AmberGoldContainer = MutedMintContainer
+val SilverAccent = Color(0xFF8194A8)
+val BronzeAccent = Color(0xFF567494)
 val RoseAlert = EditorialError
 val RoseAlertContainer = EditorialErrorContainer
 val AccessibleRed = EditorialError
 val AccessibleRedContainer = EditorialErrorContainer
 
-val DarkMidnightBackground = DarkForestBackground
-val DarkMidnightSurface = DarkForestSurface
-val DarkMidnightSurfaceElevated = DarkForestSurfaceElevated
-val DarkForestContainer = DarkForestPrimaryContainer
-val DarkNaturalSecondary = DarkForestSecondary
-val DarkSlateTertiary = DarkForestTertiary
-val DarkSlateContainer = DarkForestTertiaryContainer
-val DarkCobaltPrimary = DarkForestPrimary
-val DarkCobaltPrimaryContainer = DarkForestPrimaryContainer
-val DarkTealSecondary = DarkForestSecondary
-val DarkVioletTertiary = DarkForestTertiary
-val DarkVioletContainer = DarkForestTertiaryContainer
-val DarkScholarGreen = Color(0xFF4DB380)
-val DarkScholarGreenContainer = DarkForestSecondaryContainer
+val DarkMidnightBackground = DarkSlateBackground
+val DarkMidnightSurface = DarkSlateSurface
+val DarkMidnightSurfaceElevated = DarkSlateSurfaceElevated
+val DarkForestContainer = DarkSlatePrimaryContainer
+val DarkNaturalSecondary = DarkSlateSecondary
+val DarkSlateContainer = DarkSlateTertiaryContainer
+val DarkCobaltPrimary = DarkSlatePrimary
+val DarkCobaltPrimaryContainer = DarkSlatePrimaryContainer
+val DarkTealSecondary = DarkSlateSecondary
+val DarkVioletTertiary = DarkSlateSecondary
+val DarkVioletContainer = DarkSlateSecondaryContainer
+val DarkScholarGreen = Color(0xFF53C2A8)
+val DarkScholarGreenContainer = DarkSlateSecondaryContainer
 val DarkAccessibleRed = DarkErrorRose

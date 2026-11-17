@@ -207,7 +207,8 @@ private fun StudyQuestRootApp() {
                 }
             } else if (shouldShowLanguagePicker) {
                 LanguagePickerLaunchScreen(
-                    onSelectLanguage = { lang -> preAuthVm.selectInitialLanguage(lang) }
+                    onSelectLanguage = { lang -> preAuthVm.selectInitialLanguage(lang) },
+                    reducedMotion = preAuthPrefs.reducedMotion
                 )
             } else if (preAuthPrefs.isGuestMode) {
                 if (!preAuthPrefs.guestOnboardingCompleted) {
