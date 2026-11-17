@@ -51,9 +51,9 @@ import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.local.LocalStudyCircleNoteEntity
 import com.example.data.model.PublicProfile
-import com.example.ui.components.MascotAvatar
 import com.example.ui.components.PulseLiveDot
 import com.example.ui.components.StaggeredEntrance
+import com.example.ui.components.StudyQuestBrandMark
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
 import com.example.ui.theme.CobaltPrimary
@@ -103,15 +103,15 @@ fun GuestStudyCircleContent(
             item {
                 StaggeredEntrance(index = 0, reducedMotion = reducedMotion) {
                     StudyQuestGradientHeroBanner(
-                        eyebrow = StudyQuestStrings.t(uiLanguage, "STUDY CIRCLE + TITU AI BUDDY", "স্টাডি সার্কেল + টিটু AI বন্ধু"),
+                        eyebrow = StudyQuestStrings.t(uiLanguage, "STUDY CIRCLE + AI STUDY GUIDE", "স্টাডি সার্কেল + AI গাইড"),
                         title = StudyQuestStrings.t(uiLanguage, "Study Notes & AI Circle", "নোট ও AI সহায়তা সার্কেল"),
                         subtitle = StudyQuestStrings.t(
                             uiLanguage,
-                            "Save subject formula notes locally and ask Titu AI Buddy for instant step-by-step explanations.",
-                            "বিষয়ভিত্তিক নোট সংরক্ষণ করো এবং টিটু AI বন্ধুর কাছ থেকে তাৎক্ষণিক ব্যাখ্যা নাও।"
+                            "Save subject formula notes locally and ask StudyQuest AI Buddy for instant step-by-step explanations.",
+                            "বিষয়ভিত্তিক নোট সংরক্ষণ করো এবং StudyQuest AI বন্ধুর কাছ থেকে তাৎক্ষণিক ব্যাখ্যা নাও।"
                         ),
                         reducedMotion = reducedMotion,
-                        trailingSlot = { MascotAvatar(size = 52.dp) }
+                        trailingSlot = { StudyQuestBrandMark(size = 52.dp) }
                     )
                 }
             }
@@ -161,7 +161,7 @@ fun GuestStudyCircleContent(
                     ) {
                         Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text(StudyQuestStrings.t(uiLanguage, "Solve with Titu AI", "টিটু AI দিয়ে সমাধান"))
+                        Text(StudyQuestStrings.t(uiLanguage, "Solve with StudyQuest AI", "AI দিয়ে সমাধান"))
                     }
                 }
             }
@@ -230,7 +230,7 @@ fun GuestStudyCircleContent(
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                             Text(
-                                text = StudyQuestStrings.t(uiLanguage, "Titu AI Buddy is writing a step-by-step reply...", "টিটু AI বন্ধু উত্তর লিখছে..."),
+                                text = StudyQuestStrings.t(uiLanguage, "StudyQuest AI is writing a step-by-step reply...", "StudyQuest AI উত্তর লিখছে..."),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -275,7 +275,7 @@ fun GuestStudyCircleContent(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = CobaltPrimary, modifier = Modifier.size(16.dp))
                         Text(
-                            text = StudyQuestStrings.t(uiLanguage, "Ask Titu AI Buddy to reply", "টিটু AI বন্ধুর উত্তর নিন"),
+                            text = StudyQuestStrings.t(uiLanguage, "Ask StudyQuest AI to reply", "StudyQuest AI-এর উত্তর নিন"),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold
                         )

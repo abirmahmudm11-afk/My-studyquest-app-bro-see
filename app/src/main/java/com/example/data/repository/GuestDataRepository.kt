@@ -6,6 +6,7 @@ import com.example.core.LocalUserPreferences
 import com.example.core.StudyQuestPreferences
 import com.example.core.StudyQuestStrings
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.TextbookCatalog
 import com.example.data.local.LocalQuestProgressEntity
 import com.example.data.local.LocalSoloMatchEntity
 import com.example.data.local.LocalStudyCircleNoteEntity
@@ -35,17 +36,28 @@ class GuestDataRepository(
             prefs.guestRating >= 1080L -> "Silver"
             else -> "Bronze"
         }
+        val resolvedBook = TextbookCatalog.bookById(prefs.guestActiveBookId)
+            ?: TextbookCatalog.defaultBookFor(
+                classId = prefs.guestClassId.ifBlank { "class_10" },
+                curriculumVersion = prefs.guestCurriculumVersion.ifBlank { "bangla" },
+                academicGroup = prefs.guestAcademicGroup.ifBlank { "general" },
+                academicYear = prefs.guestActiveBookYear.ifBlank { "2026" }
+            )
         return PublicProfile(
             id = GUEST_UID,
             userId = GUEST_UID,
             studyQuestId = "SQ-GUEST",
             username = "guest_learner",
             displayName = prefs.guestDisplayName.ifBlank { "Guest Scholar" },
-            avatarId = prefs.guestAvatarId.ifBlank { "owl_classic" },
+            avatarId = prefs.guestAvatarId.ifBlank { "crest_indigo" }.let { if (it == "owl_classic") "crest_indigo" else it },
             frameId = prefs.guestFrameId.ifBlank { null },
             titleBadge = prefs.guestTitleBadge.ifBlank { null },
             classId = prefs.guestClassId.ifBlank { "class_10" },
             curriculumVersion = prefs.guestCurriculumVersion.ifBlank { "bangla" },
+            activeBookId = resolvedBook.id,
+            activeBookTitle = if (prefs.uiLanguage == AppLanguage.BANGLA) resolvedBook.titleBn else resolvedBook.titleEn,
+            activeBookSubjectId = resolvedBook.subjectId,
+            activeBookYear = resolvedBook.academicYear,
             overallLevel = level,
             levelTitle = StudyQuestStrings.levelTitle(level.toInt(), prefs.uiLanguage),
             totalXp = prefs.guestXp,
@@ -56,7 +68,8 @@ class GuestDataRepository(
             showOnlineStatus = false,
             isOnline = true,
             onboardingCompleted = prefs.guestOnboardingCompleted,
-            selectedSubjects = prefs.guestSelectedSubjectsCsv.split(",").filter { it.isNotBlank() },
+            selectedSubjects = prefs.guestSelectedSubjectsCsv.split(",").filter { it.isNotBlank() }.ifEmpty { listOf(resolvedBook.subjectId) },
+            academicGroup = prefs.guestAcademicGroup.ifBlank { "general" },
             streakCount = prefs.guestStreakCount,
             lastChallengeDateKey = prefs.guestLastChallengeDateKey.ifBlank { null }
         )
@@ -239,19 +252,19 @@ class GuestDataRepository(
             LocalStudyCircleNoteEntity(
                 id = "seed_math_1",
                 channelId = "ssc_math",
-                authorLabel = "Titu Study Buddy",
+                authorLabel = "StudyQuest Guide",
                 isAiBuddy = true,
                 text = if (language == AppLanguage.BANGLA)
-                    "স্বাগতম! এখানে তোমার গণিত ও ত্রিকোণমিতির সূত্র নোট জমা রাখো অথবা নিচে লিখে AI টিটুর সাহায্য নাও: যেমন sin²θ + cos²θ = 1।"
+                    "স্বাগতম! এখানে তোমার গণিত ও ত্রিকোণমিতির সূত্র নোট জমা রাখো অথবা নিচে লিখে AI স্টাডি গাইডের সাহায্য নাও: যেমন sin²θ + cos²θ = 1।"
                 else
-                    "Welcome to SSC Math Circle! Save formula notes here or ask Titu Study Buddy any concept question below (e.g., sin²θ + cos²θ = 1).",
+                    "Welcome to SSC Math Circle! Save formula notes here or ask StudyQuest Guide any concept question below (e.g., sin²θ + cos²θ = 1).",
                 reactionsCsv = "📌,💡",
                 createdAtMs = now - 3000L
             ),
             LocalStudyCircleNoteEntity(
                 id = "seed_sci_1",
                 channelId = "science_lab",
-                authorLabel = "Titu Study Buddy",
+                authorLabel = "StudyQuest Guide",
                 isAiBuddy = true,
                 text = if (language == AppLanguage.BANGLA)
                     "পদার্থবিজ্ঞান টিপস: F = ma এবং v² = u² + 2as সমীকরণগুলো আলাদা করে লিখে অনুশীলন করলে CQ-তে পূর্ণ নম্বর পাওয়া সহজ হয়।"
@@ -263,7 +276,7 @@ class GuestDataRepository(
             LocalStudyCircleNoteEntity(
                 id = "seed_eng_1",
                 channelId = "english_prep",
-                authorLabel = "Titu Study Buddy",
+                authorLabel = "StudyQuest Guide",
                 isAiBuddy = true,
                 text = if (language == AppLanguage.BANGLA)
                     "ইংরেজি ও আইসিটি চ্যানেল: গুরুত্বপূর্ণ ভোকাবুলারি এবং বাইনারি-হেক্সাডেসিমেল কনভার্সন নোট এখানে লিখে রাখো!"

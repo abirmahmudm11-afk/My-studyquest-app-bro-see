@@ -63,18 +63,18 @@ import com.example.data.curriculum.GamificationCatalog
 import com.example.data.local.LocalSoloMatchEntity
 import com.example.data.model.CompetitionArchiveDoc
 import com.example.data.model.LeaderboardEntryDoc
-import com.example.data.model.MascotMood
 import com.example.data.model.MatchDoc
 import com.example.data.model.MatchRequestDoc
 import com.example.data.model.MatchSubmissionDoc
 import com.example.data.model.PublicProfile
 import com.example.data.model.QuestionItem
+import com.example.data.model.QuestCoachMood
 import com.example.data.model.TournamentDoc
 import com.example.data.repository.CompetitionRepository
 import com.example.data.repository.LeaderboardCategory
 import com.example.data.repository.LeaderboardPeriod
 import com.example.ui.components.EmptyStateView
-import com.example.ui.components.MascotTituCard
+import com.example.ui.components.QuestCoachCard
 import com.example.ui.components.RankTierBadge
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
@@ -914,8 +914,8 @@ fun LiveBattleArenaScreen(
         } else if (match.status == "completed") {
             item {
                 val won = match.winnerUid == profile.userId
-                MascotTituCard(
-                    mood = if (won) MascotMood.ACHIEVEMENT else MascotMood.ENCOURAGEMENT,
+                QuestCoachCard(
+                    mood = if (won) QuestCoachMood.ACHIEVEMENT else QuestCoachMood.ENCOURAGEMENT,
                     messageEn = if (won) "Victory! Your rating & leaderboard points have been updated." else "Match finished! Keep practicing to climb the leaderboard tier.",
                     messageBn = if (won) "দারুণ জয়! তোমার রেটিং ও লিডারবোর্ড পয়েন্ট আপডেট হয়েছে।" else "ম্যাচ সম্পন্ন হয়েছে! আরও অনুশীলন করে র‍্যাংক বাড়াও।",
                     language = uiLanguage,

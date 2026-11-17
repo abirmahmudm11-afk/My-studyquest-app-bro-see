@@ -55,6 +55,7 @@ import com.example.ui.theme.BerryViolet
 import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.ElectricIndigo
 import com.example.ui.theme.LocalStudyQuestColors
+import com.example.ui.theme.QuestGold
 import com.example.ui.theme.SkyCyan
 import com.example.ui.theme.SunsetCoral
 import com.example.ui.theme.TealSecondary
@@ -234,8 +235,8 @@ fun StudyTimeAndXpBarChart(
         }
 
         val maxVal = dailySeries.maxOf { maxOf(it.xpEarned.toInt(), it.studyMinutes) }.coerceAtLeast(20)
-        val barPrimary = ElectricIndigo
-        val barSelected = VividEmerald
+        val barPrimary = MaterialTheme.colorScheme.primary
+        val barSelected = QuestGold
         val gridLineColor = MaterialTheme.colorScheme.outlineVariant
 
         Spacer(Modifier.height(10.dp))
@@ -260,16 +261,16 @@ fun StudyTimeAndXpBarChart(
             }
             val count = dailySeries.size.coerceAtLeast(1)
             val slotW = w / count
-            val barW = (slotW * 0.48f).coerceAtLeast(12.dp.toPx())
+            val barW = (slotW * 0.44f).coerceAtLeast(12.dp.toPx())
             dailySeries.forEachIndexed { idx, item ->
                 val value = maxOf(item.xpEarned.toInt(), item.studyMinutes)
                 val barH = ((value.toFloat() / maxVal.toFloat()) * (h * 0.88f)).coerceAtLeast(6.dp.toPx())
                 val left = idx * slotW + (slotW - barW) / 2f
                 drawRoundRect(
-                    color = if (idx == selectedIdx) barSelected else barPrimary.copy(alpha = 0.78f),
+                    color = if (idx == selectedIdx) barSelected else barPrimary.copy(alpha = 0.75f),
                     topLeft = Offset(left, h - barH),
                     size = Size(barW, barH),
-                    cornerRadius = CornerRadius(7.dp.toPx(), 7.dp.toPx())
+                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                 )
             }
         }

@@ -10,9 +10,11 @@ import com.example.core.StudyQuestStrings
 import com.example.core.handleFirestoreError
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.curriculum.GamificationCatalog
+import com.example.data.curriculum.TextbookCatalog
 import com.example.data.local.StudyQuestDao
 import com.example.data.model.PrivateAccountInfo
 import com.example.data.model.PublicProfile
+import com.example.data.model.TextbookCatalogItem
 import com.example.data.model.UserNotificationDoc
 import com.example.data.model.UserQuestDoc
 import com.google.firebase.Firebase
@@ -87,7 +89,7 @@ class AuthAndProfileRepository(
             .whereEqualTo("sourceType", "cosmetic_purchase")
             .snapshots()
             .map { snapshot ->
-                snapshot.documents.mapNotNull { it.getString("sourceId") }.toSet() + setOf("owl_classic")
+                snapshot.documents.mapNotNull { it.getString("sourceId") }.toSet() + setOf("crest_indigo")
             }
 
     suspend fun ensureUserBootstrapped(
@@ -123,7 +125,8 @@ class AuthAndProfileRepository(
                 .take(18)
             val username = "${baseHandle}_${sqCode.takeLast(4)}".take(30)
             val curriculum = if (defaultLanguage == AppLanguage.BANGLA) "bangla" else "english"
-            val initialSubjects = listOf("math", "english", "bangla", "physics", "ict")
+            val initialBook = TextbookCatalog.defaultBookFor("class_10", curriculum, "science", "2026")
+            val initialSubjects = listOf(initialBook.subjectId)
 
             val batch = db.batch()
             batch.set(
@@ -133,11 +136,15 @@ class AuthAndProfileRepository(
                     "studyQuestId" to sqCode,
                     "username" to username,
                     "displayName" to displayName,
-                    "avatarId" to "owl_classic",
+                    "avatarId" to "crest_indigo",
                     "frameId" to null,
                     "titleBadge" to null,
                     "classId" to "class_10",
                     "curriculumVersion" to curriculum,
+                    "activeBookId" to initialBook.id,
+                    "activeBookTitle" to if (defaultLanguage == AppLanguage.BANGLA) initialBook.titleBn else initialBook.titleEn,
+                    "activeBookSubjectId" to initialBook.subjectId,
+                    "activeBookYear" to initialBook.academicYear,
                     "overallLevel" to 1L,
                     "levelTitle" to "Beginner",
                     "totalXp" to 0L,
@@ -199,9 +206,13 @@ class AuthAndProfileRepository(
                 studyQuestId = sqCode,
                 username = username,
                 displayName = displayName,
-                avatarId = "owl_classic",
+                avatarId = "crest_indigo",
                 classId = "class_10",
                 curriculumVersion = curriculum,
+                activeBookId = initialBook.id,
+                activeBookTitle = if (defaultLanguage == AppLanguage.BANGLA) initialBook.titleBn else initialBook.titleEn,
+                activeBookSubjectId = initialBook.subjectId,
+                activeBookYear = initialBook.academicYear,
                 overallLevel = 1L,
                 levelTitle = "Beginner",
                 totalXp = 0L,
@@ -277,7 +288,8 @@ class AuthAndProfileRepository(
         avatarId: String,
         academicGroup: String = "general",
         dailyGoalMinutes: Long = 30L,
-        studyGoalTitle: String = ""
+        studyGoalTitle: String = "",
+        activeBook: TextbookCatalogItem? = null
     ): Result<Unit> {
         val ref = db.collection("public_profiles").document(userId)
         val lbRef = db.collection("leaderboard_entries").document(userId)
@@ -286,14 +298,26 @@ class AuthAndProfileRepository(
             val safeGroup = if (academicGroup in listOf("general", "science", "business", "humanities")) academicGroup else "general"
             val safeDailyMins = dailyGoalMinutes.coerceIn(5L, 360L)
             val currentAcademicYear = GamificationCatalog.currentAcademicYear()
+            val resolvedBook = activeBook ?: TextbookCatalog.defaultBookFor(
+                classId = classId,
+                curriculumVersion = curriculumVersion,
+                academicGroup = safeGroup,
+                academicYear = currentAcademicYear.toString().let { if (it == "2027") "2027" else "2026" }
+            )
+            val bookSubjects = (listOf(resolvedBook.subjectId) + selectedSubjects).distinct().take(20)
+            val safeAvatar = avatarId.ifBlank { "crest_indigo" }.let { if (it == "owl_classic") "crest_indigo" else it }
             withTimeout(15_000L) {
                 ref.update(
                     mapOf(
                         "displayName" to cleanName,
                         "classId" to classId,
                         "curriculumVersion" to curriculumVersion,
-                        "selectedSubjects" to selectedSubjects.take(20),
-                        "avatarId" to avatarId,
+                        "activeBookId" to resolvedBook.id,
+                        "activeBookTitle" to (if (curriculumVersion == "bangla") resolvedBook.titleBn else resolvedBook.titleEn).take(140),
+                        "activeBookSubjectId" to resolvedBook.subjectId,
+                        "activeBookYear" to resolvedBook.academicYear,
+                        "selectedSubjects" to bookSubjects,
+                        "avatarId" to safeAvatar,
                         "academicGroup" to safeGroup,
                         "dailyGoalMinutes" to safeDailyMins,
                         "classLockedAcademicYear" to currentAcademicYear,
@@ -313,7 +337,8 @@ class AuthAndProfileRepository(
                             mapOf(
                                 "userId" to userId,
                                 "title" to cleanGoal,
-                                "subjectId" to (selectedSubjects.firstOrNull() ?: "math"),
+                                "bookId" to resolvedBook.id,
+                                "subjectId" to resolvedBook.subjectId,
                                 "planType" to "exam_countdown",
                                 "targetDateEpochMs" to (System.currentTimeMillis() + 30L * 86_400_000L),
                                 "minutesPerDay" to safeDailyMins,
@@ -423,6 +448,65 @@ class AuthAndProfileRepository(
                     lbRef.update(lbUpdates).await()
                 }
             }
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, ref.path)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun switchActiveBook(userId: String, book: TextbookCatalogItem, language: AppLanguage): Result<Unit> {
+        val ref = db.collection("public_profiles").document(userId)
+        val lbRef = db.collection("leaderboard_entries").document(userId)
+        return try {
+            val localizedTitle = if (language == AppLanguage.BANGLA) book.titleBn else book.titleEn
+            ref.update(
+                mapOf(
+                    "activeBookId" to book.id,
+                    "activeBookTitle" to localizedTitle.take(140),
+                    "activeBookSubjectId" to book.subjectId,
+                    "activeBookYear" to book.academicYear,
+                    "curriculumVersion" to book.curriculumVersion,
+                    "selectedSubjects" to listOf(book.subjectId),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            runCatching {
+                val lbSnap = lbRef.get().await()
+                if (lbSnap.exists()) {
+                    lbRef.update(
+                        mapOf(
+                            "subjectId" to book.subjectId,
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                    ).await()
+                }
+            }
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, ref.path)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun saveAgeAndConsent(
+        userId: String,
+        ageBracket: String,
+        guardianConsentStatus: String
+    ): Result<Unit> {
+        val ref = db.collection("users").document(userId).collection("private").document("account")
+        return try {
+            ref.update(
+                mapOf(
+                    "ageBracket" to ageBracket.take(30),
+                    "guardianConsentStatus" to guardianConsentStatus.take(30),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
@@ -688,7 +772,7 @@ class AuthAndProfileRepository(
         val guestPlans = dao?.getUnsyncedStudyPlans(GuestDataRepository.GUEST_UID).orEmpty()
         val unlockedCosmetics = prefs.guestUnlockedCosmeticsCsv
             .split(",")
-            .filter { it.isNotBlank() && it != "owl_classic" }
+            .filter { it.isNotBlank() && it != "owl_classic" && it != "crest_indigo" }
 
         val hasAnyGuestState = prefs.guestHasPendingMerge ||
             prefs.guestXp > 0L ||
@@ -740,11 +824,23 @@ class AuthAndProfileRepository(
                     profileUpdates["coins"] = FieldValue.increment(extraCoins)
                 }
                 if (!alreadyOnboarded && prefs.guestOnboardingCompleted) {
+                    val activeBook = TextbookCatalog.bookById(prefs.guestActiveBookId)
+                        ?: TextbookCatalog.defaultBookFor(
+                            prefs.guestClassId,
+                            prefs.guestCurriculumVersion,
+                            prefs.guestAcademicGroup,
+                            prefs.guestActiveBookYear
+                        )
                     profileUpdates["classId"] = prefs.guestClassId
                     profileUpdates["curriculumVersion"] = prefs.guestCurriculumVersion
+                    profileUpdates["academicGroup"] = prefs.guestAcademicGroup
+                    profileUpdates["activeBookId"] = activeBook.id
+                    profileUpdates["activeBookTitle"] = activeBook.titleEn.take(140)
+                    profileUpdates["activeBookSubjectId"] = activeBook.subjectId
+                    profileUpdates["activeBookYear"] = activeBook.academicYear
                     profileUpdates["selectedSubjects"] = prefs.guestSelectedSubjectsCsv
-                        .split(",").filter { it.isNotBlank() }.take(20)
-                    profileUpdates["avatarId"] = prefs.guestAvatarId.ifBlank { "owl_classic" }
+                        .split(",").filter { it.isNotBlank() }.ifEmpty { listOf(activeBook.subjectId) }.take(20)
+                    profileUpdates["avatarId"] = prefs.guestAvatarId.ifBlank { "crest_indigo" }.let { if (it == "owl_classic") "crest_indigo" else it }
                     profileUpdates["onboardingCompleted"] = true
                     if (prefs.guestDisplayName.isNotBlank() && prefs.guestDisplayName != "Guest Scholar") {
                         profileUpdates["displayName"] = prefs.guestDisplayName.take(58)
@@ -786,6 +882,7 @@ class AuthAndProfileRepository(
                             "userId" to userId,
                             "recordType" to action.actionType,
                             "refId" to action.refId,
+                            "bookId" to action.bookId.ifBlank { null },
                             "subjectId" to action.subjectId,
                             "chapterId" to action.chapterId.ifBlank { null },
                             "topicId" to action.topicId.ifBlank { null },
@@ -813,6 +910,7 @@ class AuthAndProfileRepository(
                         mapOf(
                             "userId" to userId,
                             "title" to plan.title.take(118),
+                            "bookId" to plan.bookId.ifBlank { null },
                             "subjectId" to plan.subjectId,
                             "planType" to plan.planType,
                             "targetDateEpochMs" to plan.targetDateEpochMs,
@@ -820,7 +918,7 @@ class AuthAndProfileRepository(
                             "completed" to plan.completed,
                             "createdAt" to FieldValue.serverTimestamp(),
                             "updatedAt" to FieldValue.serverTimestamp()
-                        )
+                        ).filterValues { it != null }
                     ).await()
                 }
                 dao?.markStudyPlanSynced(plan.id, userId)

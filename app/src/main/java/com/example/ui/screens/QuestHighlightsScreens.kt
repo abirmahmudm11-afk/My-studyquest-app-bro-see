@@ -448,7 +448,7 @@ fun LeaderboardScreen(
                                             }
                                         }
                                         AvatarBadgeView(
-                                            avatarId = entry.avatarId ?: "owl_classic",
+                                            avatarId = entry.avatarId ?: "crest_indigo",
                                             frameId = entry.frameId,
                                             displayName = entry.displayName,
                                             size = 40.dp
@@ -570,7 +570,7 @@ fun LeaderboardScreen(
                             }
                         }
                         AvatarBadgeView(
-                            avatarId = entry.avatarId ?: "owl_classic",
+                            avatarId = entry.avatarId ?: "crest_indigo",
                             frameId = entry.frameId,
                             displayName = entry.displayName,
                             size = 44.dp

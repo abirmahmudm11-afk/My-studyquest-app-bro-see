@@ -30,7 +30,21 @@ enum class QuestionDifficulty(val id: String, val labelEn: String, val labelBn: 
     HARD("hard", "Hard", "কঠিন")
 }
 
-enum class MascotMood {
+enum class QuestionProvenance(val id: String, val labelEn: String, val labelBn: String) {
+    OFFICIAL_TEXTBOOK_EXERCISE("official_textbook_exercise", "NCTB Textbook Exercise", "এনসিটিবি পাঠ্যবই অনুশীলনী"),
+    OFFICIAL_BOARD_EXAM("official_board_exam", "Board Exam Archive", "বোর্ড পরীক্ষার প্রশ্ন"),
+    STUDYQUEST_ORIGINAL("studyquest_original", "StudyQuest Original", "স্টাডিকোয়েস্ট মূল প্রশ্ন"),
+    AI_ASSISTED_REVIEWED("ai_assisted_reviewed", "AI-Assisted (Reviewed)", "এআই-সহায়তাপ্রাপ্ত (যাচাইকৃত)")
+}
+
+enum class TextbookDownloadStatus(val id: String, val labelEn: String, val labelBn: String) {
+    NOT_DOWNLOADED("not_downloaded", "Chapter Pack Ready", "অধ্যায় প্যাক প্রস্তুত"),
+    DOWNLOADING("downloading", "Installing Offline...", "অফলাইনে ইনস্টল হচ্ছে..."),
+    INSTALLED("installed", "Installed Offline", "অফলাইনে সংরক্ষিত"),
+    FAILED("failed", "Retry Install", "আবার চেষ্টা করো")
+}
+
+enum class QuestCoachMood {
     WELCOME,
     LEARNING_ASSISTANCE,
     ENCOURAGEMENT,
@@ -58,6 +72,43 @@ data class AcademicSubject(
     val titleBn: String,
     val code: String,
     val accentHex: Long
+)
+
+data class TextbookCatalogItem(
+    val id: String,
+    val academicYear: String, // "2026" or "2027"
+    val classId: String,
+    val curriculumVersion: String, // "bangla" or "english"
+    val groupId: String = "general",
+    val subjectId: String,
+    val titleEn: String,
+    val titleBn: String,
+    val bookCode: String,
+    val editionLabelEn: String,
+    val editionLabelBn: String,
+    val officialSourceUrl: String,
+    val pdfUrl: String? = null,
+    val estimatedPages: Int = 180,
+    val estimatedSizeMb: Double = 8.4,
+    val is2027EditionReady: Boolean = false,
+    val publicationStatus: String = "published"
+)
+
+data class TextbookChapterSpec(
+    val id: String,
+    val bookId: String,
+    val orderIndex: Int,
+    val titleEn: String,
+    val titleBn: String,
+    val summaryEn: String,
+    val summaryBn: String,
+    val startPage: Int,
+    val endPage: Int,
+    val keyTopicsEn: List<String>,
+    val keyTopicsBn: List<String>,
+    val formulas: List<String> = emptyList(),
+    val studyNotesEn: String = "",
+    val studyNotesBn: String = ""
 )
 
 data class AcademicChapter(
@@ -111,6 +162,7 @@ data class QuestionItem(
     val subjectId: String,
     val chapterId: String,
     val topicId: String,
+    val bookId: String = "",
     val board: String = "Practice Bank",
     val examYear: Int = 2025,
     val type: QuestionType,
@@ -131,6 +183,7 @@ data class QuestionItem(
     val explanationEn: String,
     val explanationBn: String,
     val marks: Int = 1,
+    val provenance: QuestionProvenance = QuestionProvenance.STUDYQUEST_ORIGINAL,
     val sourceAttribution: String = "StudyQuest Original Practice Item",
     val reviewStatus: String = "approved",
     val publicationStatus: String = "published",

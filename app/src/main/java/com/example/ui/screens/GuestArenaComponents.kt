@@ -57,10 +57,10 @@ import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.local.LocalSoloMatchEntity
-import com.example.data.model.MascotMood
 import com.example.data.model.PublicProfile
+import com.example.data.model.QuestCoachMood
 import com.example.ui.components.AnimatedCircularMasteryRing
-import com.example.ui.components.MascotTituCard
+import com.example.ui.components.QuestCoachCard
 import com.example.ui.components.RankTierBadge
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StatBadgePill
@@ -137,8 +137,8 @@ fun SoloSpeedSprintScreen(
             item {
                 val total = sprint.questions.size.coerceAtLeast(1)
                 val won = sprint.correctCount * 2 >= total
-                MascotTituCard(
-                    mood = if (won) MascotMood.ACHIEVEMENT else MascotMood.ENCOURAGEMENT,
+                QuestCoachCard(
+                    mood = if (won) QuestCoachMood.ACHIEVEMENT else QuestCoachMood.ENCOURAGEMENT,
                     messageEn = if (won) "Awesome sprint! You scored ${sprint.scorePoints} points and earned +${sprint.earnedXp} XP & +${sprint.earnedCoins} Coins."
                     else "Good effort! You answered ${sprint.correctCount}/$total correctly and earned +${sprint.earnedXp} XP.",
                     messageBn = if (won) "দারুণ খেলেছো! ${StudyQuestStrings.formatDigits(sprint.scorePoints, uiLanguage)} পয়েন্ট সহ +${StudyQuestStrings.formatDigits(sprint.earnedXp, uiLanguage)} XP অর্জন করেছো।"

@@ -12,11 +12,15 @@ data class PublicProfile(
     val studyQuestId: String = "",
     val username: String = "",
     val displayName: String = "",
-    val avatarId: String = "owl_classic",
+    val avatarId: String = "crest_indigo",
     val frameId: String? = null,
     val titleBadge: String? = null,
     val classId: String = "class_10",
     val curriculumVersion: String = "bangla",
+    val activeBookId: String = "",
+    val activeBookTitle: String = "",
+    val activeBookSubjectId: String = "",
+    val activeBookYear: String = "2026",
     val overallLevel: Long = 1L,
     val levelTitle: String = "Beginner",
     val totalXp: Long = 0L,
@@ -58,11 +62,56 @@ data class PrivateAccountInfo(
 )
 
 @IgnoreExtraProperties
+data class TextbookCatalogDoc(
+    @DocumentId val id: String = "",
+    val bookId: String = "",
+    val academicYear: String = "2026",
+    val classId: String = "class_10",
+    val curriculumVersion: String = "bangla",
+    val groupId: String = "general",
+    val subjectId: String = "math",
+    val titleEn: String = "",
+    val titleBn: String = "",
+    val bookCode: String = "",
+    val editionLabelEn: String = "NCTB Official Edition 2026",
+    val editionLabelBn: String = "এনসিটিবি অনুমোদিত সংস্করণ ২০২৬",
+    val officialSourceUrl: String = "https://nctb.portal.gov.bd/",
+    val pdfUrl: String? = null,
+    val estimatedPages: Long = 180L,
+    val estimatedSizeMb: Double = 8.4,
+    val status: String = "published",
+    val authorUid: String = "",
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class TextbookChapterDoc(
+    @DocumentId val id: String = "",
+    val bookId: String = "",
+    val orderIndex: Long = 1L,
+    val titleEn: String = "",
+    val titleBn: String = "",
+    val summaryEn: String = "",
+    val summaryBn: String = "",
+    val startPage: Long = 1L,
+    val endPage: Long = 20L,
+    val keyTopicsEn: List<String> = emptyList(),
+    val keyTopicsBn: List<String> = emptyList(),
+    val formulas: List<String> = emptyList(),
+    val studyNotesEn: String = "",
+    val studyNotesBn: String = "",
+    val status: String = "published",
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
 data class LearningRecordDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
     val recordType: String = "practice",
     val refId: String = "",
+    val bookId: String? = null,
     val subjectId: String = "",
     val chapterId: String? = null,
     val topicId: String? = null,
@@ -110,6 +159,7 @@ data class StudyPlanDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
     val title: String = "",
+    val bookId: String? = null,
     val subjectId: String = "",
     val planType: String = "daily",
     val targetDateEpochMs: Long = 0L,
@@ -169,6 +219,7 @@ data class BadgeDefinitionDoc(
 data class StudySessionDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
+    val bookId: String? = null,
     val subjectId: String = "",
     val chapterId: String? = null,
     val mode: String = "pomodoro",
@@ -190,6 +241,7 @@ data class StudyGoalDoc(
     val title: String = "",
     val goalType: String = "time_minutes",
     val periodType: String = "daily",
+    val bookId: String? = null,
     val subjectId: String = "all",
     val targetValue: Long = 30L,
     val currentValue: Long = 0L,
@@ -246,6 +298,7 @@ data class AcademicContentDoc(
     val contentType: String = "question",
     val classId: String = "class_10",
     val curriculumVersion: String = "bangla",
+    val bookId: String? = null,
     val subjectId: String = "math",
     val chapterId: String? = null,
     val topicId: String? = null,
@@ -318,7 +371,7 @@ data class StudyGroupParticipantDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
     val displayName: String = "",
-    val avatarId: String = "owl_classic",
+    val avatarId: String = "crest_indigo",
     val status: String = "online", // "online", "solving", "reviewing", "idle"
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
@@ -460,7 +513,7 @@ data class CommunityPostDoc(
     @DocumentId val id: String = "",
     val authorUid: String = "",
     val authorName: String = "",
-    val authorAvatarId: String = "owl_classic",
+    val authorAvatarId: String = "crest_indigo",
     val authorClassId: String = "class_10",
     val classId: String = "class_10",
     val subjectId: String = "math",
@@ -539,7 +592,7 @@ data class LearningVideoDoc(
 data class UserSubscriptionDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
-    val tier: String = "free", // "free", "plus", "video_pass", "studyquest_ai", "scholar", "creator", "complete_max" (legacy "premium" treated as "plus")
+    val tier: String = "free",
     val activePlanName: String = "Free StudyQuest",
     val billingProvider: String = "google_play_unconfigured",
     val adEnabled: Boolean = true,
@@ -558,8 +611,8 @@ data class UserSubscriptionDoc(
 data class AiCreditLedgerDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
-    val delta: Long = 0L, // negative = spent/reserved, positive = refund/grant/renewal
-    val entryType: String = "reserve", // "reserve", "settle", "refund", "renewal"
+    val delta: Long = 0L,
+    val entryType: String = "reserve",
     val toolId: String = "QuestTutor",
     val modelUsed: String = "gpt-6-luna",
     val requestId: String = "",
@@ -572,7 +625,7 @@ data class VideoCreditLedgerDoc(
     @DocumentId val id: String = "",
     val userId: String = "",
     val delta: Long = 0L,
-    val entryType: String = "reserve", // "reserve", "complete", "refund", "boost_purchase", "renewal"
+    val entryType: String = "reserve",
     val jobId: String = "",
     val note: String = "",
     @ServerTimestamp val createdAt: Timestamp? = null
@@ -586,8 +639,8 @@ data class PurchaseRecordDoc(
     val planId: String = "free",
     val title: String = "",
     val amountBdt: Long = 0L,
-    val purchaseType: String = "subscription", // "subscription", "one_time_boost"
-    val status: String = "unconfigured", // "completed", "pending", "cancelled", "refunded", "unconfigured"
+    val purchaseType: String = "subscription",
+    val status: String = "unconfigured",
     val playOrderId: String? = null,
     @ServerTimestamp val createdAt: Timestamp? = null
 )
@@ -598,7 +651,7 @@ data class AiConversationDoc(
     val userId: String = "",
     val title: String = "New StudyQuest Chat",
     val toolId: String = "QuestTutor",
-    val providerMode: String = "studyquest_ai", // "studyquest_ai" or "puter_js"
+    val providerMode: String = "studyquest_ai",
     val classId: String = "class_10",
     val subjectId: String = "math",
     val lastMessagePreview: String = "",
@@ -612,12 +665,12 @@ data class AiChatMessageDoc(
     @DocumentId val id: String = "",
     val conversationId: String = "",
     val userId: String = "",
-    val role: String = "user", // "user", "assistant", "system"
+    val role: String = "user",
     val text: String = "",
     val toolId: String = "QuestTutor",
     val modelUsed: String? = null,
     val creditsCharged: Long = 0L,
-    val status: String = "completed", // "streaming", "completed", "failed", "cancelled"
+    val status: String = "completed",
     val errorMessage: String? = null,
     @ServerTimestamp val createdAt: Timestamp? = null
 )
@@ -649,12 +702,12 @@ data class AiUsageLogDoc(
     val conversationId: String = "",
     val toolId: String = "QuestTutor",
     val modelId: String = "gpt-6-luna",
-    val provider: String = "openrouter", // "openrouter", "firebase_ai"
+    val provider: String = "openrouter",
     val inputTokens: Long = 0L,
     val outputTokens: Long = 0L,
     val estimatedCostUsd: Double = 0.0,
     val creditsDeducted: Long = 1L,
-    val status: String = "success", // "success", "failed", "cancelled", "budget_blocked"
+    val status: String = "success",
     val dayKey: String = "",
     val monthKey: String = "",
     @ServerTimestamp val createdAt: Timestamp? = null

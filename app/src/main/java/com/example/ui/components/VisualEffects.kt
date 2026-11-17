@@ -14,7 +14,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -46,6 +45,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,10 +57,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -77,22 +82,25 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
-import com.example.ui.theme.BerryViolet
-import com.example.ui.theme.ElectricIndigo
+import com.example.ui.theme.BrandForestGreen
+import com.example.ui.theme.DeepForestGreen
+import com.example.ui.theme.EditorialSuccess
 import com.example.ui.theme.LocalStudyQuestColors
 import com.example.ui.theme.LocalStudyQuestSurfaceStyle
-import com.example.ui.theme.PureCardWhite
-import com.example.ui.theme.SkyCyan
-import com.example.ui.theme.SunsetCoral
-import com.example.ui.theme.VividEmerald
+import com.example.ui.theme.PureEditorialSurface
+import com.example.ui.theme.QuestGold
+import com.example.ui.theme.SoftQuestGold
+import com.example.ui.theme.SoftSageGreen
+import com.example.ui.theme.WarmTerracotta
 import com.example.ui.theme.studyQuestGlassAwareBorder
 import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 import kotlinx.coroutines.delay
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
- * Full-screen playful ambient canvas supporting both Vivid Classic and Glassmorphism modes.
- * When Glassmorphism is enabled, multi-color blurred-like gradient orbs sit behind translucent
- * frosted surfaces so specular glass cards pop naturally.
+ * Warm Editorial Paper / Dark Forest Canvas Backdrop.
+ * Uses whisper-soft sage & sunlit-gold organic washes (zero harsh neon or purple orbs).
  */
 @Composable
 fun StudyQuestAmbientBackdrop(
@@ -111,76 +119,281 @@ fun StudyQuestAmbientBackdrop(
             val w = size.width
             val h = size.height
             if (visualConfig.isGlass) {
-                val indigoAlpha = if (visualConfig.isDark) 0.34f else 0.22f
-                val cyanAlpha = if (visualConfig.isDark) 0.24f else 0.18f
-                val violetAlpha = if (visualConfig.isDark) 0.26f else 0.16f
-                val emeraldAlpha = if (visualConfig.isDark) 0.18f else 0.14f
-
+                val sageAlpha = if (visualConfig.isDark) 0.22f else 0.34f
+                val goldAlpha = if (visualConfig.isDark) 0.14f else 0.24f
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(ElectricIndigo.copy(alpha = indigoAlpha), Color.Transparent),
-                        center = Offset(w * 0.14f, h * 0.08f),
+                        colors = listOf(SoftSageGreen.copy(alpha = sageAlpha), Color.Transparent),
+                        center = Offset(w * 0.16f, h * 0.10f),
                         radius = w * 0.72f
                     ),
                     radius = w * 0.72f,
-                    center = Offset(w * 0.14f, h * 0.08f)
+                    center = Offset(w * 0.16f, h * 0.10f)
                 )
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(SkyCyan.copy(alpha = cyanAlpha), Color.Transparent),
-                        center = Offset(w * 0.92f, h * 0.24f),
+                        colors = listOf(QuestGold.copy(alpha = goldAlpha), Color.Transparent),
+                        center = Offset(w * 0.88f, h * 0.22f),
+                        radius = w * 0.56f
+                    ),
+                    radius = w * 0.56f,
+                    center = Offset(w * 0.88f, h * 0.22f)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(BrandForestGreen.copy(alpha = if (visualConfig.isDark) 0.16f else 0.10f), Color.Transparent),
+                        center = Offset(w * 0.22f, h * 0.82f),
+                        radius = w * 0.60f
+                    ),
+                    radius = w * 0.60f,
+                    center = Offset(w * 0.22f, h * 0.82f)
+                )
+            } else {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            BrandForestGreen.copy(alpha = if (visualConfig.isDark) 0.10f else 0.045f),
+                            Color.Transparent
+                        ),
+                        center = Offset(w * 0.90f, h * 0.05f),
                         radius = w * 0.62f
                     ),
                     radius = w * 0.62f,
-                    center = Offset(w * 0.92f, h * 0.24f)
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(BerryViolet.copy(alpha = violetAlpha), Color.Transparent),
-                        center = Offset(w * 0.22f, h * 0.68f),
-                        radius = w * 0.65f
-                    ),
-                    radius = w * 0.65f,
-                    center = Offset(w * 0.22f, h * 0.68f)
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(VividEmerald.copy(alpha = emeraldAlpha), Color.Transparent),
-                        center = Offset(w * 0.85f, h * 0.88f),
-                        radius = w * 0.58f
-                    ),
-                    radius = w * 0.58f,
-                    center = Offset(w * 0.85f, h * 0.88f)
-                )
-            } else {
-                // Subtle top playful sky accent in Normal Vivid mode
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            ElectricIndigo.copy(alpha = if (visualConfig.isDark) 0.16f else 0.07f),
-                            Color.Transparent
-                        ),
-                        center = Offset(w * 0.88f, h * 0.05f),
-                        radius = w * 0.6f
-                    ),
-                    radius = w * 0.6f,
-                    center = Offset(w * 0.88f, h * 0.05f)
+                    center = Offset(w * 0.90f, h * 0.05f)
                 )
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            SkyCyan.copy(alpha = if (visualConfig.isDark) 0.10f else 0.05f),
+                            QuestGold.copy(alpha = if (visualConfig.isDark) 0.06f else 0.055f),
                             Color.Transparent
                         ),
-                        center = Offset(w * 0.08f, h * 0.92f),
-                        radius = w * 0.5f
+                        center = Offset(w * 0.06f, h * 0.94f),
+                        radius = w * 0.52f
                     ),
-                    radius = w * 0.5f,
-                    center = Offset(w * 0.08f, h * 0.92f)
+                    radius = w * 0.52f,
+                    center = Offset(w * 0.06f, h * 0.94f)
                 )
             }
         }
         content()
+    }
+}
+
+/**
+ * Refined Editorial Section Header with Serif heading + optional uppercase eyebrow + trailing action.
+ */
+@Composable
+fun EditorialSectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    eyebrow: String? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            if (!eyebrow.isNullOrBlank()) {
+                Text(
+                    text = eyebrow.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(2.dp))
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        if (!actionLabel.isNullOrBlank() && onAction != null) {
+            TextButton(
+                onClick = onAction,
+                modifier = Modifier.minimumInteractiveComponentSize()
+            ) {
+                Text(
+                    text = actionLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Bespoke Compose Canvas Illustration: Open NCTB-inspired Textbook + Dotted Quest Path + Gold Stars.
+ * Refined architectural line art styled seamlessly for Light (#F7F8F4) and Dark (#17221E) modes.
+ */
+@Composable
+fun OpenBookQuestIllustration(
+    modifier: Modifier = Modifier,
+    reducedMotion: Boolean = false
+) {
+    val isDark = LocalStudyQuestSurfaceStyle.current.isDark
+    val pageColor = if (isDark) Color(0xFF23322C) else PureEditorialSurface
+    val pageBackColor = if (isDark) Color(0xFF1B2823) else SoftSageGreen
+    val lineInk = if (isDark) Color(0xFF83B89F) else BrandForestGreen
+    val subtleTextRule = if (isDark) Color(0xFF42594E) else Color(0xFFD0D8D1)
+    val goldAccent = QuestGold
+    val starGlow = if (isDark) QuestGold.copy(alpha = 0.24f) else SoftQuestGold
+
+    val shimmer = if (reducedMotion) 0f else {
+        val inf = rememberInfiniteTransition(label = "book_quest_float")
+        val v by inf.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(3200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "star_pulse"
+        )
+        v
+    }
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        // Warm soft backdrop halo
+        drawCircle(
+            color = if (isDark) BrandForestGreen.copy(alpha = 0.14f) else SoftSageGreen.copy(alpha = 0.72f),
+            radius = minOf(w, h) * 0.42f,
+            center = Offset(w * 0.50f, h * 0.56f)
+        )
+        drawCircle(
+            color = starGlow,
+            radius = minOf(w, h) * (0.20f + 0.02f * shimmer),
+            center = Offset(w * 0.73f, h * 0.24f)
+        )
+
+        // Quest dotted curve arcing up from open pages toward milestone star
+        val questArc = Path().apply {
+            moveTo(w * 0.34f, h * 0.58f)
+            cubicTo(
+                w * 0.42f, h * 0.30f,
+                w * 0.58f, h * 0.42f,
+                w * 0.73f, h * 0.24f
+            )
+        }
+        drawPath(
+            path = questArc,
+            color = goldAccent,
+            style = Stroke(
+                width = 2.6.dp.toPx(),
+                cap = StrokeCap.Round,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f)
+            )
+        )
+
+        // Book cover shadow base
+        drawRoundRect(
+            color = DeepForestGreen.copy(alpha = if (isDark) 0.55f else 0.16f),
+            topLeft = Offset(w * 0.14f, h * 0.60f),
+            size = Size(w * 0.72f, h * 0.26f),
+            cornerRadius = CornerRadius(14.dp.toPx(), 14.dp.toPx())
+        )
+
+        // Outer hardcover frame
+        drawRoundRect(
+            color = DeepForestGreen,
+            topLeft = Offset(w * 0.16f, h * 0.56f),
+            size = Size(w * 0.68f, h * 0.26f),
+            cornerRadius = CornerRadius(12.dp.toPx(), 12.dp.toPx())
+        )
+
+        // Left & right open pages
+        val leftPage = Path().apply {
+            moveTo(w * 0.50f, h * 0.57f)
+            cubicTo(w * 0.40f, h * 0.52f, w * 0.26f, h * 0.53f, w * 0.18f, h * 0.57f)
+            lineTo(w * 0.18f, h * 0.78f)
+            cubicTo(w * 0.26f, h * 0.74f, w * 0.40f, h * 0.73f, w * 0.50f, h * 0.78f)
+            close()
+        }
+        val rightPage = Path().apply {
+            moveTo(w * 0.50f, h * 0.57f)
+            cubicTo(w * 0.60f, h * 0.52f, w * 0.74f, h * 0.53f, w * 0.82f, h * 0.57f)
+            lineTo(w * 0.82f, h * 0.78f)
+            cubicTo(w * 0.74f, h * 0.74f, w * 0.60f, h * 0.73f, w * 0.50f, h * 0.78f)
+            close()
+        }
+        drawPath(leftPage, color = pageBackColor)
+        drawPath(rightPage, color = pageColor)
+        drawPath(
+            leftPage,
+            color = lineInk.copy(alpha = 0.45f),
+            style = Stroke(width = 1.6.dp.toPx(), join = StrokeJoin.Round)
+        )
+        drawPath(
+            rightPage,
+            color = lineInk.copy(alpha = 0.65f),
+            style = Stroke(width = 1.6.dp.toPx(), join = StrokeJoin.Round)
+        )
+
+        // Subtle text lines on pages
+        for (row in 0..2) {
+            val yFrac = 0.63f + row * 0.045f
+            drawLine(
+                color = subtleTextRule,
+                start = Offset(w * 0.23f, h * yFrac),
+                end = Offset(w * (0.43f - row * 0.03f), h * yFrac),
+                strokeWidth = 2.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+            drawLine(
+                color = subtleTextRule,
+                start = Offset(w * 0.55f, h * yFrac),
+                end = Offset(w * (0.76f - row * 0.02f), h * yFrac),
+                strokeWidth = 2.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+        }
+
+        // Gold & forest bookmark ribbon at spine
+        val ribbon = Path().apply {
+            moveTo(w * 0.485f, h * 0.57f)
+            lineTo(w * 0.52f, h * 0.57f)
+            lineTo(w * 0.52f, h * 0.85f)
+            lineTo(w * 0.502f, h * 0.82f)
+            lineTo(w * 0.485f, h * 0.85f)
+            close()
+        }
+        drawPath(ribbon, color = goldAccent)
+
+        // Milestone node dots along the dotted arc
+        val nodes = listOf(
+            Offset(w * 0.44f, h * 0.39f) to 5.5.dp.toPx(),
+            Offset(w * 0.58f, h * 0.35f) to 6.dp.toPx()
+        )
+        nodes.forEach { (pt, r) ->
+            drawCircle(color = PureEditorialSurface, radius = r + 2.dp.toPx(), center = pt)
+            drawCircle(color = lineInk, radius = r, center = pt)
+        }
+
+        // 4-point editorial north star at summit of quest path
+        fun drawEditorialStar(center: Offset, outerR: Float, fill: Color) {
+            val innerR = outerR * 0.38f
+            val starPath = Path()
+            for (i in 0 until 8) {
+                val angle = Math.toRadians((i * 45.0) - 90.0)
+                val rad = if (i % 2 == 0) outerR else innerR
+                val px = center.x + (rad * cos(angle)).toFloat()
+                val py = center.y + (rad * sin(angle)).toFloat()
+                if (i == 0) starPath.moveTo(px, py) else starPath.lineTo(px, py)
+            }
+            starPath.close()
+            drawPath(starPath, color = fill)
+        }
+        drawEditorialStar(Offset(w * 0.73f, h * 0.24f), minOf(w, h) * 0.085f, goldAccent)
+        drawEditorialStar(Offset(w * 0.27f, h * 0.30f), minOf(w, h) * 0.042f, lineInk.copy(alpha = 0.65f))
     }
 }
 
@@ -197,18 +410,15 @@ fun StaggeredEntrance(
     }
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(index) {
-        delay((index.coerceIn(0, 8) * 40L))
+        delay((index.coerceIn(0, 8) * 35L))
         visible = true
     }
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
-        enter = fadeIn(animationSpec = tween(260)) + slideInVertically(
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessMediumLow
-            ),
-            initialOffsetY = { it / 6 }
+        enter = fadeIn(animationSpec = tween(220)) + slideInVertically(
+            animationSpec = tween(240, easing = FastOutSlowInEasing),
+            initialOffsetY = { it / 8 }
         )
     ) {
         content()
@@ -223,7 +433,7 @@ fun StudyQuestGradientHeroBanner(
     reducedMotion: Boolean,
     modifier: Modifier = Modifier,
     @DrawableRes backgroundResId: Int? = null,
-    heroGradientColors: List<Color> = listOf(ElectricIndigo, BerryViolet),
+    heroGradientColors: List<Color> = listOf(DeepForestGreen, BrandForestGreen),
     trailingSlot: @Composable (() -> Unit)? = null,
     bottomContent: @Composable (ColumnScope.() -> Unit)? = null
 ) {
@@ -234,7 +444,7 @@ fun StudyQuestGradientHeroBanner(
             initialValue = 0f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(3600, easing = FastOutSlowInEasing),
+                animation = tween(4200, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "wave_phase"
@@ -245,8 +455,8 @@ fun StudyQuestGradientHeroBanner(
     val containerBrush = if (visualConfig.isGlass) {
         Brush.linearGradient(
             listOf(
-                heroGradientColors.first().copy(alpha = if (visualConfig.isDark) 0.52f else 0.82f),
-                heroGradientColors.last().copy(alpha = if (visualConfig.isDark) 0.45f else 0.78f)
+                heroGradientColors.first().copy(alpha = if (visualConfig.isDark) 0.78f else 0.94f),
+                heroGradientColors.last().copy(alpha = if (visualConfig.isDark) 0.72f else 0.90f)
             )
         )
     } else {
@@ -255,11 +465,11 @@ fun StudyQuestGradientHeroBanner(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(20.dp),
         color = Color.Transparent,
         tonalElevation = 0.dp,
-        shadowElevation = if (visualConfig.isGlass) 0.dp else 4.dp,
-        border = if (visualConfig.isGlass) studyQuestGlassAwareBorder(heroGradientColors.first()) else null
+        shadowElevation = if (visualConfig.isGlass) 0.dp else 2.dp,
+        border = BorderStroke(1.dp, QuestGold.copy(alpha = 0.35f))
     ) {
         Box(
             modifier = Modifier
@@ -273,21 +483,21 @@ fun StudyQuestGradientHeroBanner(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .matchParentSize()
-                        .alpha(0.14f)
+                        .alpha(0.08f)
                 )
             }
             Canvas(modifier = Modifier.matchParentSize()) {
                 val w = size.width
                 val h = size.height
                 drawCircle(
-                    color = Color.White.copy(alpha = 0.14f + 0.05f * shimmer),
+                    color = Color.White.copy(alpha = 0.08f + 0.03f * shimmer),
                     radius = h * 0.56f,
-                    center = Offset(w * 0.94f, h * 0.12f)
+                    center = Offset(w * 0.94f, h * 0.14f)
                 )
                 drawCircle(
-                    color = SkyCyan.copy(alpha = 0.20f),
-                    radius = h * 0.40f,
-                    center = Offset(w * 0.08f, h * 1.04f)
+                    color = QuestGold.copy(alpha = 0.14f),
+                    radius = h * 0.36f,
+                    center = Offset(w * 0.06f, h * 1.04f)
                 )
             }
 
@@ -305,14 +515,14 @@ fun StudyQuestGradientHeroBanner(
                         if (!eyebrow.isNullOrBlank()) {
                             Surface(
                                 shape = RoundedCornerShape(999.dp),
-                                color = Color.White.copy(alpha = 0.22f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+                                color = Color.White.copy(alpha = 0.16f),
+                                border = BorderStroke(1.dp, QuestGold.copy(alpha = 0.45f))
                             ) {
                                 Text(
                                     text = eyebrow,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White,
+                                    color = SoftQuestGold,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
                             }
@@ -320,15 +530,15 @@ fun StudyQuestGradientHeroBanner(
                         }
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.SemiBold,
                             color = Color.White
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.90f)
+                            color = Color.White.copy(alpha = 0.88f)
                         )
                     }
                     if (trailingSlot != null) {
@@ -352,10 +562,10 @@ fun AnimatedCircularMasteryRing(
     centerCaptionText: String,
     reducedMotion: Boolean,
     size: Dp = 76.dp,
-    ringColor: Color = Color.White,
-    trackColor: Color = Color.White.copy(alpha = 0.26f),
+    ringColor: Color = QuestGold,
+    trackColor: Color = Color.White.copy(alpha = 0.24f),
     valueColor: Color = Color.White,
-    captionColor: Color = Color.White.copy(alpha = 0.85f),
+    captionColor: Color = Color.White.copy(alpha = 0.86f),
     modifier: Modifier = Modifier
 ) {
     val clamped = progress.coerceIn(0f, 1f)
@@ -372,7 +582,7 @@ fun AnimatedCircularMasteryRing(
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokePx = 7.dp.toPx()
+            val strokePx = 6.5.dp.toPx()
             drawArc(
                 color = trackColor,
                 startAngle = -90f,
@@ -415,7 +625,7 @@ fun AnimatedCounterText(
 ) {
     val animated by animateIntAsState(
         targetValue = targetValue,
-        animationSpec = if (reducedMotion) tween(10) else tween(550),
+        animationSpec = if (reducedMotion) tween(10) else tween(450),
         label = "animated_counter"
     )
     Text(
@@ -428,17 +638,17 @@ fun AnimatedCounterText(
 
 @Composable
 fun PulseLiveDot(
-    color: Color = VividEmerald,
+    color: Color = EditorialSuccess,
     reducedMotion: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val scale = if (reducedMotion) 1f else {
         val inf = rememberInfiniteTransition(label = "pulse_dot")
         val s by inf.animateFloat(
-            initialValue = 0.78f,
-            targetValue = 1.22f,
+            initialValue = 0.80f,
+            targetValue = 1.18f,
             animationSpec = infiniteRepeatable(
-                animation = tween(900),
+                animation = tween(1000),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "dot_scale"
@@ -447,7 +657,7 @@ fun PulseLiveDot(
     }
     Box(
         modifier = modifier
-            .size((9 * scale).dp)
+            .size((8 * scale).dp)
             .clip(CircleShape)
             .background(color)
     )
@@ -481,15 +691,12 @@ fun LottieCelebrationOverlay(
             LottieAnimation(
                 composition = comp,
                 iterations = 1,
-                modifier = Modifier.size(260.dp)
+                modifier = Modifier.size(240.dp)
             )
         }
     }
 }
 
-/**
- * Prominent Lottie 'Success' celebration card shown on finishing a Mock Exam, Practice Quiz, or Lesson.
- */
 @Composable
 fun LottieSuccessCelebrationCard(
     title: String,
@@ -504,8 +711,8 @@ fun LottieSuccessCelebrationCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("lottie_success_card"),
-        shape = RoundedCornerShape(22.dp),
-        color = studyQuestGlassAwareSurfaceColor(semantic.successContainer.copy(alpha = 0.55f)),
+        shape = RoundedCornerShape(18.dp),
+        color = studyQuestGlassAwareSurfaceColor(semantic.successContainer.copy(alpha = 0.65f)),
         border = studyQuestGlassAwareBorder(semantic.success)
     ) {
         Column(
@@ -515,7 +722,7 @@ fun LottieSuccessCelebrationCard(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                modifier = Modifier.size(136.dp),
+                modifier = Modifier.size(120.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (!reducedMotion) {
@@ -528,15 +735,15 @@ fun LottieSuccessCelebrationCard(
                 Surface(
                     shape = CircleShape,
                     color = semantic.success,
-                    modifier = Modifier.size(56.dp),
-                    shadowElevation = 4.dp
+                    modifier = Modifier.size(52.dp),
+                    shadowElevation = 2.dp
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Filled.CheckCircle,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(34.dp)
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 }
@@ -544,8 +751,8 @@ fun LottieSuccessCelebrationCard(
             Spacer(Modifier.height(6.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
@@ -560,14 +767,14 @@ fun LottieSuccessCelebrationCard(
                 Spacer(Modifier.height(10.dp))
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = ElectricIndigo
+                    color = BrandForestGreen
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = QuestGold, modifier = Modifier.size(16.dp))
                         Text(
                             text = xpAwardedText,
                             style = MaterialTheme.typography.labelLarge,
@@ -610,7 +817,7 @@ fun LessonSuccessLottieDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
-                    modifier = Modifier.size(130.dp),
+                    modifier = Modifier.size(120.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     if (!reducedMotion) {
@@ -622,15 +829,15 @@ fun LessonSuccessLottieDialog(
                     }
                     Surface(
                         shape = CircleShape,
-                        color = VividEmerald,
-                        modifier = Modifier.size(54.dp)
+                        color = EditorialSuccess,
+                        modifier = Modifier.size(52.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Filled.CheckCircle,
                                 contentDescription = null,
                                 tint = Color.White,
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(30.dp)
                             )
                         }
                     }
@@ -638,7 +845,7 @@ fun LessonSuccessLottieDialog(
                 Text(
                     text = StudyQuestStrings.t(language, "Lesson Mastered!", "পাঠ সম্পন্ন হয়েছে!"),
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center
                 )
             }
@@ -680,13 +887,14 @@ fun GuestUpgradeBannerCard(
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val semantic = LocalStudyQuestColors.current
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .testTag("guest_upgrade_banner"),
-        shape = RoundedCornerShape(20.dp),
-        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-        border = studyQuestGlassAwareBorder(SunsetCoral)
+        shape = RoundedCornerShape(16.dp),
+        color = studyQuestGlassAwareSurfaceColor(semantic.warningContainer),
+        border = studyQuestGlassAwareBorder(QuestGold)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -695,28 +903,28 @@ fun GuestUpgradeBannerCard(
         ) {
             Surface(
                 shape = CircleShape,
-                color = SunsetCoral.copy(alpha = 0.16f),
-                modifier = Modifier.size(44.dp)
+                color = QuestGold.copy(alpha = 0.25f),
+                modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.CloudUpload,
                         contentDescription = null,
-                        tint = SunsetCoral
+                        tint = WarmTerracotta
                     )
                 }
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = StudyQuestStrings.t(language, "Guest Mode • Local Progress", "গেস্ট মোড • ডিভাইসে সংরক্ষিত"),
+                    text = StudyQuestStrings.t(language, "Offline Guest Study", "অফলাইন গেস্ট সেশন"),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = StudyQuestStrings.t(
                         language,
-                        "$totalXp XP & $coins Coins ready to auto-merge on Google Sign-In.",
-                        "${StudyQuestStrings.formatDigits(totalXp, language)} XP ও ${StudyQuestStrings.formatDigits(coins, language)} কয়েন গুগল সাইন-ইনেই সিঙ্ক হবে।"
+                        "$totalXp XP & $coins Coins ready to sync on Sign-In.",
+                        "${StudyQuestStrings.formatDigits(totalXp, language)} XP ও ${StudyQuestStrings.formatDigits(coins, language)} কয়েন সাইন-ইনেই সিঙ্ক হবে।"
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -725,8 +933,8 @@ fun GuestUpgradeBannerCard(
             Button(
                 onClick = onSignInClick,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ElectricIndigo,
-                    contentColor = PureCardWhite
+                    containerColor = BrandForestGreen,
+                    contentColor = PureEditorialSurface
                 ),
                 modifier = Modifier
                     .minimumInteractiveComponentSize()

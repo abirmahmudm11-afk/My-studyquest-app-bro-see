@@ -82,6 +82,7 @@ import com.example.core.StudyQuestStrings
 import com.example.core.ThemeMode
 import com.example.core.configureAppCheck
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.TextbookCatalog
 import com.example.data.local.StudyQuestWorkScheduler
 import com.example.data.model.ExamTemplate
 import com.example.data.model.PublicProfile
@@ -89,6 +90,7 @@ import com.example.data.model.QuestPlanCatalog
 import com.example.ui.components.AudioFeedbackHelper
 import com.example.ui.components.GamificationCelebrationHost
 import com.example.ui.components.LottieCelebrationOverlay
+import com.example.ui.components.QuestNavigationScaffold
 import com.example.ui.components.StudyQuestAmbientBackdrop
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.screens.AcademicSetupWizardScreen
@@ -96,12 +98,14 @@ import com.example.ui.screens.AiDoubtSolverScreen
 import com.example.ui.screens.AiDoubtSolverSheet
 import com.example.ui.screens.CompeteTabScreen
 import com.example.ui.screens.FriendsTabScreen
+import com.example.ui.screens.GuestStudyQuestHost
 import com.example.ui.screens.LanguagePickerLaunchScreen
 import com.example.ui.screens.LeaderboardScopeFilter
 import com.example.ui.screens.LeaderboardScreen
 import com.example.ui.screens.LearnDestination
 import com.example.ui.screens.LearnTabScreen
 import com.example.ui.screens.ProfileTabScreen
+import com.example.ui.screens.QuickGuestSetupScreen
 import com.example.ui.screens.StudyProgressDashboardScreen
 import com.example.ui.screens.SubscriptionSelectionScreen
 import com.example.ui.screens.TodayOverlayDestination
@@ -179,6 +183,10 @@ private fun StudyQuestRootApp() {
         onDispose {}
     }
 
+    var pendingAgeBracket by remember { mutableStateOf("13_17") }
+    var pendingGuardianConsent by remember { mutableStateOf("verified") }
+    var ageConsentDirty by remember { mutableStateOf(false) }
+
     StudyQuestTheme(
         darkTheme = useDarkTheme,
         isBangla = preAuthPrefs.uiLanguage == AppLanguage.BANGLA,
@@ -189,12 +197,47 @@ private fun StudyQuestRootApp() {
             if (user != null) {
                 // Feature ViewModels & Firestore listeners are gated behind authenticated session and keyed by UID
                 key(user.uid) {
-                    AuthenticatedStudyQuestHost(user = user)
+                    AuthenticatedStudyQuestHost(
+                        user = user,
+                        pendingAgeBracket = pendingAgeBracket,
+                        pendingGuardianConsent = pendingGuardianConsent,
+                        ageConsentDirty = ageConsentDirty,
+                        onClearAgeConsentDirty = { ageConsentDirty = false }
+                    )
                 }
             } else if (shouldShowLanguagePicker) {
                 LanguagePickerLaunchScreen(
                     onSelectLanguage = { lang -> preAuthVm.selectInitialLanguage(lang) }
                 )
+            } else if (preAuthPrefs.isGuestMode) {
+                if (!preAuthPrefs.guestOnboardingCompleted) {
+                    QuickGuestSetupScreen(
+                        language = preAuthPrefs.uiLanguage,
+                        reducedMotion = preAuthPrefs.reducedMotion,
+                        onBackToWelcome = { preAuthVm.exitGuestMode() },
+                        onCompleteGuestSetupWithBook = { name, cls, ver, subjs, avatar, grp, book ->
+                            preAuthVm.completeGuestQuickSetup(
+                                displayName = name,
+                                classId = cls,
+                                curriculumVersion = ver,
+                                selectedSubjects = subjs,
+                                avatarId = avatar,
+                                academicGroup = grp,
+                                activeBookYear = book.academicYear,
+                                activeBookId = book.id
+                            )
+                        },
+                        onCompleteGuestSetup = { name, cls, ver, subjs, avatar ->
+                            preAuthVm.completeGuestQuickSetup(name, cls, ver, subjs, avatar)
+                        }
+                    )
+                } else {
+                    GuestStudyQuestHost(
+                        authError = authMessage,
+                        onClearAuthError = { preAuthVm.clearAuthMessages() },
+                        onRequestGoogleSignIn = { preAuthVm.exitGuestMode() }
+                    )
+                }
             } else {
                 WelcomeAndGoogleSignInScreen(
                     language = preAuthPrefs.uiLanguage,
@@ -228,7 +271,15 @@ private fun StudyQuestRootApp() {
                         preAuthVm.sendPasswordReset(email, preAuthPrefs.uiLanguage)
                     },
                     onClearAuthMessages = { preAuthVm.clearAuthMessages() },
-                    onClearPasswordResetStatus = { preAuthVm.clearPasswordResetStatus() }
+                    onClearPasswordResetStatus = { preAuthVm.clearPasswordResetStatus() },
+                    onEnterGuestMode = { preAuthVm.enterGuestMode() },
+                    ageBracket = pendingAgeBracket,
+                    guardianConsentStatus = pendingGuardianConsent,
+                    onAgeAndConsentSelected = { age, consent ->
+                        pendingAgeBracket = age
+                        pendingGuardianConsent = consent
+                        ageConsentDirty = true
+                    }
                 )
             }
         }
@@ -236,7 +287,13 @@ private fun StudyQuestRootApp() {
 }
 
 @Composable
-private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
+private fun AuthenticatedStudyQuestHost(
+    user: FirebaseUser,
+    pendingAgeBracket: String = "13_17",
+    pendingGuardianConsent: String = "verified",
+    ageConsentDirty: Boolean = false,
+    onClearAgeConsentDirty: () -> Unit = {}
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val view = LocalView.current
 
@@ -256,6 +313,7 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
     val sessionBanner by sessionVm.bannerMessage.collectAsStateWithLifecycle()
     val subscription by sessionVm.subscription.collectAsStateWithLifecycle()
     val systemSettings by sessionVm.systemSettings.collectAsStateWithLifecycle()
+    val cloudTextbooks by sessionVm.cloudTextbooks.collectAsStateWithLifecycle()
 
     LaunchedEffect(subscription.tier) {
         if (subscription.tier != "free" && !prefs.welcomePlanCompleted) {
@@ -388,6 +446,26 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
                         editingAcademicSetup = false
                         sessionVm.signOut()
                     },
+                    cloudTextbooks = cloudTextbooks,
+                    onCompleteSetupWithBook = { name, cls, ver, subjs, avatar, grp, dailyMins, goalTitle, book ->
+                        AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
+                        editingAcademicSetup = false
+                        sessionVm.completeAcademicSetup(
+                            displayName = name,
+                            classId = cls,
+                            curriculumVersion = ver,
+                            selectedSubjects = subjs,
+                            avatarId = avatar,
+                            academicGroup = grp,
+                            dailyGoalMinutes = dailyMins,
+                            studyGoalTitle = goalTitle,
+                            activeBook = book
+                        )
+                        if (ageConsentDirty) {
+                            sessionVm.saveAgeAndConsent(pendingAgeBracket, pendingGuardianConsent)
+                            onClearAgeConsentDirty()
+                        }
+                    },
                     onCompleteSetup = { name, cls, ver, subjs, avatar, grp, dailyMins, goalTitle ->
                         AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
                         editingAcademicSetup = false
@@ -401,6 +479,10 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
                             dailyGoalMinutes = dailyMins,
                             studyGoalTitle = goalTitle
                         )
+                        if (ageConsentDirty) {
+                            sessionVm.saveAgeAndConsent(pendingAgeBracket, pendingGuardianConsent)
+                            onClearAgeConsentDirty()
+                        }
                     }
                 )
             } else if (!prefs.welcomePlanCompleted && subscription.tier == "free") {
@@ -477,6 +559,16 @@ private fun AuthenticatedReadyHost(
     val videoCreditLedger by sessionVm.videoCreditLedger.collectAsStateWithLifecycle()
     val purchaseHistory by sessionVm.purchaseHistory.collectAsStateWithLifecycle()
     val adPlacementState by sessionVm.adPlacementState.collectAsStateWithLifecycle()
+    val availableBooksForLock by sessionVm.availableBooksForProfile.collectAsStateWithLifecycle()
+    val activeLockedBook by sessionVm.activeLockedBook.collectAsStateWithLifecycle()
+    val cachedBooks by sessionVm.cachedBooks.collectAsStateWithLifecycle()
+
+    val bookChapters by remember(activeLockedBook.id) {
+        learnVm.observeBookChapters(activeLockedBook.id)
+    }.collectAsStateWithLifecycle(emptyList())
+    val bookNotes by remember(activeLockedBook.id) {
+        learnVm.observeBookNotes(activeLockedBook.id)
+    }.collectAsStateWithLifecycle(emptyList())
 
     val learningRecords by learnVm.learningRecords.collectAsStateWithLifecycle()
     val mergedQuestions by learnVm.mergedQuestions.collectAsStateWithLifecycle()
@@ -592,125 +684,69 @@ private fun AuthenticatedReadyHost(
         navigateToTab(1)
     }
 
-    val navTabs = listOf(
-        Triple(0, StudyQuestStrings.tabToday(lang), Icons.Filled.Home to Icons.Outlined.Home),
-        Triple(1, StudyQuestStrings.tabLearn(lang), Icons.AutoMirrored.Filled.MenuBook to Icons.AutoMirrored.Outlined.MenuBook),
-        Triple(2, StudyQuestStrings.tabCompete(lang), Icons.Filled.EmojiEvents to Icons.Outlined.EmojiEvents),
-        Triple(3, StudyQuestStrings.tabFriends(lang), Icons.Filled.Groups to Icons.Outlined.Groups),
-        Triple(4, StudyQuestStrings.tabProfile(lang), Icons.Filled.Person to Icons.Outlined.Person)
-    )
-
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val useNavigationRail = maxWidth >= 600.dp
-
-        Row(modifier = Modifier.fillMaxSize()) {
-            if (useNavigationRail) {
-                NavigationRail(
-                    containerColor = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxHeight()
-                ) {
-                    Spacer(Modifier.height(16.dp))
-                    navTabs.forEach { (idx, label, icons) ->
-                        NavigationRailItem(
-                            selected = selectedTab == idx,
-                            onClick = {
-                                AudioFeedbackHelper.triggerClick(view, prefs.soundEnabled, prefs.reducedMotion)
-                                navigateToTab(idx)
-                            },
-                            icon = { Icon(if (selectedTab == idx) icons.first else icons.second, contentDescription = label) },
-                            label = { Text(label, maxLines = 1) },
-                            modifier = Modifier.testTag("nav_tab_$idx")
+    Box(modifier = Modifier.fillMaxSize()) {
+        QuestNavigationScaffold(
+            selectedTab = selectedTab,
+            language = lang,
+            profileDisplayName = activeProfile.displayName,
+            profileAvatarId = activeProfile.avatarId,
+            profileFrameId = activeProfile.frameId,
+            totalXp = activeProfile.totalXp,
+            streakCount = activeProfile.streakCount,
+            soundEnabled = prefs.soundEnabled,
+            reducedMotion = prefs.reducedMotion,
+            onSelectTab = { idx -> navigateToTab(idx) },
+            adBannerSlot = if (adPlacementState.shouldDisplayAdSlot) {
+                {
+                    Surface(
+                        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("admob_banner_slot")
+                    ) {
+                        Text(
+                            text = StudyQuestStrings.t(
+                                lang,
+                                "Ad Slot Ready (Paused automatically during Focus, Quizzes & Exams)",
+                                "বিজ্ঞাপন স্লট প্রস্তুত (ফোকাস, কুইজ ও পরীক্ষায় স্বয়ংক্রিয়ভাবে বন্ধ)"
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
                 }
-                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
-
-            Scaffold(
-                modifier = Modifier.weight(1f),
-                containerColor = Color.Transparent,
-                bottomBar = {
-                    Column {
-                        if (adPlacementState.shouldDisplayAdSlot) {
-                            Surface(
-                                color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surfaceVariant),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("admob_banner_slot")
-                            ) {
-                                Text(
-                                    text = StudyQuestStrings.t(
-                                        lang,
-                                        "Ad Slot Ready (Paused automatically during Focus, Quizzes & Exams)",
-                                        "বিজ্ঞাপন স্লট প্রস্তুত (ফোকাস, কুইজ ও পরীক্ষায় স্বয়ংক্রিয়ভাবে বন্ধ)"
-                                    ),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-                        if (!useNavigationRail) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            NavigationBar(
-                                containerColor = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-                                tonalElevation = 0.dp,
-                                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
-                            ) {
-                                navTabs.forEach { (idx, label, icons) ->
-                                    NavigationBarItem(
-                                        selected = selectedTab == idx,
-                                        onClick = {
-                                            AudioFeedbackHelper.triggerClick(view, prefs.soundEnabled, prefs.reducedMotion)
-                                            navigateToTab(idx)
-                                        },
-                                        icon = { Icon(if (selectedTab == idx) icons.first else icons.second, contentDescription = label) },
-                                        label = { Text(label, maxLines = 1) },
-                                        modifier = Modifier.testTag("nav_tab_$idx")
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            ) { innerPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            AnimatedVisibility(visible = !activeBanner.isNullOrBlank()) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+            } else null,
+            topBannerSlot = {
+                AnimatedVisibility(visible = !activeBanner.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Text(activeBanner.orEmpty(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                        TextButton(onClick = {
-                            sessionVm.clearBanner()
-                            learnVm.clearBanner()
-                            competeVm.clearMessage()
-                            socialVm.clearMessage()
-                        }) {
-                            Text("OK")
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(activeBanner.orEmpty(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                            TextButton(onClick = {
+                                sessionVm.clearBanner()
+                                learnVm.clearBanner()
+                                competeVm.clearMessage()
+                                socialVm.clearMessage()
+                            }) {
+                                Text("OK")
+                            }
                         }
                     }
                 }
             }
-
-            Box(modifier = Modifier.weight(1f)) {
-                if (showPlanStoreOverlay) {
+        ) {
+            if (showPlanStoreOverlay) {
                     SubscriptionSelectionScreen(
                         language = lang,
                         subscription = subscription,
@@ -782,7 +818,8 @@ private fun AuthenticatedReadyHost(
                                     studentQuestion = studentQ,
                                     classId = activeProfile.classId,
                                     subjectName = subjName,
-                                    language = lang
+                                    language = lang,
+                                    activeBookTitle = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn)
                                 )
                             },
                             onBack = {
@@ -879,7 +916,15 @@ private fun AuthenticatedReadyHost(
                                 pendingFriendsSubTab = 3
                                 navigateToTab(3)
                             },
-                            onOpenLeaderboard = { todayOverlay = TodayOverlayDestination.Leaderboard }
+                            onOpenLeaderboard = { todayOverlay = TodayOverlayDestination.Leaderboard },
+                            activeLockedBook = activeLockedBook,
+                            availableBooksForLock = availableBooksForLock,
+                            cachedBooks = cachedBooks,
+                            onOpenTextbookReader = {
+                                pendingLearnDest = LearnDestination.TextbookReader
+                                navigateToTab(1)
+                            },
+                            onSwitchActiveBook = { book -> sessionVm.switchActiveBook(book) }
                         )
                     }
 
@@ -898,21 +943,21 @@ private fun AuthenticatedReadyHost(
                         aiState = aiState,
                         externalDestination = pendingLearnDest,
                         onConsumeExternalDestination = { pendingLearnDest = null },
-                        onDownloadChapter = { learnVm.downloadChapterOffline(it) },
+                        onDownloadChapter = { learnVm.downloadChapterOffline(it, activeLockedBook.id) },
                         onCompleteLesson = { lesson ->
-                            learnVm.completeLesson(lesson, isOnline) {
+                            learnVm.completeLesson(lesson, isOnline, bookId = activeLockedBook.id) {
                                 AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
                             }
                         },
-                        onToggleBookmark = { learnVm.toggleBookmark(it) },
+                        onToggleBookmark = { learnVm.toggleBookmark(it, bookId = activeLockedBook.id) },
                         onAddRevision = { learnVm.addToRevision(it) },
                         onReviewRevision = { id, q -> learnVm.reviewRevisionItem(id, q) },
-                        onCreateStudyPlan = { t, s, p, d, m -> learnVm.createStudyPlan(t, s, p, d, m) },
+                        onCreateStudyPlan = { t, s, p, d, m -> learnVm.createStudyPlan(t, s, p, d, m, bookId = activeLockedBook.id) },
                         onToggleStudyPlan = { learnVm.toggleStudyPlan(it) },
                         onDeleteStudyPlan = { learnVm.deleteStudyPlan(it) },
                         onStartExamTimer = { sec, cb -> learnVm.startExamTimer(sec, cb) },
                         onSubmitAssessment = { title, qs, sel, txt, cq, tpl ->
-                            learnVm.submitPracticeOrExam(title, qs, sel, txt, cq, tpl, isOnline) {
+                            learnVm.submitPracticeOrExam(title, qs, sel, txt, cq, tpl, isOnline, bookId = activeLockedBook.id) {
                                 AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
                             }
                         },
@@ -921,32 +966,38 @@ private fun AuthenticatedReadyHost(
                             socialVm.reportIssue("question", q.id, "Content accuracy review", q.promptEn)
                         },
                         onAskAi = { prompt, studentQ, cls, subj ->
-                            learnVm.askAiDoubtSolver(prompt, studentQ, cls, subj, lang, subscription)
+                            learnVm.askAiDoubtSolver(
+                                prompt, studentQ, cls, subj, lang, subscription,
+                                activeBookTitle = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn)
+                            )
                         },
                         onResetAi = { learnVm.resetAiDoubtState() },
                         reducedMotion = prefs.reducedMotion,
                         profile = activeProfile,
                         subjectAnalytics = subjectAnalytics,
                         weakTopics = weakTopics,
-                        dailyChallengeQuestions = remember(mergedQuestions, activeProfile.classId) {
-                            learnVm.dailyChallengeQuestions(mergedQuestions, activeProfile.classId)
+                        dailyChallengeQuestions = remember(mergedQuestions, activeLockedBook) {
+                            learnVm.dailyChallengeQuestions(
+                                TextbookCatalog.questionsForActiveBook(mergedQuestions, activeLockedBook),
+                                activeProfile.classId
+                            )
                         },
                         dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(activeProfile),
                         dailyChallengeDateKey = learnVm.todayChallengeDateKey(),
                         onCompletePomodoro = { subjId, mins ->
-                            learnVm.completePomodoroSession(subjId, mins, isOnline) {
+                            learnVm.completePomodoroSession(subjId, mins, isOnline, bookId = activeLockedBook.id) {
                                 celebrationPulse += 1
                                 AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
                             }
                         },
                         onCompleteFlashcardDeck = { subjId, rev, mast ->
-                            learnVm.recordFlashcardSession(subjId, rev, mast, isOnline) {
+                            learnVm.recordFlashcardSession(subjId, rev, mast, isOnline, bookId = activeLockedBook.id) {
                                 celebrationPulse += 1
                                 AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
                             }
                         },
                         onSubmitDailyChallenge = { qs, sel, txt ->
-                            learnVm.completeDailyChallenge(qs, sel, txt, isOnline) {
+                            learnVm.completeDailyChallenge(qs, sel, txt, isOnline, bookId = activeLockedBook.id) {
                                 celebrationPulse += 1
                                 AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
                             }
@@ -976,21 +1027,39 @@ private fun AuthenticatedReadyHost(
                         onSelectAiTool = { learnVm.selectAiTool(it) },
                         onSelectAiConversation = { learnVm.openAIConversation(it) },
                         onCreateAiConversation = { title, toolId ->
-                            learnVm.createAIConversation(title, toolId, activeProfile.classId, "general")
+                            learnVm.createAIConversation(title, toolId, activeProfile.classId, activeLockedBook.subjectId)
                         },
                         onDeleteAiConversation = { learnVm.deleteAIConversation(it) },
                         onSendAiLabMessage = { msg ->
                             learnVm.sendStudyQuestMessage(
                                 userText = msg,
                                 classId = activeProfile.classId,
-                                subjectName = "General Study",
+                                subjectName = activeLockedBook.subjectId,
                                 language = lang,
-                                subscription = subscription
+                                subscription = subscription,
+                                activeBookTitle = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn)
                             )
                         },
                         onCancelAiRequest = { learnVm.cancelAIRequest() },
                         onRetryAiRequest = { learnVm.retryFailedAIRequest() },
-                        onOpenPlanStore = { showPlanStoreOverlay = true }
+                        onOpenPlanStore = { showPlanStoreOverlay = true },
+                        activeLockedBook = activeLockedBook,
+                        availableBooksForLock = availableBooksForLock,
+                        cachedBooks = cachedBooks,
+                        bookChapters = bookChapters,
+                        bookNotes = bookNotes,
+                        onInstallBookOffline = { book, force -> learnVm.installBookOffline(book, lang, force) },
+                        onImportPdfForBook = { book, uri -> learnVm.importPdfForBook(book, uri, lang) },
+                        onSaveLastReadPage = { bookId, page -> learnVm.saveLastReadPage(bookId, page) },
+                        onMarkBookChapterCompleted = { chId -> learnVm.markBookChapterCompleted(chId) },
+                        onSaveBookPageNote = { bookId, page, chId, title, text, isBm ->
+                            learnVm.saveBookPageNote(bookId, page, chId, title, text, isBm)
+                        },
+                        onDeleteBookPageNote = { noteId -> learnVm.deleteBookPageNote(noteId) },
+                        onSwitchActiveBook = { book -> sessionVm.switchActiveBook(book) },
+                        onReportBookIssue = { tType, tId, details ->
+                            socialVm.reportIssue(tType, tId, "Textbook content review", details)
+                        }
                     )
 
                     2 -> CompeteTabScreen(
@@ -1149,26 +1218,30 @@ private fun AuthenticatedReadyHost(
                         onOpenAiLab = {
                             pendingLearnDest = LearnDestination.AiLab
                             navigateToTab(1)
-                        }
+                        },
+                        activeLockedBook = activeLockedBook,
+                        cachedBooks = cachedBooks,
+                        onOpenTextbookReader = {
+                            pendingLearnDest = LearnDestination.TextbookReader
+                            navigateToTab(1)
+                        },
+                        onReinstallBookOffline = { book -> learnVm.installBookOffline(book, lang, forceRedownload = true) },
+                        onDeleteCachedBook = { bookId -> learnVm.deleteOfflineBookCache(bookId) }
                     )
-                        }
                     }
                 }
             }
         }
 
-            LottieCelebrationOverlay(
-                triggerKey = celebrationPulse,
-                reducedMotion = prefs.reducedMotion
-            )
+        LottieCelebrationOverlay(
+            triggerKey = celebrationPulse,
+            reducedMotion = prefs.reducedMotion
+        )
 
-            GamificationCelebrationHost(
-                language = lang,
-                reducedMotion = prefs.reducedMotion
-            )
-        }
-            }
-        }
+        GamificationCelebrationHost(
+            language = lang,
+            reducedMotion = prefs.reducedMotion
+        )
     }
 
     if (showGlobalAiSheet) {
@@ -1188,7 +1261,10 @@ private fun AuthenticatedReadyHost(
                 navigateToTab(1)
             },
             onSubmitDoubt = { q ->
-                learnVm.askAiDoubtSolver("", q, activeProfile.classId, "General Study", lang, subscription)
+                learnVm.askAiDoubtSolver(
+                    "", q, activeProfile.classId, activeLockedBook.subjectId, lang, subscription,
+                    activeBookTitle = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn)
+                )
             },
             onDismiss = {
                 learnVm.resetAiDoubtState()

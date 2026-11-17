@@ -138,7 +138,7 @@ class SocialRepository(
                 mapOf(
                     "userId" to profile.userId,
                     "displayName" to profile.displayName.take(60),
-                    "avatarId" to profile.avatarId.ifBlank { "owl_classic" }.take(40),
+                    "avatarId" to profile.avatarId.ifBlank { "crest_indigo" }.let { if (it == "owl_classic") "crest_indigo" else it }.take(40),
                     "status" to allowed,
                     "updatedAt" to FieldValue.serverTimestamp()
                 ),
@@ -434,7 +434,7 @@ class SocialRepository(
                 mapOf(
                     "type" to "group",
                     "name" to cleanName,
-                    "avatarId" to "owl_classic",
+                    "avatarId" to "crest_indigo",
                     "subjectId" to cleanSubject,
                     "ownerId" to ownerUid,
                     "memberUids" to listOf(ownerUid),

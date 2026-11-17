@@ -1,15 +1,8 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -28,11 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -46,18 +36,22 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
-import com.example.data.model.MascotMood
-import com.example.ui.theme.BerryViolet
-import com.example.ui.theme.ElectricIndigo
+import com.example.data.model.QuestCoachMood
+import com.example.ui.theme.BrandForestGreen
+import com.example.ui.theme.EditorialSuccess
+import com.example.ui.theme.LocalStudyQuestColors
 import com.example.ui.theme.LocalStudyQuestSurfaceStyle
-import com.example.ui.theme.SkyCyan
-import com.example.ui.theme.VividEmerald
+import com.example.ui.theme.QuestGold
+import com.example.ui.theme.SoftSageGreen
 import com.example.ui.theme.studyQuestGlassAwareBorder
 import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 
+/**
+ * Editorial Quest Guide Card — restrained soft-sage / gold note strip with no cartoonish mascot chrome.
+ */
 @Composable
-fun MascotTituCard(
-    mood: MascotMood,
+fun QuestCoachCard(
+    mood: QuestCoachMood,
     messageEn: String,
     messageBn: String,
     language: AppLanguage,
@@ -67,54 +61,40 @@ fun MascotTituCard(
     trailingAction: @Composable (() -> Unit)? = null
 ) {
     val visualConfig = LocalStudyQuestSurfaceStyle.current
-    val infiniteTransition = rememberInfiniteTransition(label = "titu_bob")
-    val bobOffset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = if (reducedMotion) 0f else -5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "bob_y"
-    )
+    val semantic = LocalStudyQuestColors.current
 
     val moodBadge = when (mood) {
-        MascotMood.WELCOME -> StudyQuestStrings.t(language, "Welcome!", "স্বাগতম!")
-        MascotMood.LEARNING_ASSISTANCE -> StudyQuestStrings.t(language, "Titu's Tip", "টিটুর পরামর্শ")
-        MascotMood.ENCOURAGEMENT -> StudyQuestStrings.t(language, "Keep Going", "এগিয়ে চলো")
-        MascotMood.SUCCESS -> StudyQuestStrings.t(language, "Brilliant!", "দারুণ!")
-        MascotMood.QUEST_COMPLETION -> StudyQuestStrings.t(language, "Quest Done!", "কোয়েস্ট সম্পন্ন!")
-        MascotMood.ACHIEVEMENT -> StudyQuestStrings.t(language, "Achievement!", "অর্জন!")
-        MascotMood.STUDY_REMINDER -> StudyQuestStrings.t(language, "Study Time", "পড়ার সময়")
-        MascotMood.EMPTY_STATE -> StudyQuestStrings.t(language, "Ready to Start", "শুরু করতে প্রস্তুত")
+        QuestCoachMood.WELCOME -> StudyQuestStrings.t(language, "QUEST GUIDE", "কোয়েস্ট গাইড")
+        QuestCoachMood.LEARNING_ASSISTANCE -> StudyQuestStrings.t(language, "STUDY NOTE", "পাঠ নির্দেশিকা")
+        QuestCoachMood.ENCOURAGEMENT -> StudyQuestStrings.t(language, "MOMENTUM", "গতি ধরে রাখো")
+        QuestCoachMood.SUCCESS -> StudyQuestStrings.t(language, "MILESTONE", "অর্জন")
+        QuestCoachMood.QUEST_COMPLETION -> StudyQuestStrings.t(language, "QUEST READY", "কোয়েস্ট প্রস্তুত")
+        QuestCoachMood.ACHIEVEMENT -> StudyQuestStrings.t(language, "UNLOCKED", "উন্মোচিত")
+        QuestCoachMood.STUDY_REMINDER -> StudyQuestStrings.t(language, "FOCUS TIME", "ফোকাস সময়")
+        QuestCoachMood.EMPTY_STATE -> StudyQuestStrings.t(language, "GETTING STARTED", "শুরুর ধাপ")
     }
 
-    val ringColor = when (mood) {
-        MascotMood.SUCCESS, MascotMood.QUEST_COMPLETION, MascotMood.ACHIEVEMENT -> VividEmerald
-        MascotMood.ENCOURAGEMENT, MascotMood.STUDY_REMINDER -> BerryViolet
-        else -> ElectricIndigo
+    val isGoldAccent = mood == QuestCoachMood.QUEST_COMPLETION || mood == QuestCoachMood.ACHIEVEMENT
+    val accent = when {
+        isGoldAccent -> QuestGold
+        mood == QuestCoachMood.SUCCESS -> EditorialSuccess
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val surfaceColor = if (isGoldAccent) {
+        studyQuestGlassAwareSurfaceColor(semantic.warningContainer)
+    } else {
+        studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface)
     }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-        tonalElevation = if (visualConfig.isGlass) 0.dp else 2.dp,
-        border = studyQuestGlassAwareBorder(ringColor)
+        shape = RoundedCornerShape(18.dp),
+        color = surfaceColor,
+        tonalElevation = 0.dp,
+        shadowElevation = if (visualConfig.isGlass) 0.dp else 1.dp,
+        border = studyQuestGlassAwareBorder(if (isGoldAccent) QuestGold else null)
     ) {
-        Box(
-            modifier = Modifier
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            ringColor.copy(alpha = 0.14f),
-                            SkyCyan.copy(alpha = 0.06f),
-                            Color.Transparent
-                        )
-                    )
-                )
-                .padding(16.dp)
-        ) {
+        Box(modifier = Modifier.padding(16.dp)) {
             if (showCelebrationLottie && !reducedMotion) {
                 val celebrationComp by rememberLottieComposition(
                     LottieCompositionSpec.RawRes(R.raw.lottie_celebration)
@@ -123,7 +103,7 @@ fun MascotTituCard(
                     composition = celebrationComp,
                     iterations = LottieConstants.IterateForever,
                     modifier = Modifier
-                        .size(110.dp)
+                        .size(88.dp)
                         .align(Alignment.TopEnd)
                 )
             }
@@ -132,31 +112,28 @@ fun MascotTituCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                MascotAvatar(
-                    size = 64.dp,
-                    ringColor = ringColor,
-                    modifier = Modifier.offset(y = bobOffset.dp)
+                StudyQuestBrandMark(
+                    size = 48.dp,
+                    ringColor = accent
                 )
 
                 Column(modifier = Modifier.weight(1f)) {
                     Surface(
                         shape = RoundedCornerShape(999.dp),
-                        color = ringColor.copy(alpha = 0.16f)
+                        color = if (isGoldAccent) QuestGold.copy(alpha = 0.25f) else SoftSageGreen.copy(alpha = if (visualConfig.isDark) 0.16f else 1f)
                     ) {
                         Text(
                             text = moodBadge,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = ringColor,
+                            color = if (isGoldAccent) semantic.onWarningContainer else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                         )
                     }
                     Spacer(Modifier.size(6.dp))
                     AnimatedVisibility(
                         visible = true,
-                        enter = if (reducedMotion) fadeIn(tween(10)) else fadeIn() + scaleIn(
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                        )
+                        enter = fadeIn(tween(if (reducedMotion) 10 else 200))
                     ) {
                         Text(
                             text = StudyQuestStrings.t(language, messageEn, messageBn),
@@ -175,23 +152,20 @@ fun MascotTituCard(
 }
 
 @Composable
-fun MascotAvatar(
-    size: Dp = 56.dp,
-    ringColor: Color = ElectricIndigo,
+fun StudyQuestBrandMark(
+    size: Dp = 48.dp,
+    ringColor: Color = BrandForestGreen,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier.size(size),
         shape = CircleShape,
-        border = BorderStroke(
-            2.5.dp,
-            Brush.linearGradient(listOf(ringColor, SkyCyan))
-        ),
+        border = BorderStroke(1.5.dp, ringColor.copy(alpha = 0.45f)),
         color = MaterialTheme.colorScheme.primaryContainer
     ) {
         Image(
-            painter = painterResource(id = R.drawable.img_mascot_titu),
-            contentDescription = "StudyQuest Mascot Titu",
+            painter = painterResource(id = R.drawable.ic_studyquest_logo),
+            contentDescription = "StudyQuest Emblem",
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(size)

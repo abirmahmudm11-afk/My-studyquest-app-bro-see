@@ -1,0 +1,2866 @@
+STUDYQUEST
+
+COMPLETE PRODUCT REBUILD, TOTAL UI/UX REDESIGN & PRODUCTION MASTER BLUEPRINT
+
+Product identity: StudyQuest
+Product tagline: Learn. Connect. Compete. Achieve.
+Product category: Educational learning, textbook reading, revision, examination and student competition platform
+Primary market: Bangladesh
+Target curriculum: Classes 6–10 and SSC
+Languages: Bangla and English
+Primary experience: Mobile-first, installable Progressive Web Application (PWA), responsive on desktop and tablet
+Development environment: Google AI Studio Build Mode
+Release target: A fully implemented, tested, publishing-ready web application deployed through the Google AI Studio workflow
+
+---
+
+PART 1 — YOUR ROLE AND MISSION
+
+Act as the complete professional product-development team responsible for transforming StudyQuest into a polished, reliable, modern educational application.
+
+You are simultaneously responsible for:
+
+- Product architecture.
+- Product and UX research.
+- Creative direction.
+- UI/UX design.
+- Visual design systems.
+- Frontend development.
+- Backend architecture.
+- Database design.
+- Authentication.
+- Academic-content management.
+- Learning-system development.
+- Competitive-system development.
+- Social-system development.
+- Security.
+- Accessibility.
+- Performance.
+- Quality assurance.
+- Release preparation.
+
+Your mission is to rebuild StudyQuest with an entirely new application experience while preserving every meaningful capability, requirement, system and intended workflow from the existing project.
+
+This is not a simple theme modification.
+
+This is not a homepage redesign.
+
+This is not a partial interface replacement.
+
+This is a complete application redesign and functional completion project.
+
+The objective is to deliver a significantly better StudyQuest without losing its existing capabilities.
+
+1.1 The central requirement
+
+NEW UI. NEW UX. NEW VISUAL IDENTITY. COMPLETE FUNCTIONALITY.
+
+The complete application must receive a new visual experience.
+
+Preserve the old application's functional requirements and capabilities, but do not blindly reuse its previous visual implementation.
+
+The only visual exception is the specifically requested old sign-in/sign-up reference screen.
+
+The existing StudyQuest project must serve as a functional and requirements reference, not as a visual template.
+
+1.2 Non-negotiable principles
+
+1. Never remove an existing meaningful capability simply because redesigning it requires more work.
+2. Never replace a working feature with a static representation.
+3. Never implement fake buttons.
+4. Never use fake academic books.
+5. Never invent official NCTB questions.
+6. Never invent board examination papers.
+7. Never display fabricated user statistics.
+8. Never present unconfigured integrations as operational.
+9. Never expose protected examination answers.
+10. Never sacrifice the complete user experience to make the application look simpler.
+
+Every important feature must have an actual implementation path.
+
+---
+
+PART 2 — GOOGLE AI STUDIO DEVELOPMENT REQUIREMENTS
+
+2.1 Work entirely inside Google AI Studio
+
+This project must be developed through Google AI Studio.
+
+Use Google AI Studio Build Mode.
+
+Do not connect GitHub.
+
+Do not create or push a GitHub repository.
+
+Do not use Replit.
+
+Do not move development to another online IDE.
+
+Do not make an external developer environment a dependency of the normal development workflow.
+
+Keep the source project, application files, frontend implementation, backend application code, project documentation and design system within the Google AI Studio project.
+
+Use Google-integrated services where backend infrastructure is required.
+
+Firebase configuration may require explicit confirmation and configuration through Google's integrated setup.
+
+Do not activate paid billing, paid APIs or other billable services without authorization.
+
+2.2 Select the appropriate development platform
+
+For this first complete release, select the Web App platform in Google AI Studio Build Mode.
+
+Build a mobile-first, responsive, installable PWA.
+
+Reason:
+
+StudyQuest requires real backend functionality, including multiplayer, protected examination grading, friend systems, messaging, administrative controls, persistent accounts and server-side reward verification.
+
+The application therefore needs a server-side runtime.
+
+Do not select native Android Build Mode for this first full-stack implementation because its current server-runtime limitations make it unsuitable as the sole environment for the complete server-dependent feature set.
+
+The resulting PWA must work professionally on:
+
+- Android phones.
+- Android tablets.
+- Desktop browsers.
+- Laptop screens.
+- Other supported mobile browsers.
+
+Make the application installable through the browser's supported PWA installation mechanism.
+
+Keep native Android as a possible later client that can connect to the same backend. Do not make it a dependency of this first release.
+
+2.3 Preferred architecture
+
+Use the following architecture as the starting direction:
+
+Frontend
+
+- React.
+- TypeScript.
+- Modern responsive web architecture.
+- Component-based implementation.
+- Accessible navigation.
+- Installable PWA.
+- Reusable design system.
+
+Application backend
+
+- Node.js server runtime in Google AI Studio's full-stack application environment.
+- Authenticated server endpoints.
+- Server-side business logic.
+- Secure administrative endpoints.
+- Server-side examination grading.
+- Server-authoritative competitive scoring.
+
+Backend services
+
+- Firebase Authentication.
+- Cloud Firestore.
+- Firebase Security Rules.
+- Firebase integration provided through Google AI Studio.
+- Cloud Run deployment through the supported AI Studio workflow.
+
+AI integration
+
+- Gemini API through the secure server-side environment.
+- Server-side secret management.
+- Protected AI requests.
+- Rate limits and usage controls.
+
+Use Cloud Storage or another appropriate Google-managed storage resource for textbook files and permitted educational media when required and properly configured.
+
+Do not place administrative credentials, Firebase service-account secrets or Gemini API secrets in browser-visible code.
+
+Before enabling Firebase, explain the permanent database-region decision to the project owner. Select an appropriate supported Asia region after confirmation. Do not make irreversible infrastructure selections without authorization.
+
+Before implementing the application, create a coherent architecture and requirements ledger.
+
+Do not blindly translate PostgreSQL tables into random Firestore collections. Preserve their logical relationships, permissions and transactional requirements through an appropriate document-oriented model.
+
+---
+
+PART 3 — EXISTING PROJECT AUDIT AND FUNCTIONAL PRESERVATION
+
+Use the available StudyQuest source archive and project documentation as the starting requirements evidence.
+
+Inspect:
+
+- README.
+- Requirements ledger.
+- Implementation report.
+- Architecture documentation.
+- Blocked-dependencies documentation.
+- Original SQL migration.
+- Existing mobile routes.
+- Existing authentication implementation.
+- Existing learning engine.
+- Local practice persistence.
+- Social and messaging implementation.
+- Localization dictionaries.
+- Administrative requirements.
+
+The available project includes an Expo/React Native foundation, offline learning infrastructure, Supabase integration source and a 77-table PostgreSQL migration.
+
+The original online backend was not provisioned.
+
+Do not assume that source code automatically means a live service exists.
+
+3.1 Preserve the five main product areas
+
+Keep all five existing functional areas:
+
+1. Today.
+2. Learn.
+3. Compete.
+4. Friends.
+5. Profile.
+
+They may receive entirely new layouts, navigation treatment, icons, compositions and components.
+
+Do not remove any of the five capabilities.
+
+You may introduce additional supporting routes, screens, menus and administrative interfaces.
+
+3.2 Existing learning capabilities
+
+Preserve and complete:
+
+- Offline learning.
+- Local practice persistence.
+- Practice sessions.
+- Multiple-question navigation.
+- Answer selection.
+- Answer evaluation.
+- Results.
+- Answer explanations.
+- Learning history.
+- Bookmarks.
+- Revision items.
+- Subject progress.
+- Language preferences.
+- Theme preferences.
+- Reduced-motion preference.
+- Synchronization queue.
+- Account sign-in.
+- Password-reset functionality.
+
+Remove the existing illustrative sample question dataset from production content.
+
+Do not display it as a real official question set.
+
+3.3 Existing social capabilities
+
+Preserve and complete:
+
+- Exact StudyQuest ID lookup.
+- Username lookup.
+- Friend requests.
+- Accepting requests.
+- Declining requests.
+- Cancelling requests.
+- Friend lists.
+- Blocking.
+- Unblocking.
+- Private one-to-one conversations.
+- Private text messaging.
+- Conversation history.
+- Realtime message updates.
+- Private group creation.
+- Group invitations.
+- Group invitation acceptance.
+- Group invitation decline.
+
+Add the missing supporting functions described later.
+
+3.4 Existing backend capabilities
+
+Preserve the business concepts and security intentions of all existing database entities.
+
+The original migration contains 77 tables. All 77 must have an explicit destination in the new data model.
+
+No old domain requirement may disappear during migration.
+
+Identity and preferences
+
+1. profiles
+2. user_preferences
+3. learning_profiles
+4. user_privacy
+
+Curriculum and educational content
+
+5. academic_years
+6. curriculum_versions
+7. classes
+8. academic_groups
+9. subjects
+10. user_subjects
+11. class_subjects
+12. chapters
+13. topics
+14. lessons
+15. lesson_assets
+
+Question management
+
+16. question_sources
+17. questions
+18. question_tags
+19. question_options
+20. question_answer_keys
+21. question_explanations
+22. question_revisions
+23. question_reports
+
+Learning and examinations
+
+24. practice_sessions
+25. practice_answers
+26. exam_templates
+27. exam_template_questions
+28. exam_attempts
+29. exam_attempt_answers
+30. exam_results
+31. bookmarks
+32. revision_items
+
+Rewards and progression
+
+33. xp_transactions
+34. coin_transactions
+35. user_levels
+36. subject_progress
+37. quests
+38. user_quests
+39. achievements
+40. user_achievements
+41. inventory_items
+42. user_inventory
+
+Friends and communication
+
+43. friend_requests
+44. friendships
+45. blocked_users
+46. conversations
+47. conversation_members
+48. private_conversation_pairs
+49. messages
+50. message_receipts
+51. message_reactions
+52. message_reports
+53. study_groups
+54. group_invitations
+
+Competitive systems
+
+55. match_requests
+56. matches
+57. match_players
+58. match_questions
+59. match_answers
+60. match_results
+61. competition_seasons
+62. rank_ratings
+63. leaderboard_entries
+64. tournaments
+65. tournament_entries
+66. tournament_rounds
+67. tournament_results
+
+Administration and operations
+
+68. admin_users
+69. roles
+70. permissions
+71. role_permissions
+72. moderation_cases
+73. moderation_actions
+74. support_tickets
+75. audit_logs
+76. notification_records
+77. system_settings
+
+Create a traceability ledger documenting the new collection or document structure corresponding to every entity above.
+
+For each entity, preserve its purpose, relationships, authorization requirements and relevant transactional behavior.
+
+Do not blindly recreate an inefficient relational database inside Firestore.
+
+---
+
+PART 4 — COMPLETELY NEW CREATIVE DIRECTION
+
+Create a new professional identity for StudyQuest.
+
+Do not copy the previous green-and-cream application design.
+
+Do not reuse the old five-screen mockup as the new interface template.
+
+Do not reuse its layout, card composition, decorative waves, old book icons or old visual arrangement.
+
+Preserve the product name StudyQuest.
+
+The rest of the visual implementation must be freshly designed.
+
+4.1 Design philosophy
+
+The new application should feel like a premium educational product created by a professional design team.
+
+It should be:
+
+- Modern.
+- Beautiful.
+- Friendly.
+- Intelligent.
+- Organized.
+- Academic without feeling boring.
+- Youth-friendly.
+- Premium without becoming complicated.
+- Visually distinctive.
+- Extremely easy to navigate.
+
+StudyQuest should have its own visual identity rather than looking like a generic template.
+
+Benchmark the quality of modern educational products, but never copy another application's protected visual identity.
+
+4.2 Proposed visual system
+
+Use a fresh light-first design language.
+
+Suggested design direction:
+
+- Crisp white surfaces.
+- Very light cool-neutral page backgrounds.
+- Deep ink or navy typography.
+- Confident cobalt or ocean-blue primary actions.
+- A carefully controlled warm coral accent.
+- Muted neutral secondary text.
+- Clear borders.
+- Subtle natural shadows.
+- Refined illustrations.
+- Consistent spacing.
+- Strong readable typography.
+
+Use the following only as initial color candidates and refine them into a complete token system:
+
+- Main background: #F5F7FA.
+- Surface: #FFFFFF.
+- Main text: #172331.
+- Secondary text: #687686.
+- Primary accent: #315FD4.
+- Secondary accent: #EF795F.
+- Border: #E4E9F0.
+
+Create a complete dark theme as well.
+
+No excessive gradients.
+
+No neon effects.
+
+No unnecessary glow.
+
+No excessive glassmorphism.
+
+No generic AI-dashboard appearance.
+
+No huge decorative elements interfering with content.
+
+No tiny text.
+
+No crowded screen layouts.
+
+4.3 Typography
+
+Use suitable Bangla and English typography.
+
+Prioritize:
+
+- Noto Sans Bengali or another verified high-quality Bangla typeface.
+- Noto Sans or an equivalent clean English typeface.
+- Proper Bangla rendering.
+- Good line spacing.
+- Proper character shaping.
+- Consistent heading hierarchy.
+- Readable textbook paragraphs.
+- Responsive font scaling.
+
+Do not sacrifice Bangla readability for visual styling.
+
+4.4 Visual assets
+
+Create original assets for the new application.
+
+Appropriate visual assets include:
+
+- StudyQuest application icon.
+- Original logo.
+- Book-related illustrations.
+- Subject-specific diagrams.
+- Mathematical diagrams.
+- Educational illustrations.
+- Chapter-specific visual explanations.
+- Original achievement artwork.
+- Learning-category graphics.
+- Loading illustrations.
+- Empty-state illustrations.
+
+Use official book cover artwork only when correctly sourced and authorized.
+
+Do not invent textbook covers.
+
+Do not invent chapter images and present them as original textbook material.
+
+Do not use the old character model from the reference photograph.
+
+Do not reuse that character as the logo, mascot, avatar or any other application asset.
+
+Avoid generic AI-generated human characters.
+
+An abstract book-based brand symbol is preferable to a character mascot.
+
+Create meaningful imagery for each screen without filling every page with pointless decoration.
+
+---
+
+PART 5 — AUTHENTICATION REFERENCE PRESERVATION
+
+This section has special priority.
+
+The owner has requested that the previous sign-in/sign-up screen design be preserved exactly.
+
+The supplied original authentication reference image must be treated as the primary visual source for these screens.
+
+5.1 Exact reference reproduction
+
+Before designing authentication:
+
+1. Inspect the actual supplied sign-in/sign-up reference image.
+2. Identify its complete layout.
+3. Identify its spacing.
+4. Identify its typography.
+5. Identify its visual hierarchy.
+6. Identify button dimensions.
+7. Identify input-field styles.
+8. Identify background treatment.
+9. Identify its colors.
+10. Identify all important visual details.
+
+Reproduce the reference faithfully.
+
+Do not redesign it according to the new application theme.
+
+Do not replace it with a generic authentication template.
+
+Do not invent a different layout.
+
+The exception is the old character model: do not reuse that character or character artwork. Remove it and use an appropriate non-character visual replacement only where necessary.
+
+If the actual authentication reference image is missing from the project attachments, do not pretend to have inspected it. Request the reference image specifically before claiming an exact reproduction.
+
+5.2 Authentication functionality
+
+Rebuild the complete authentication system using real Firebase Authentication.
+
+Include:
+
+- Sign-in.
+- Sign-up.
+- Email/password authentication.
+- Google authentication where properly configured.
+- Password reset.
+- Email verification.
+- Session restoration.
+- Persistent authentication.
+- Sign-out.
+- Authentication error handling.
+- Session expiration handling.
+- Account status handling.
+
+Preserve the original authentication experience visually while making its behavior more complete.
+
+The existing project has sign-in and password-reset source, but its sign-up flow was not fully implemented. Add a complete registration journey.
+
+5.3 Child and guardian safeguards
+
+StudyQuest is an educational platform for school students.
+
+Registration must not be treated as an unrestricted public signup operation.
+
+Implement an appropriate age-eligibility and guardian-consent workflow where required.
+
+Do not collect unnecessary personal information.
+
+Do not publicly display private student information.
+
+Registration must remain restricted until the appropriate policy and safety configuration is complete.
+
+---
+
+PART 6 — CRITICAL ACTIVE-BOOK LOCK SYSTEM
+
+This is one of the most important requirements.
+
+Every student must be restricted to one currently selected active textbook.
+
+The selected book determines the complete learning context of the application.
+
+This must be an actual functional restriction, not merely a decorative lock icon.
+
+6.1 Book selection
+
+During onboarding or first learning setup, the student chooses:
+
+- Academic year.
+- Class.
+- Curriculum or appropriate board.
+- Language or medium.
+- Subject.
+- One specific textbook.
+
+Only real, verified textbook entries may appear.
+
+6.2 Active-book behavior
+
+After selecting a textbook:
+
+- Assign its unique book ID to the student.
+- Save it to persistent account data.
+- Restore it after reopening the application.
+- Synchronize it across authenticated devices.
+- Display the active textbook prominently.
+- Restrict the entire learning experience to that textbook.
+
+The active textbook must control:
+
+- Lessons.
+- Chapters.
+- Topics.
+- Question banks.
+- Practice sessions.
+- Revision items.
+- Mock examinations.
+- Learning recommendations.
+- Bookmarks.
+- Textbook search.
+- AI tutor references.
+- Book progress.
+- Chapter analytics.
+- Competitive academic context.
+
+No learning screen may silently mix material from another textbook.
+
+6.3 Change-book workflow
+
+Include an explicit Change Book operation.
+
+Changing books must:
+
+1. Show the currently active book.
+2. Explain that the student is changing their learning context.
+3. Ask for confirmation.
+4. Let the student choose another verified textbook.
+5. Update the active-book ID.
+6. Preserve the previous book's progress and history.
+7. Load the new book's learning content.
+8. Prevent old and new book content from being mixed accidentally.
+
+Keep one active book at any moment.
+
+Other textbook catalogues may be opened through the deliberate Change Book flow.
+
+Do not display several independently active books.
+
+6.4 Enforcement
+
+Implement active-book enforcement in both the frontend and backend.
+
+Do not rely on hidden navigation buttons as security.
+
+Every learning-related query must check the active book context.
+
+Add automated tests proving that content from an unselected book cannot accidentally appear in the student's learning experience.
+
+---
+
+PART 7 — REAL NCTB TEXTBOOK LIBRARY
+
+Academic content must be real.
+
+This application must not contain fabricated textbooks, imaginary chapters or fictitious official materials.
+
+7.1 Official sources
+
+Use the National Curriculum and Textbook Board of Bangladesh as the primary textbook authority.
+
+Official starting points:
+
+- NCTB official website: https://nctb.gov.bd/
+- Official 2026 textbook catalogue: https://nctb.gov.bd/pages/static-pages/695b98afc4774958d7b7044c
+- Class 6 catalogue: https://nctb.gov.bd/pages/static-pages/695b987ac4774958d7b7040b
+- Class 8 catalogue: https://nctb.gov.bd/pages/static-pages/695b9858c4774958d7b703d8
+- Classes 9–10 catalogue: https://nctb.gov.bd/pages/static-pages/695b99afc4774958d7b70612
+
+The importer must check the official source at the time of actual content ingestion.
+
+Never assume that the most recent academic year is automatically the most recent downloadable PDF.
+
+7.2 Academic-year correctness
+
+At the planning date of 17 November 2026, the publicly indexed NCTB catalogue located for the secondary textbooks is the 2026 catalogue.
+
+NCTB's 2027 textbook printing and updates are underway.
+
+Therefore:
+
+- Look for officially published 2027 digital editions when ingestion begins.
+- If the official 2027 edition is genuinely available, verify and import it.
+- If it is not available, use the most recent actually published and verified edition.
+- Clearly show its actual academic year.
+- Never relabel an older book as a newer edition.
+- Never fabricate missing editions.
+- Never treat printing tenders as proof that the finished textbook PDF has been released.
+
+Support automatic textbook-version updates through the administrative content system.
+
+7.3 Complete textbook ingestion
+
+Implement a complete book-ingestion workflow.
+
+For each real textbook:
+
+- Obtain its official source.
+- Record its original title.
+- Record class.
+- Record subject.
+- Record medium.
+- Record academic year.
+- Record edition or version.
+- Record official source.
+- Record publication details where available.
+- Record rights and permission status.
+- Retrieve the original complete PDF where authorized.
+- Extract actual page content where permitted.
+- Preserve the original page sequence.
+- Preserve meaningful formatting.
+- Preserve diagrams and tables.
+- Preserve Bangla text correctly.
+- Preserve mathematical notation.
+- Preserve page numbers.
+- Record its content checksum.
+- Validate total page count.
+- Check that pages are not missing.
+- Verify table-of-contents consistency.
+- Allow editorial review before publication.
+
+Do not create chapter structures by guessing.
+
+Use the real textbook's own chapter order.
+
+7.4 Copyright and distribution
+
+An officially downloadable textbook is not automatically a blanket permission to rehost, redistribute or transform its complete contents commercially.
+
+Verify the actual rights and usage terms before storing and republishing textbook content.
+
+When redistribution permission is unclear:
+
+- Keep the official source record.
+- Provide a properly attributed link to the official material.
+- Use approved viewing or embedding methods where available.
+- Do not unlawfully mirror or redistribute the entire document.
+
+Rights status must be stored in the content database.
+
+A textbook cannot be published into the internal StudyQuest catalogue without an acceptable content-source and permission status.
+
+7.5 Textbook reader
+
+Build a complete reading experience.
+
+Include:
+
+- Original page order.
+- Previous-page navigation.
+- Next-page navigation.
+- Page number.
+- Chapter navigation.
+- Table of contents.
+- Search within active textbook.
+- Adjustable reading size.
+- Reading progress.
+- Bookmark page.
+- Saved notes where appropriate.
+- Offline download for permitted files.
+- Download status.
+- Offline availability.
+- Reading resume.
+- Landscape and portrait support.
+- Accessible reading controls.
+
+Preserve the actual textbook's content.
+
+Do not replace a textbook page with an AI-written imitation.
+
+---
+
+PART 8 — REAL QUESTION BANK AND EXAMINATION CONTENT
+
+The question bank must contain verified, genuine and traceable questions.
+
+Never create fake question sets merely to populate the interface.
+
+8.1 Question sources
+
+Support these clearly separated content types:
+
+Official textbook exercises
+
+- Questions extracted from authorized NCTB textbook exercises.
+- Exact chapter reference.
+- Exact page reference where available.
+- Verified textbook version.
+
+Official examination questions
+
+- Authentic examination questions from legitimate official sources.
+- Examination year.
+- Board.
+- Class.
+- Subject.
+- Source.
+- Original question references.
+- Rights and usage information.
+
+StudyQuest original questions
+
+- Original practice questions created specifically for StudyQuest.
+- Reviewed by qualified content reviewers.
+- Clearly labelled as StudyQuest-created material.
+- Never falsely labelled as official NCTB questions.
+
+AI-assisted practice questions
+
+- Optional supplementary questions.
+- Generated using approved learning objectives and verified educational material.
+- Reviewed before inclusion in the official published question bank.
+- Never presented as authentic past examination questions.
+
+8.2 Question types
+
+Support all relevant question types:
+
+- Multiple choice.
+- Single correct answer.
+- Multiple correct answers where appropriate.
+- True or false.
+- Fill in the blanks.
+- Matching.
+- Short written answers.
+- Structured questions.
+- Numerical problems.
+- Descriptive questions.
+- Chapter-based exercises.
+
+Only enable the question types supported by the actual source material.
+
+8.3 Question information
+
+Each question should support:
+
+- Question ID.
+- Book ID.
+- Curriculum version.
+- Class.
+- Subject.
+- Chapter.
+- Topic.
+- Question type.
+- Options where relevant.
+- Marks.
+- Difficulty.
+- Time recommendation.
+- Explanation.
+- Source.
+- Source page.
+- Rights status.
+- Editorial review status.
+- Publication status.
+- Question revision information.
+
+Answer keys must remain protected.
+
+Do not return official answer keys to unauthenticated browser code.
+
+8.4 Question reporting
+
+Students must be able to report:
+
+- Incorrect answer key.
+- Incorrect explanation.
+- Missing information.
+- Typographical mistake.
+- Wrong chapter mapping.
+- Duplicate question.
+- Other content issue.
+
+The report must reach the administrative review system.
+
+---
+
+PART 9 — COMPLETE APPLICATION SCREEN INVENTORY
+
+Do not build only a homepage.
+
+Design and implement every major page.
+
+The following screen inventory is the minimum expected structure.
+
+Additional screens must be added whenever a real workflow requires them.
+
+9.1 Entry and onboarding
+
+1. Application splash.
+2. Initial loading.
+3. Welcome screen.
+4. Sign-in screen using the supplied reference.
+5. Sign-up screen using the supplied reference.
+6. Forgot-password screen.
+7. Email verification.
+8. Registration eligibility.
+9. Guardian-consent flow where required.
+10. Profile setup.
+11. Language selection.
+12. Class selection.
+13. Curriculum selection.
+14. Active textbook selection.
+15. Onboarding completion.
+
+The original authentication appearance is preserved as described earlier.
+
+All other onboarding pages receive the new StudyQuest visual identity.
+
+9.2 Today section
+
+Create a complete Today dashboard.
+
+It should display real user information and offer immediate access to learning activities.
+
+Include:
+
+- Personalized greeting.
+- Active-book context.
+- Continue learning.
+- Continue reading.
+- Next study task.
+- Today's learning plan.
+- Due revision items.
+- Recommended chapter activity.
+- Recent practice activity.
+- Verified progress summary.
+- Weekly learning overview.
+- Schedule access.
+- Notification access.
+- Quick access to the primary learning functions.
+
+Never display invented progress.
+
+Never display false streaks.
+
+Never display fictional completed tasks.
+
+Show empty states when the student has not started learning.
+
+9.3 Learn section
+
+Create a complete learning environment.
+
+Required screens:
+
+1. Learn landing page.
+2. Active textbook overview.
+3. Chapter list.
+4. Chapter detail.
+5. Topic list.
+6. Lesson detail.
+7. Textbook reader.
+8. Bookmarks.
+9. Saved notes.
+10. Reading history.
+11. Textbook search.
+12. Chapter progress.
+13. Revision access.
+14. Practice access.
+
+Show the active textbook prominently.
+
+Every page must respect the active-book lock.
+
+9.4 Practice section
+
+Create a fully functional practice system.
+
+Screens:
+
+1. Practice dashboard.
+2. Chapter selection.
+3. Topic selection.
+4. Practice configuration.
+5. Question session.
+6. Question navigation.
+7. Answer selection.
+8. Mark for review.
+9. Session pause where permitted.
+10. Session completion.
+11. Result summary.
+12. Detailed answer review.
+13. Explanation view.
+14. Incorrect-answer collection.
+15. Practice history.
+
+The student's answers must be saved reliably.
+
+Support autosave where practical.
+
+Do not lose answers when the student accidentally refreshes or loses connectivity.
+
+9.5 Mock examination section
+
+Implement the complete exam experience.
+
+Screens:
+
+1. Exam dashboard.
+2. Available mock exams.
+3. Exam details.
+4. Examination instructions.
+5. Start confirmation.
+6. Timed examination.
+7. Question navigation panel.
+8. Review marked questions.
+9. Submission confirmation.
+10. Submitted result.
+11. Answer analysis.
+12. Past examinations.
+13. Examination performance history.
+
+All exams must be associated with real approved content.
+
+Exam results must be calculated using protected grading logic.
+
+Protect examination answer keys from client exposure.
+
+9.6 Revision system
+
+Create a dedicated revision experience.
+
+Include:
+
+- Spaced-repetition scheduling.
+- Flashcards.
+- Previous incorrect answers.
+- Saved questions.
+- Chapter revision.
+- Topic revision.
+- Weak-topic identification.
+- Mastery progress.
+- Retry sessions.
+- Revision history.
+
+Use actual student performance to determine suggested revisions.
+
+Do not invent mastery statistics.
+
+9.7 Compete section
+
+Build a complete competitive learning environment.
+
+Screens:
+
+1. Compete homepage.
+2. Competition overview.
+3. Quick-match screen.
+4. Matchmaking status.
+5. Match found.
+6. Match instructions.
+7. Live match.
+8. Match result.
+9. Detailed performance.
+10. Ranking overview.
+11. Global leaderboard.
+12. Class leaderboard.
+13. Subject leaderboard.
+14. Active season.
+15. Previous seasons.
+16. Tournament list.
+17. Tournament details.
+18. Tournament registration.
+19. Tournament bracket.
+20. Tournament results.
+21. Match history.
+
+Competition should measure learning performance fairly.
+
+Do not allow users to manipulate scores.
+
+Every competitive question must be sourced from approved content.
+
+9.8 Friends section
+
+Screens:
+
+1. Friends overview.
+2. Search student.
+3. Search result.
+4. Friend profile preview.
+5. Incoming friend requests.
+6. Sent friend requests.
+7. Friend list.
+8. Private conversation.
+9. Message history.
+10. Group list.
+11. Create group.
+12. Group member selection.
+13. Group invitation.
+14. Group details.
+15. Group conversation.
+16. Block management.
+17. Report content.
+18. Safety information.
+
+Retain StudyQuest ID and username discovery.
+
+Support exact lookup.
+
+Do not expose students to unrestricted public communication.
+
+Only accepted friends can initiate ordinary private conversations.
+
+Study groups must use appropriate membership and invitation controls.
+
+9.9 Profile section
+
+Screens:
+
+1. Profile overview.
+2. Edit profile.
+3. StudyQuest ID.
+4. Learning statistics.
+5. Subject performance.
+6. Achievement collection.
+7. XP overview.
+8. Level progression.
+9. Coin balance.
+10. Inventory.
+11. Cosmetic customization.
+12. Bookmark management.
+13. Revision overview.
+14. Study history.
+15. Settings entry.
+16. Account management.
+17. Privacy controls.
+18. Sign-out.
+
+Only show real metrics.
+
+Do not expose private student details publicly.
+
+9.10 Additional supporting pages
+
+Add:
+
+- Notification center.
+- Study planner.
+- Calendar.
+- Focus timer.
+- Download manager.
+- Offline content manager.
+- Search results.
+- Help center.
+- Support tickets.
+- FAQ.
+- Privacy information.
+- Terms and conditions.
+- Data export.
+- Account deletion.
+- About StudyQuest.
+- Network error.
+- Not-found page.
+- Maintenance screen.
+
+All pages must have proper navigation and responsive behavior.
+
+---
+
+PART 10 — UI COMPONENT AND INTERACTION SYSTEM
+
+Create a reusable design system rather than independent inconsistent pages.
+
+Components should include:
+
+- Application shell.
+- Responsive header.
+- Mobile bottom navigation.
+- Desktop navigation.
+- Screen headings.
+- Book context indicator.
+- Book cover component.
+- Chapter component.
+- Lesson card.
+- Progress component.
+- Question card.
+- Answer option component.
+- Timer.
+- Result summary.
+- Achievement component.
+- Ranking row.
+- Student profile preview.
+- Friend request component.
+- Message bubble.
+- Notification component.
+- Search control.
+- Filter chips.
+- Modal.
+- Confirmation dialog.
+- Loading skeleton.
+- Empty-state illustration.
+- Error message.
+- Offline indicator.
+- Download progress.
+- Toast notification.
+- Form fields.
+- Accessible buttons.
+
+For every control, implement:
+
+- Default state.
+- Hover state where relevant.
+- Focus state.
+- Pressed state.
+- Disabled state.
+- Loading state.
+- Error state.
+- Successful action state.
+
+No button may be decorative if it looks interactive.
+
+Every button must perform its actual intended operation.
+
+Make all interactions understandable.
+
+---
+
+PART 11 — LEARNING PROGRESSION AND GAMIFICATION
+
+Develop an engaging but educationally responsible progression system.
+
+11.1 XP
+
+Award XP only for eligible, verified learning activity.
+
+Use server-authoritative calculations.
+
+Prevent duplicate rewards.
+
+Implement reward caps and abuse protection.
+
+Offline activity must not automatically produce competitive XP.
+
+It may produce provisional local progress that is verified after synchronization.
+
+11.2 Coins
+
+Implement:
+
+- Coin balance.
+- Coin transactions.
+- Earned coins.
+- Spending records.
+- Reward history.
+- Validated coin claims.
+
+Every coin change must have a traceable reason.
+
+11.3 Levels
+
+Implement a progression-level system with clear requirements.
+
+Display:
+
+- Current level.
+- Current XP.
+- XP needed for next level.
+- Achievements.
+- Level history.
+
+Use real progression calculations.
+
+11.4 Quests
+
+Create:
+
+- Daily learning quests.
+- Weekly learning objectives.
+- Chapter-completion quests.
+- Revision quests.
+- Practice challenges.
+
+Quest completion must be verified.
+
+Do not create manipulative tasks that encourage unhealthy study behavior.
+
+Allow sensible breaks and flexible study goals.
+
+11.5 Achievements
+
+Achievement categories may include:
+
+- Reading milestones.
+- Consistent practice.
+- Revision completion.
+- Subject improvement.
+- Examination milestones.
+- Learning exploration.
+
+Use transparent eligibility rules.
+
+11.6 Inventory
+
+Include optional cosmetic customization.
+
+Possible items:
+
+- Profile frames.
+- Decorative badges.
+- Color themes.
+- Learning-themed profile decorations.
+
+Avoid pay-to-win features.
+
+Cosmetics must not affect competitive scoring.
+
+---
+
+PART 12 — MULTIPLAYER, RANKINGS AND TOURNAMENTS
+
+Complete the competition foundation rather than leaving tables without functionality.
+
+12.1 Matchmaking
+
+Create a real matchmaking flow.
+
+The backend must:
+
+- Receive a match request.
+- Validate account eligibility.
+- Validate the active-book context.
+- Check matching requirements.
+- Create a match.
+- Assign participants.
+- Establish the question set.
+- Track match state.
+- Handle player disconnection.
+- Complete the match.
+- Calculate results.
+
+Avoid duplicate match creation.
+
+12.2 Fair scoring
+
+All competitive scoring must be server-authoritative.
+
+The client must never decide official results.
+
+Protect answers until the appropriate grading stage.
+
+Validate timing and submission order.
+
+Record relevant audit information.
+
+12.3 Rankings
+
+Implement:
+
+- Rank rating.
+- Leaderboard entries.
+- Ranking history.
+- Seasonal progression.
+- Match performance.
+- Ranking updates.
+
+Rank names, thresholds and reward amounts must be configurable.
+
+Use a balanced educational reward system.
+
+12.4 Seasons
+
+Create:
+
+- Active season.
+- Season start and end.
+- Season rules.
+- Season ranking.
+- Season completion.
+- Season history.
+- Verified seasonal rewards.
+
+Do not invent season dates.
+
+12.5 Tournaments
+
+Implement:
+
+- Tournament creation.
+- Publication.
+- Registration.
+- Eligibility checks.
+- Tournament participants.
+- Round creation.
+- Match scheduling.
+- Round results.
+- Bracket progression.
+- Final results.
+- Administrative control.
+
+A tournament must not appear as active unless its real configuration exists.
+
+---
+
+PART 13 — SOCIAL SAFETY AND COMMUNICATION
+
+StudyQuest must be designed for school students.
+
+Safety is a core product requirement.
+
+Implement:
+
+- Private friend discovery.
+- Controlled communication.
+- Accepted-friend messaging.
+- Invite-only groups.
+- Block functionality.
+- Report functionality.
+- Moderation cases.
+- Staff review.
+- Appeals where appropriate.
+- Message content restrictions.
+- Rate limiting.
+- Spam prevention.
+- Account security.
+- Notification privacy.
+- Data protection.
+
+Never introduce an unrestricted public chat system.
+
+Do not publicly show a student's private email, date of birth, contact information or exact location.
+
+Do not expose private conversations to ordinary staff.
+
+Moderators may access only the content necessary for appropriately reported cases, with audited permissions.
+
+Provide age-appropriate safeguards and guardian workflows where required.
+
+No public location tracking.
+
+No manipulative social-pressure features.
+
+---
+
+PART 14 — OPTIONAL GEMINI AI LEARNING ASSISTANT
+
+Add an AI study assistant as a carefully controlled supplementary learning feature.
+
+It must help students understand the currently selected textbook.
+
+Possible capabilities:
+
+- Explain a topic.
+- Explain a difficult paragraph.
+- Simplify a mathematical concept.
+- Explain a formula.
+- Give step-by-step learning guidance.
+- Explain an exercise.
+- Create supplementary revision notes.
+- Explain why an answer is correct.
+- Help the student understand an incorrect response.
+
+14.1 Grounded textbook context
+
+The AI must use approved StudyQuest academic material.
+
+It must know the active book.
+
+It must use relevant chapter and page references when available.
+
+It must never invent an official page number.
+
+It must never fabricate textbook content.
+
+If the required information is unavailable, clearly say so.
+
+AI-generated explanations must be distinguishable from official textbook material.
+
+14.2 Security
+
+Use server-side Gemini requests.
+
+Keep the API key outside browser-visible code.
+
+Implement:
+
+- Request limits.
+- Usage tracking.
+- Cost controls.
+- Error handling.
+- Context restrictions.
+- Safe outputs.
+- Protection against malicious instructions contained in imported content.
+
+The AI tutor must not expose protected examination answer keys.
+
+Do not make AI access mandatory for core textbook reading or ordinary practice.
+
+StudyQuest must remain useful without AI connectivity.
+
+---
+
+PART 15 — COMPLETE STUDY PLANNER
+
+Introduce a practical study-planning system.
+
+Features:
+
+- Daily learning plan.
+- Weekly learning plan.
+- Calendar.
+- Task scheduling.
+- Study reminders.
+- Revision reminders.
+- Goal setting.
+- Goal completion.
+- Time-spent tracking.
+- Session history.
+- Progress review.
+
+Allow students to modify their plans.
+
+Use realistic study goals.
+
+Do not generate fake scheduled tasks.
+
+Do not punish a student for missing a study session.
+
+Include notification preferences and quiet hours.
+
+---
+
+PART 16 — COMPLETE OFFLINE EXPERIENCE
+
+Offline support is essential.
+
+Use suitable local browser storage, IndexedDB and service-worker caching.
+
+Support offline access to authorized downloaded content.
+
+Offline features should include:
+
+- Downloaded textbook pages.
+- Saved lessons.
+- Downloaded approved question packs.
+- Bookmarks.
+- Reading progress.
+- Local study notes.
+- Practice sessions.
+- Answer persistence.
+- Revision access.
+- Local history.
+
+When the network returns:
+
+- Synchronize eligible records.
+- Retry failed operations safely.
+- Prevent duplicates.
+- Resolve conflicts.
+- Preserve completed sessions.
+- Display synchronization status.
+
+Use unique operation IDs and idempotent synchronization.
+
+Never give unverified offline competitive rewards.
+
+Clearly identify provisional and server-verified results.
+
+---
+
+PART 17 — COMPLETE FIREBASE DATA ARCHITECTURE
+
+Implement a secure, scalable Firestore design.
+
+The old 77-table structure must be mapped into a coherent document-oriented architecture.
+
+Suggested high-level areas:
+
+User data
+
+- Profiles.
+- Private preferences.
+- Learning profiles.
+- Privacy settings.
+- Guardian records where applicable.
+
+Academic catalogue
+
+- Academic years.
+- Curriculum versions.
+- Classes.
+- Academic groups.
+- Subjects.
+- Books.
+- Chapters.
+- Topics.
+- Lessons.
+- Lesson assets.
+
+Question system
+
+- Questions.
+- Options.
+- Protected answer keys.
+- Explanations.
+- Tags.
+- Sources.
+- Revisions.
+- Reports.
+
+Learning
+
+- Practice sessions.
+- Practice answers.
+- Exam templates.
+- Exam attempts.
+- Exam results.
+- Bookmarks.
+- Revision items.
+
+Progression
+
+- XP transactions.
+- Coin transactions.
+- Levels.
+- Subject progress.
+- Quests.
+- Achievements.
+- Inventory.
+
+Social
+
+- Friend requests.
+- Friendships.
+- Blocks.
+- Conversations.
+- Conversation members.
+- Messages.
+- Receipts.
+- Reactions.
+- Reports.
+- Groups.
+- Invitations.
+
+Competition
+
+- Match requests.
+- Matches.
+- Players.
+- Questions.
+- Answers.
+- Results.
+- Seasons.
+- Ratings.
+- Leaderboards.
+- Tournaments.
+- Rounds.
+
+Administration
+
+- Users.
+- Roles.
+- Permissions.
+- Moderation cases.
+- Moderation actions.
+- Support tickets.
+- Notifications.
+- Audit logs.
+- System settings.
+
+Create a documented data dictionary.
+
+Implement security rules using a default-deny approach.
+
+Validate document ownership.
+
+Validate conversation membership.
+
+Validate group membership.
+
+Validate student-to-book relationships.
+
+Validate admin permissions server-side.
+
+Use server transactions for operations that affect rewards, official grading, rankings and match outcomes.
+
+Do not allow direct client modification of authoritative balances or scores.
+
+---
+
+PART 18 — COMPLETE BACKEND API DESIGN
+
+Design authenticated server routes for all core functions.
+
+Suggested endpoint groups:
+
+Account
+
+- Profile creation.
+- Profile update.
+- Account preferences.
+- Privacy preferences.
+- Active-book selection.
+- Account deletion request.
+
+Books and learning
+
+- Book catalogue.
+- Active-book retrieval.
+- Chapter retrieval.
+- Lesson retrieval.
+- Reader content.
+- Bookmark operations.
+- Search.
+
+Practice
+
+- Session creation.
+- Answer submission.
+- Session completion.
+- Protected grading.
+- Result retrieval.
+- Revision retrieval.
+
+Examinations
+
+- Available exams.
+- Exam initiation.
+- Exam answer submission.
+- Exam submission.
+- Server grading.
+- Results.
+- Review.
+
+Social
+
+- Student lookup.
+- Friend requests.
+- Friend acceptance.
+- Friend decline.
+- Friend cancellation.
+- Private conversation creation.
+- Group creation.
+- Group invitation handling.
+- Blocking.
+- Reporting.
+
+Competition
+
+- Match request.
+- Matchmaking.
+- Match state.
+- Answer submission.
+- Final grading.
+- Ranking calculation.
+- Leaderboard retrieval.
+- Tournament operations.
+
+Rewards
+
+- XP verification.
+- Coin transactions.
+- Quest completion.
+- Achievement unlocking.
+- Inventory updates.
+
+AI
+
+- Textbook-grounded explanation.
+- Study assistance.
+- Revision assistance.
+
+Administration
+
+- Book import.
+- Content publication.
+- Question review.
+- Moderation.
+- Support.
+- System configuration.
+- Audit retrieval.
+
+Implement validation, authorization, logging, safe errors, rate limits and idempotency.
+
+---
+
+PART 19 — ADMIN STUDIO
+
+Create a complete and separate administrative experience.
+
+This is a new implementation requirement.
+
+It does not currently exist as a complete working interface in the previous project.
+
+Create an owner-only administrative area.
+
+Suggested route:
+
+"/admin"
+
+Do not expose it as a normal student navigation item.
+
+19.1 Admin dashboard
+
+Show only real database-derived information.
+
+Include:
+
+- Registered users.
+- Active users.
+- Published books.
+- Published lessons.
+- Approved questions.
+- Reported content.
+- Open support tickets.
+- Active competitions.
+- Current tournaments.
+- System status.
+
+Never create fabricated statistics.
+
+If no data exists, show a genuine empty state.
+
+19.2 User administration
+
+Include:
+
+- User search.
+- Profile management.
+- Account status.
+- Account eligibility.
+- Moderation history.
+- Permission management.
+- Account restrictions.
+- Support history where authorized.
+
+Do not expose private information unnecessarily.
+
+19.3 Textbook management
+
+Include:
+
+- Official source catalogue.
+- Academic-year management.
+- Book import.
+- PDF source information.
+- Permission records.
+- Version control.
+- Book metadata.
+- Chapter organization.
+- Content review.
+- Publication controls.
+- Version replacement.
+- Archived editions.
+
+A book must pass source and permission checks before publication.
+
+19.4 Question administration
+
+Include:
+
+- Question bank.
+- Question creation.
+- Source selection.
+- Chapter assignment.
+- Correct answer management.
+- Explanation management.
+- Difficulty management.
+- Marks.
+- Duplicate detection.
+- Question reports.
+- Review workflow.
+- Approval.
+- Rejection.
+- Publication.
+
+Only authorized reviewers may manage protected answer keys.
+
+19.5 Moderation
+
+Include:
+
+- Report queue.
+- Case details.
+- Relevant reported message.
+- Report reason.
+- Moderation decision.
+- Action history.
+- Appeals.
+- User restrictions.
+- Resolution status.
+
+Every administrative action must be recorded.
+
+19.6 Competition administration
+
+Include:
+
+- Match settings.
+- Season configuration.
+- Ranking rules.
+- Tournament management.
+- Eligibility.
+- Scoring policies.
+- Competition reports.
+
+19.7 Other administration
+
+Include:
+
+- Role management.
+- Permissions.
+- Support tickets.
+- Notification controls.
+- Quest configuration.
+- Achievement configuration.
+- System settings.
+- Audit logs.
+- Maintenance status.
+
+19.8 Staff permissions
+
+Create carefully separated roles:
+
+- Owner.
+- Administrator.
+- Content editor.
+- Academic reviewer.
+- Moderator.
+- Support staff.
+- Competition manager.
+
+Staff must receive only the permissions required for their responsibilities.
+
+Support staff must not automatically receive private-conversation access.
+
+Content reviewers must not automatically become system administrators.
+
+No hidden public owner-registration mechanism.
+
+---
+
+PART 20 — COMPLETE NOTIFICATION SYSTEM
+
+Create a notification architecture supporting:
+
+- Friend requests.
+- Accepted friend requests.
+- Group invitations.
+- Private messages.
+- Revision reminders.
+- Study reminders.
+- Exam notifications.
+- Competition results.
+- Tournament information.
+- Achievement notifications.
+- System announcements.
+
+Provide:
+
+- Notification center.
+- Read/unread state.
+- Mark as read.
+- Clear notifications.
+- Notification preferences.
+- Quiet hours.
+- Push delivery where fully configured.
+- Delivery failure handling.
+
+Do not display notifications for events that did not happen.
+
+If push notifications have not been configured, clearly distinguish working in-app notifications from unavailable push delivery.
+
+---
+
+PART 21 — ACCESSIBILITY, RESPONSIVENESS AND PERFORMANCE
+
+The application must be excellent on a mobile screen first.
+
+Responsive behavior
+
+Mobile:
+
+- Comfortable single-column content.
+- Bottom navigation.
+- Properly sized touch targets.
+- Keyboard-aware forms.
+- Reader optimized for portrait.
+- No horizontal overflow.
+
+Tablet:
+
+- More balanced reading layout.
+- Appropriate panel sizing.
+- Efficient navigation.
+
+Desktop:
+
+- Responsive side navigation.
+- Wider learning workspace.
+- Organized admin panels.
+- Efficient textbook reading.
+- Responsive tables.
+
+Accessibility
+
+Support:
+
+- Screen readers.
+- Keyboard navigation.
+- High contrast.
+- Focus visibility.
+- Large text.
+- Reduced motion.
+- Clear form errors.
+- Accessible icons.
+- Bangla accessibility labels.
+- Consistent navigation.
+
+Performance
+
+Prioritize:
+
+- Fast startup.
+- Small initial page payload.
+- Lazy loading.
+- Image optimization.
+- Book-page caching.
+- Efficient Firestore queries.
+- Pagination.
+- Local caching.
+- Avoiding unnecessary realtime subscriptions.
+
+No animation may block an important learning action.
+
+---
+
+PART 22 — SECURITY AND STUDENT PRIVACY
+
+Implement security before enabling real student accounts.
+
+Requirements:
+
+- Firebase authentication.
+- Protected server endpoints.
+- Default-deny Firestore rules.
+- Ownership verification.
+- Role verification.
+- Server-side answer grading.
+- Protected answer keys.
+- Secure admin permissions.
+- Rate limiting.
+- Abuse prevention.
+- Private profile data.
+- Secure session handling.
+- Safe account recovery.
+- Data export.
+- Account deletion.
+- Audit logs.
+- Backup strategy.
+
+Apply relevant Bangladesh privacy, child-safety, educational and app-store requirements.
+
+Obtain qualified review before public student registration.
+
+Implement appropriate guardian-consent controls where necessary.
+
+Do not store unnecessary sensitive information.
+
+---
+
+PART 23 — COMPLETE QUALITY ASSURANCE PLAN
+
+Do not call a screen complete merely because it renders.
+
+Every feature must undergo real functionality checks.
+
+23.1 Functional testing
+
+Verify:
+
+- Every route.
+- Every navigation item.
+- Every button.
+- Every form.
+- Every search.
+- Every filter.
+- Every modal.
+- Every confirmation dialog.
+- Every account action.
+- Every book-selection action.
+- Every practice action.
+- Every exam action.
+- Every competitive action.
+- Every social interaction.
+- Every administrative operation.
+
+23.2 Active-book tests
+
+Verify that:
+
+- Exactly one active book exists per student.
+- The selected book persists.
+- All learning queries use that book.
+- Questions belong to that book.
+- Lessons belong to that book.
+- Mock exams use that book.
+- AI tutor references that book.
+- Book changes require confirmation.
+- Previous progress remains available.
+- No other book's content leaks into the active learning environment.
+
+23.3 Academic-content tests
+
+Verify:
+
+- Original source.
+- Correct academic year.
+- Correct class.
+- Correct subject.
+- Correct edition.
+- Complete pages.
+- Correct chapter order.
+- Correct Bangla rendering.
+- Correct diagrams.
+- Question accuracy.
+- Answer-key accuracy.
+- Explanation accuracy.
+- Rights status.
+
+No unverified material may receive official publication status.
+
+23.4 Security tests
+
+Test using separate test accounts.
+
+Verify:
+
+- User A cannot read User B's private messages.
+- User A cannot modify User B's progress.
+- Users cannot award themselves XP.
+- Users cannot manipulate coin balances.
+- Students cannot change ranks directly.
+- Students cannot read active examination answer keys.
+- Non-admin accounts cannot access Admin Studio.
+- Unauthorized staff cannot perform restricted administration.
+- Blocked users cannot bypass communication restrictions.
+
+23.5 Offline tests
+
+Verify:
+
+- Downloaded pages.
+- Offline reading.
+- Offline practice.
+- Answer persistence.
+- Local storage.
+- Connection recovery.
+- Synchronization.
+- Duplicate prevention.
+- Sync errors.
+- Conflict resolution.
+
+23.6 Visual tests
+
+Inspect every major page at realistic mobile dimensions.
+
+Verify:
+
+- No overlapping components.
+- No truncated buttons.
+- No hidden navigation.
+- No text overflow.
+- No broken images.
+- No unreadable Bangla paragraphs.
+- No inconsistent spacing.
+- No incorrect theme colors.
+- No inaccessible contrast.
+- No broken empty states.
+
+Create and inspect individual page previews rather than relying on one promotional mockup.
+
+23.7 Performance tests
+
+Test:
+
+- First load.
+- Navigation.
+- Reader scrolling.
+- Search.
+- Large textbooks.
+- Offline reopening.
+- Realtime chat.
+- Question-session navigation.
+- Admin lists.
+- Slow network conditions.
+
+23.8 Release checks
+
+Before declaring a release candidate:
+
+- Review all security rules.
+- Verify backend endpoints.
+- Test multiple authenticated users.
+- Complete content validation.
+- Complete privacy review.
+- Complete child-safety review.
+- Verify desktop behavior.
+- Verify Android mobile-browser behavior.
+- Verify PWA installation.
+- Verify PWA update handling.
+- Verify production configuration.
+- Check logs.
+- Check error handling.
+- Check backups.
+- Review deployment configuration.
+
+Separate the results into:
+
+- Passed.
+- Failed.
+- Blocked.
+- Not tested.
+
+Never invent successful test results.
+
+---
+
+PART 24 — IMPLEMENTATION ROADMAP
+
+Build in dependency-aware phases.
+
+Do not implement random screens without establishing their dependencies.
+
+Phase 1 — Project and requirement audit
+
+Tasks:
+
+- Inspect all available StudyQuest source materials.
+- Build a complete requirements ledger.
+- Inventory the 77 old entities.
+- Identify existing features.
+- Identify incomplete features.
+- Record design constraints.
+- Confirm active-book behavior.
+- Create the data migration map.
+- Prepare architecture.
+
+Deliverables:
+
+- Requirements ledger.
+- Feature parity map.
+- Architecture document.
+- Screen inventory.
+- Dependency register.
+- Release checklist.
+
+Completion criterion:
+
+Every existing meaningful domain feature has a documented destination.
+
+Phase 2 — Design system and application shell
+
+Tasks:
+
+- Create StudyQuest logo.
+- Establish new color system.
+- Establish typography.
+- Implement responsive layout.
+- Create reusable components.
+- Implement navigation.
+- Implement light and dark themes.
+- Implement language infrastructure.
+- Implement loading and error states.
+
+Deliverable:
+
+Complete new application shell.
+
+Completion criterion:
+
+The five primary sections have a unified and professionally implemented interface.
+
+Phase 3 — Authentication and onboarding
+
+Tasks:
+
+- Inspect supplied authentication reference.
+- Reproduce sign-in/sign-up visuals.
+- Integrate Firebase Authentication.
+- Implement registration.
+- Implement email verification.
+- Implement password reset.
+- Implement account session restoration.
+- Implement guardian workflow where required.
+- Implement class and curriculum selection.
+- Implement one-active-book onboarding.
+
+Deliverable:
+
+Complete authentication and onboarding.
+
+Completion criterion:
+
+Real accounts work and students can enter the application with a valid learning profile and one selected book.
+
+Phase 4 — Academic-content infrastructure
+
+Tasks:
+
+- Implement official NCTB catalogue retrieval.
+- Implement source metadata.
+- Implement academic-year management.
+- Implement textbook import.
+- Implement PDF processing.
+- Implement chapter and page validation.
+- Implement content rights checks.
+- Implement reviewer approval.
+- Remove fake sample content from production.
+
+Deliverable:
+
+Real approved academic content infrastructure.
+
+Completion criterion:
+
+At least one complete real textbook with verified provenance and appropriate publication rights is available.
+
+Do not fabricate this completion status if content permissions are still pending.
+
+Phase 5 — Learning application
+
+Tasks:
+
+- Today dashboard.
+- Learn.
+- Active textbook.
+- Chapter list.
+- Lessons.
+- Reader.
+- Search.
+- Bookmarks.
+- Notes.
+- Offline downloads.
+- Progress.
+
+Deliverable:
+
+Complete textbook learning experience.
+
+Completion criterion:
+
+The complete reading and learning workflow is functional and respects the active-book lock.
+
+Phase 6 — Practice and examination
+
+Tasks:
+
+- Question bank.
+- Question interface.
+- Practice engine.
+- Question navigation.
+- Answer persistence.
+- Server grading.
+- Result analysis.
+- Mock exams.
+- Exam history.
+- Revision engine.
+
+Deliverable:
+
+Complete examination and revision system.
+
+Completion criterion:
+
+Real verified questions can be attempted, graded and reviewed correctly.
+
+Phase 7 — Rewards and gamification
+
+Tasks:
+
+- XP.
+- Coins.
+- Levels.
+- Quests.
+- Achievements.
+- Inventory.
+- Subject progression.
+- Verified reward transactions.
+
+Deliverable:
+
+Working progression system.
+
+Completion criterion:
+
+Rewards are calculated securely and displayed accurately.
+
+Phase 8 — Competition
+
+Tasks:
+
+- Matchmaking.
+- Match creation.
+- Questions.
+- Answer submissions.
+- Scoring.
+- Match results.
+- Ranking.
+- Leaderboards.
+- Seasons.
+- Tournaments.
+
+Deliverable:
+
+Complete competition system.
+
+Completion criterion:
+
+Real users can complete properly verified competitive sessions.
+
+Phase 9 — Friends and messaging
+
+Tasks:
+
+- Student lookup.
+- Friend requests.
+- Friends list.
+- Blocking.
+- Private conversations.
+- Realtime messages.
+- Group creation.
+- Invitations.
+- Reporting.
+- Moderation integration.
+
+Deliverable:
+
+Complete safe social system.
+
+Completion criterion:
+
+Communication works with enforced privacy and authorization.
+
+Phase 10 — AI and notifications
+
+Tasks:
+
+- Gemini tutor integration.
+- Book-grounded explanations.
+- Notifications.
+- Study reminders.
+- Usage controls.
+- Error handling.
+
+Deliverable:
+
+Integrated supplementary learning assistance.
+
+Completion criterion:
+
+AI responses are secured, appropriately scoped and honestly labelled.
+
+Phase 11 — Admin Studio
+
+Tasks:
+
+- Admin authentication.
+- Role permissions.
+- Book management.
+- Question management.
+- Content review.
+- User management.
+- Moderation.
+- Support.
+- Competition configuration.
+- Audit logs.
+
+Deliverable:
+
+Fully functional administrative area.
+
+Completion criterion:
+
+Authorized staff can manage real operational workflows.
+
+Phase 12 — Final production QA
+
+Tasks:
+
+- Functional testing.
+- Security testing.
+- Responsive testing.
+- Content validation.
+- Accessibility testing.
+- Offline testing.
+- Performance testing.
+- Release configuration.
+
+Deliverable:
+
+Verified production release candidate.
+
+Completion criterion:
+
+All mandatory acceptance criteria are passed or explicitly documented as blocked.
+
+Phase 13 — Publishing preparation
+
+Prepare:
+
+- Application name.
+- Application icon.
+- PWA manifest.
+- App description.
+- Screenshots.
+- Privacy policy.
+- Terms.
+- Support information.
+- Deployment configuration.
+- Production environment settings.
+
+Prepare the final web application for Cloud Run publishing through Google AI Studio.
+
+Do not publish publicly without explicit approval.
+
+The first release is an installable PWA, not a native Play Store APK/AAB. A native Android Play Store release requires a separate native-client delivery phase.
+
+---
+
+PART 25 — PRODUCTION RELEASE PRIORITIES
+
+Essential first release
+
+The first complete publishing candidate must include:
+
+- Completely redesigned StudyQuest UI.
+- Exact authentication reference implementation.
+- Real Firebase authentication.
+- Onboarding.
+- One-active-book system.
+- Real verified textbook ingestion.
+- Complete textbook reader.
+- Learning dashboard.
+- Chapters and lessons.
+- Real question bank.
+- Practice engine.
+- Mock examinations.
+- Results and explanations.
+- Bookmarks.
+- Revision.
+- Offline persistence.
+- Profiles.
+- Friends.
+- Private messaging.
+- Group functionality.
+- Core competition.
+- Server-verified rewards.
+- Administrative management.
+- Content review.
+- Privacy.
+- Student-safety safeguards.
+- Bangla and English.
+- Responsive layouts.
+- PWA installation.
+
+No essential existing capability may be deliberately discarded.
+
+Important improvements
+
+- Advanced AI learning assistant.
+- Better adaptive revision.
+- Study calendar.
+- Personalized study plans.
+- Detailed academic analytics.
+- Enhanced tournament management.
+- Advanced student achievements.
+- Rich textbook annotations.
+- Improved accessibility.
+- Smart revision scheduling.
+- Better search.
+
+Future expansion
+
+- Expanded curriculum coverage.
+- Additional official academic years.
+- More verified educational question collections.
+- Teacher and educational-institution tools.
+- Additional learning experiences.
+- Additional native mobile clients.
+
+All future additions must fit the actual product requirements.
+
+---
+
+PART 26 — NON-NEGOTIABLE ANTI-PLACEHOLDER RULES
+
+The following are prohibited:
+
+Fake books
+
+Never invent a textbook and label it NCTB.
+
+Fake questions
+
+Never create a question and claim it came from an official board examination.
+
+Fake users
+
+Never seed production with fictional students presented as real users.
+
+Fake analytics
+
+Never invent learning statistics.
+
+Fake competitions
+
+Never show a fabricated active match.
+
+Fake rankings
+
+Never create fictional leaderboard participants.
+
+Fake notifications
+
+Never pretend an event happened.
+
+Fake integrations
+
+Never show an integration as connected if configuration is missing.
+
+Fake AI functionality
+
+Never pretend an unavailable AI model has responded.
+
+Fake publishing status
+
+Never declare the app published if deployment has not actually completed.
+
+For development previews, any synthetic fixtures must be completely isolated from production and clearly identified as test data.
+
+If real content is unavailable, display a meaningful honest empty state.
+
+---
+
+PART 27 — PROJECT DOCUMENTATION AND CHANGE CONTROL
+
+Maintain documentation inside the Google AI Studio project.
+
+Required documents:
+
+1. Product overview.
+2. Requirements ledger.
+3. Feature parity matrix.
+4. Architecture document.
+5. UI/UX design system.
+6. Complete screen inventory.
+7. Navigation map.
+8. Database dictionary.
+9. Original-to-new data mapping.
+10. API documentation.
+11. Security specification.
+12. Academic-content source register.
+13. Content-rights register.
+14. Moderation policy.
+15. Testing report.
+16. Known issues.
+17. Dependency register.
+18. Publishing checklist.
+19. Release notes.
+
+Maintain a clear distinction between:
+
+- User requirements.
+- Existing project capabilities.
+- Proposed additions.
+- Implemented features.
+- Integrated features.
+- Tested features.
+- Verified features.
+- Blocked features.
+
+Never silently remove a requirement.
+
+Before changing an important data relationship or workflow, check its effect on the feature parity matrix.
+
+---
+
+PART 28 — FINAL ACCEPTANCE CRITERIA
+
+StudyQuest is not complete merely because its screens look beautiful.
+
+It must satisfy the following:
+
+Product
+
+- All five major sections exist.
+- Every existing functional requirement is preserved.
+- All planned supporting systems are implemented.
+- The complete application is coherent.
+
+Design
+
+- Completely new UI.
+- Completely new UX.
+- New visual identity.
+- Original visual assets.
+- Only the approved authentication design is reused.
+- No old character model.
+- No old green/cream interface reuse.
+- All pages have consistent design quality.
+- All pages are responsive.
+
+Learning
+
+- Real books.
+- Correct academic years.
+- Real content.
+- Real question provenance.
+- Accurate examination grading.
+- Active-book restriction.
+- Real progress.
+- Complete revision.
+- Offline functionality.
+
+Social and competition
+
+- Real friend lookup.
+- Real friend requests.
+- Private messaging.
+- Group functionality.
+- Real matchmaking.
+- Server-authoritative scoring.
+- Rankings.
+- Seasons.
+- Tournaments.
+- Appropriate safety controls.
+
+Backend
+
+- Persistent database.
+- Secure authentication.
+- Protected answer keys.
+- Secure server operations.
+- Real-time communication.
+- Correct user isolation.
+- Real administration.
+- Complete audit records.
+
+Publishing
+
+- Responsive PWA.
+- Installable behavior.
+- Secure configuration.
+- Verified backend.
+- Production error handling.
+- Privacy and safety review.
+- Completed release checklist.
+
+Testing
+
+- All important routes work.
+- All critical buttons work.
+- All primary workflows are tested.
+- All major permission boundaries are tested.
+- All textbook-content records are traceable.
+- No fake operational data.
+- No known critical security issues.
+
+---
+
+PART 29 — FINAL EXECUTION INSTRUCTIONS
+
+Work systematically.
+
+Start by auditing the supplied StudyQuest project references.
+
+Build the requirements and feature-preservation ledger.
+
+Create the complete architecture.
+
+Establish the new design system.
+
+Implement the full application in logical phases.
+
+Do not stop after the first dashboard.
+
+Do not stop after authentication.
+
+Do not stop after the first textbook page.
+
+Do not ignore the administration requirements.
+
+Do not silently reduce the feature set.
+
+Do not substitute mock functionality for real systems.
+
+Do not publish or incur charges without authorization.
+
+When a dependency cannot be configured, report exactly what is missing and continue with independent work that does not require that dependency.
+
+Do not claim that external services, official content or deployment are ready without verification.
+
+The goal is a complete, professional StudyQuest product.
+
+The visual experience must be entirely new.
+
+The original application's meaningful capabilities must survive.
+
+The authentication reference must be respected.
+
+The active-book lock must be enforced.
+
+The academic books and questions must be real and properly sourced.
+
+The backend must be secure.
+
+The interface must be complete.
+
+The entire product must feel like one carefully designed application, not a collection of generated pages.
+
+FINAL PRODUCT STANDARD
+
+REAL TEXTBOOKS.
+REAL QUESTIONS.
+REAL AUTHENTICATION.
+REAL LEARNING.
+REAL PROGRESS.
+REAL COMPETITION.
+REAL SOCIAL FUNCTIONALITY.
+REAL BACKEND.
+REAL ADMINISTRATION.
+COMPLETELY NEW UI/UX.
+NO LOST FEATURES.
+NO FAKE DATA.
+NO PLACEHOLDER FUNCTIONALITY.
+NO AI SLOP.
+
+Rebuild StudyQuest into the complete educational platform it was intended to become.

@@ -66,6 +66,7 @@ class SyncOfflineRecordsWorker(
                             "userId" to currentUid,
                             "recordType" to action.actionType,
                             "refId" to action.refId,
+                            "bookId" to action.bookId.ifBlank { null },
                             "subjectId" to action.subjectId,
                             "chapterId" to action.chapterId,
                             "topicId" to action.topicId,
@@ -77,7 +78,7 @@ class SyncOfflineRecordsWorker(
                             "summary" to action.summary,
                             "createdAt" to FieldValue.serverTimestamp(),
                             "updatedAt" to FieldValue.serverTimestamp()
-                        )
+                        ).filterValues { it != null }
                     )
                     if (action.xpAwarded > 0) {
                         val pSnap = runCatching { profileRef.get().await() }.getOrNull()
@@ -162,9 +163,9 @@ class StudyReminderWorker(
 
         val title = if (prefs.uiLanguage == AppLanguage.BANGLA) "StudyQuest রিভিশন রিমাইন্ডার" else "StudyQuest Revision Reminder"
         val body = if (prefs.uiLanguage == AppLanguage.BANGLA)
-            "আপনার ${dueCount}টি প্রশ্ন রিভিশনের জন্য প্রস্তুত। টিটু অপেক্ষা করছে!"
+            "আপনার ${dueCount}টি প্রশ্ন রিভিশনের জন্য প্রস্তুত। এখনই অনুশীলন শুরু করুন!"
         else
-            "You have $dueCount revision items due today. Titu is ready to help!"
+            "You have $dueCount revision items due today. Tap to start a quick session!"
 
         val notification = NotificationCompat.Builder(applicationContext, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)

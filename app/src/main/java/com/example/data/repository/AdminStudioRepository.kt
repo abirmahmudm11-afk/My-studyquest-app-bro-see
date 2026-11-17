@@ -11,6 +11,9 @@ import com.example.data.model.AiUsageLogDoc
 import com.example.data.model.AuditLogDoc
 import com.example.data.model.ModerationCaseDoc
 import com.example.data.model.SystemSettingsDoc
+import com.example.data.model.TextbookCatalogDoc
+import com.example.data.model.TextbookCatalogItem
+import com.example.data.model.TextbookChapterSpec
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -598,6 +601,94 @@ class AdminStudioRepository(
             fallbackRequests = monthLogs.count { it.provider == "firebase_ai" },
             estimatedNetProfitBdt = netBdt
         )
+    }
+
+    fun observeCloudTextbookCatalog(): Flow<List<TextbookCatalogDoc>> =
+        db.collection("textbook_catalog")
+            .snapshots()
+            .map { snap ->
+                snap.toObjects(
+                    TextbookCatalogDoc::class.java,
+                    DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                ).sortedByDescending { it.updatedAt?.seconds ?: 0L }
+            }
+
+    suspend fun publishTextbookCatalogItem(
+        actorUid: String,
+        book: TextbookCatalogItem
+    ): Result<Unit> {
+        val docId = book.id.replace(Regex("[^a-zA-Z0-9_\\-]"), "_").take(96)
+        val ref = db.collection("textbook_catalog").document(docId)
+        return try {
+            ref.set(
+                mapOf(
+                    "bookId" to docId,
+                    "academicYear" to book.academicYear,
+                    "classId" to book.classId,
+                    "curriculumVersion" to book.curriculumVersion,
+                    "groupId" to book.groupId,
+                    "subjectId" to book.subjectId,
+                    "titleEn" to book.titleEn.trim().take(180),
+                    "titleBn" to book.titleBn.trim().ifBlank { book.titleEn.trim() }.take(180),
+                    "bookCode" to book.bookCode.trim().take(60),
+                    "editionLabelEn" to book.editionLabelEn.trim().take(120),
+                    "editionLabelBn" to book.editionLabelBn.trim().take(120),
+                    "officialSourceUrl" to book.officialSourceUrl.trim().take(300),
+                    "pdfUrl" to book.pdfUrl?.trim()?.takeIf { it.isNotBlank() }?.take(400),
+                    "estimatedPages" to book.estimatedPages.toLong().coerceIn(1L, 2000L),
+                    "estimatedSizeMb" to book.estimatedSizeMb.coerceIn(0.1, 250.0),
+                    "status" to book.publicationStatus,
+                    "authorUid" to actorUid,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ).filterValues { it != null },
+                SetOptions.merge()
+            ).await()
+            writeAuditLog(actorUid, "publish_textbook", "textbook_catalog", docId, book.titleEn)
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, ref.path)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun publishTextbookChapter(
+        actorUid: String,
+        chapter: TextbookChapterSpec
+    ): Result<Unit> {
+        val docId = chapter.id.replace(Regex("[^a-zA-Z0-9_\\-]"), "_").take(110)
+        val ref = db.collection("textbook_chapters").document(docId)
+        return try {
+            ref.set(
+                mapOf(
+                    "bookId" to chapter.bookId,
+                    "orderIndex" to chapter.orderIndex.toLong(),
+                    "titleEn" to chapter.titleEn.trim().take(160),
+                    "titleBn" to chapter.titleBn.trim().ifBlank { chapter.titleEn.trim() }.take(160),
+                    "summaryEn" to chapter.summaryEn.trim().take(480),
+                    "summaryBn" to chapter.summaryBn.trim().take(480),
+                    "startPage" to chapter.startPage.toLong().coerceAtLeast(1L),
+                    "endPage" to chapter.endPage.toLong().coerceAtLeast(1L),
+                    "keyTopicsEn" to chapter.keyTopicsEn.take(20),
+                    "keyTopicsBn" to chapter.keyTopicsBn.take(20),
+                    "formulas" to chapter.formulas.take(30),
+                    "studyNotesEn" to chapter.studyNotesEn.take(4000),
+                    "studyNotesBn" to chapter.studyNotesBn.take(4000),
+                    "status" to "published",
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ),
+                SetOptions.merge()
+            ).await()
+            writeAuditLog(actorUid, "publish_textbook_chapter", "textbook_chapters", docId, chapter.titleEn)
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, ref.path)
+            Result.failure(e)
+        }
     }
 
     private suspend fun writeAuditLog(

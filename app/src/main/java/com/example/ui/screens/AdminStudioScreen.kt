@@ -43,6 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
+import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.TextbookCatalog
+import com.example.data.model.TextbookCatalogItem
+import com.example.data.model.TextbookChapterSpec
 import com.example.data.model.XpRuleConfig
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.theme.LocalStudyQuestColors
@@ -71,9 +75,10 @@ fun AdminStudioScreen(
     val modelCheckResult by viewModel.modelCheckResult.collectAsStateWithLifecycle()
     val isVerifyingModels by viewModel.isVerifyingModels.collectAsStateWithLifecycle()
     val businessInsights by viewModel.businessInsights.collectAsStateWithLifecycle()
+    val cloudTextbooks by viewModel.cloudTextbooks.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0=Editorial, 1=Moderation, 2=XP & Tasks, 3=System, 4=Audit, 5=AI Provider, 6=Business Insights
+    var selectedTab by remember { mutableIntStateOf(0) } // 0=Editorial, 1=Moderation, 2=XP & Tasks, 3=System, 4=Audit, 5=AI Provider, 6=Insights, 7=NCTB Books
 
     LaunchedEffect(selectedTab, aiUsageLogs) {
         if (selectedTab == 6) {
@@ -115,6 +120,7 @@ fun AdminStudioScreen(
             Tab(selected = selectedTab == 4, onClick = { selectedTab = 4 }, text = { Text("Audit") })
             Tab(selected = selectedTab == 5, onClick = { selectedTab = 5 }, text = { Text("AI Provider") })
             Tab(selected = selectedTab == 6, onClick = { selectedTab = 6 }, text = { Text("Insights") })
+            Tab(selected = selectedTab == 7, onClick = { selectedTab = 7 }, text = { Text("NCTB Books") })
         }
 
         when (selectedTab) {
@@ -656,6 +662,186 @@ fun AdminStudioScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = if (businessInsights.estimatedNetProfitBdt >= 0) LocalStudyQuestColors.current.success else MaterialTheme.colorScheme.error
                             )
+                        }
+                    }
+                }
+            }
+
+            7 -> {
+                var bookYear by remember { mutableStateOf("2026") }
+                var bookClassId by remember { mutableStateOf("class_10") }
+                var bookVersion by remember { mutableStateOf("bangla") }
+                var bookSubjectId by remember { mutableStateOf("math") }
+                var bookTitleEn by remember { mutableStateOf("") }
+                var bookTitleBn by remember { mutableStateOf("") }
+                var bookCode by remember { mutableStateOf("NCTB-2026-10-MATH-BN") }
+                var bookSourceUrl by remember { mutableStateOf("https://nctb.portal.gov.bd/") }
+                var bookPdfUrl by remember { mutableStateOf("") }
+                var bookPagesStr by remember { mutableStateOf("240") }
+
+                var chapterBookId by remember { mutableStateOf("nctb_2026_class_10_bangla_math") }
+                var chapterOrderStr by remember { mutableStateOf("1") }
+                var chapterTitleEn by remember { mutableStateOf("") }
+                var chapterTitleBn by remember { mutableStateOf("") }
+                var chapterSummaryEn by remember { mutableStateOf("") }
+                var chapterStartPageStr by remember { mutableStateOf("1") }
+                var chapterEndPageStr by remember { mutableStateOf("24") }
+                var chapterFormulas by remember { mutableStateOf("") }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        StudyQuestCard {
+                            Text("Publish NCTB 2026 / 2027 Textbook Catalog Item", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(6.dp))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("2026", "2027").forEach { yr ->
+                                    FilterChip(
+                                        selected = bookYear == yr,
+                                        onClick = {
+                                            bookYear = yr
+                                            bookCode = "NCTB-$yr-${bookClassId.removePrefix("class_")}-${bookSubjectId.uppercase()}-${bookVersion.take(2).uppercase()}"
+                                            chapterBookId = "nctb_${yr}_${bookClassId}_${bookVersion}_${bookSubjectId}"
+                                        },
+                                        label = { Text(yr) }
+                                    )
+                                }
+                                listOf("bangla", "english").forEach { ver ->
+                                    FilterChip(
+                                        selected = bookVersion == ver,
+                                        onClick = {
+                                            bookVersion = ver
+                                            chapterBookId = "nctb_${bookYear}_${bookClassId}_${ver}_${bookSubjectId}"
+                                        },
+                                        label = { Text(ver.replaceFirstChar { it.uppercase() }) }
+                                    )
+                                }
+                            }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                BangladeshCurriculumCatalog.classes.forEach { cls ->
+                                    FilterChip(
+                                        selected = bookClassId == cls.id,
+                                        onClick = {
+                                            bookClassId = cls.id
+                                            chapterBookId = "nctb_${bookYear}_${cls.id}_${bookVersion}_${bookSubjectId}"
+                                        },
+                                        label = { Text(cls.labelEn) }
+                                    )
+                                }
+                            }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                BangladeshCurriculumCatalog.subjectsForClass(bookClassId).take(6).forEach { subj ->
+                                    FilterChip(
+                                        selected = bookSubjectId == subj.id,
+                                        onClick = {
+                                            bookSubjectId = subj.id
+                                            chapterBookId = "nctb_${bookYear}_${bookClassId}_${bookVersion}_${subj.id}"
+                                        },
+                                        label = { Text(subj.titleEn) }
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            OutlinedTextField(value = bookTitleEn, onValueChange = { bookTitleEn = it }, label = { Text("Textbook Title (English)") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = bookTitleBn, onValueChange = { bookTitleBn = it }, label = { Text("Textbook Title (Bangla)") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = bookCode, onValueChange = { bookCode = it }, label = { Text("NCTB Book Code") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = bookSourceUrl, onValueChange = { bookSourceUrl = it }, label = { Text("Official NCTB Portal URL") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = bookPdfUrl, onValueChange = { bookPdfUrl = it }, label = { Text("Direct Verified PDF URL (optional)") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = bookPagesStr, onValueChange = { bookPagesStr = it.filter(Char::isDigit) }, label = { Text("Estimated Pages") }, modifier = Modifier.fillMaxWidth())
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    val subj = BangladeshCurriculumCatalog.subjects.firstOrNull { it.id == bookSubjectId }
+                                    val fallbackTitleEn = "Class ${bookClassId.removePrefix("class_")} ${subj?.titleEn ?: bookSubjectId}"
+                                    val id = "nctb_${bookYear}_${bookClassId}_${bookVersion}_${bookSubjectId}"
+                                    viewModel.publishTextbook(
+                                        TextbookCatalogItem(
+                                            id = id,
+                                            academicYear = bookYear,
+                                            classId = bookClassId,
+                                            curriculumVersion = bookVersion,
+                                            groupId = subj?.groupIds?.firstOrNull() ?: "general",
+                                            subjectId = bookSubjectId,
+                                            titleEn = bookTitleEn.ifBlank { fallbackTitleEn },
+                                            titleBn = bookTitleBn.ifBlank { subj?.titleBn ?: fallbackTitleEn },
+                                            bookCode = bookCode.ifBlank { "NCTB-$bookYear-$bookSubjectId" },
+                                            editionLabelEn = if (bookYear == "2027") "2027 NCTB Syllabus Edition" else "2026 NCTB Official Edition",
+                                            editionLabelBn = if (bookYear == "2027") "২০২৭ এনসিটিবি সংস্করণ" else "২০২৬ এনসিটিবি সংস্করণ",
+                                            officialSourceUrl = bookSourceUrl.ifBlank { "https://nctb.portal.gov.bd/" },
+                                            pdfUrl = bookPdfUrl.trim().takeIf { it.startsWith("https://") },
+                                            estimatedPages = bookPagesStr.toIntOrNull()?.coerceIn(20, 900) ?: 200,
+                                            is2027EditionReady = bookYear == "2027" || bookPdfUrl.isNotBlank(),
+                                            publicationStatus = "published"
+                                        )
+                                    )
+                                    chapterBookId = id
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("admin_publish_textbook_btn")
+                            ) {
+                                Text("Publish NCTB Textbook")
+                            }
+                        }
+                    }
+
+                    item {
+                        StudyQuestCard {
+                            Text("Publish Textbook Chapter Unit", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(6.dp))
+                            OutlinedTextField(value = chapterBookId, onValueChange = { chapterBookId = it }, label = { Text("Target Book ID") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = chapterOrderStr, onValueChange = { chapterOrderStr = it.filter(Char::isDigit) }, label = { Text("Chapter Order") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = chapterTitleEn, onValueChange = { chapterTitleEn = it }, label = { Text("Chapter Title (English)") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = chapterTitleBn, onValueChange = { chapterTitleBn = it }, label = { Text("Chapter Title (Bangla)") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = chapterSummaryEn, onValueChange = { chapterSummaryEn = it }, label = { Text("Chapter Summary") }, modifier = Modifier.fillMaxWidth())
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(value = chapterStartPageStr, onValueChange = { chapterStartPageStr = it.filter(Char::isDigit) }, label = { Text("Start Page") }, modifier = Modifier.weight(1f))
+                                OutlinedTextField(value = chapterEndPageStr, onValueChange = { chapterEndPageStr = it.filter(Char::isDigit) }, label = { Text("End Page") }, modifier = Modifier.weight(1f))
+                            }
+                            OutlinedTextField(value = chapterFormulas, onValueChange = { chapterFormulas = it }, label = { Text("Key Formulas (comma-separated)") }, modifier = Modifier.fillMaxWidth())
+                            Spacer(Modifier.height(8.dp))
+                            FilledTonalButton(
+                                onClick = {
+                                    if (chapterTitleEn.isNotBlank()) {
+                                        val ord = chapterOrderStr.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                                        viewModel.publishTextbookChapter(
+                                            TextbookChapterSpec(
+                                                id = "${chapterBookId}_ch_$ord",
+                                                bookId = chapterBookId.trim(),
+                                                orderIndex = ord,
+                                                titleEn = chapterTitleEn.trim(),
+                                                titleBn = chapterTitleBn.ifBlank { chapterTitleEn.trim() },
+                                                summaryEn = chapterSummaryEn.ifBlank { chapterTitleEn.trim() },
+                                                summaryBn = chapterSummaryEn.ifBlank { chapterTitleBn.ifBlank { chapterTitleEn.trim() } },
+                                                startPage = chapterStartPageStr.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+                                                endPage = chapterEndPageStr.toIntOrNull()?.coerceAtLeast(2) ?: 24,
+                                                keyTopicsEn = listOf(chapterTitleEn.trim()),
+                                                keyTopicsBn = listOf(chapterTitleBn.ifBlank { chapterTitleEn.trim() }),
+                                                formulas = chapterFormulas.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                                            )
+                                        )
+                                        chapterTitleEn = ""; chapterTitleBn = ""; chapterSummaryEn = ""; chapterFormulas = ""
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("admin_publish_chapter_btn")
+                            ) {
+                                Text("Publish Chapter Unit")
+                            }
+                        }
+                    }
+
+                    item {
+                        Text("Cloud NCTB Textbooks (${cloudTextbooks.size} published)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    }
+                    items(cloudTextbooks, key = { it.id }) { doc ->
+                        StudyQuestCard {
+                            Text("${doc.academicYear} • ${doc.titleEn}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text("Code: ${doc.bookCode} • ${doc.curriculumVersion} • PDF: ${if (!doc.pdfUrl.isNullOrBlank()) "Attached" else "Portal/Offline Pack"}", style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }

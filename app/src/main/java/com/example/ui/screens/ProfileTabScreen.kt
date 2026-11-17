@@ -70,11 +70,14 @@ import com.example.core.SurfaceStyle
 import com.example.core.ThemeMode
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.curriculum.GamificationCatalog
+import com.example.data.local.CachedBookEntity
 import com.example.data.model.AiCreditLedgerDoc
 import com.example.data.model.LearningRecordDoc
 import com.example.data.model.PublicProfile
 import com.example.data.model.PurchaseRecordDoc
 import com.example.data.model.QuestPlanCatalog
+import com.example.data.model.TextbookCatalogItem
+import com.example.data.model.TextbookDownloadStatus
 import com.example.data.model.UserBadgeDoc
 import com.example.data.model.UserSubscriptionDoc
 import com.example.data.model.VideoCreditLedgerDoc
@@ -93,8 +96,11 @@ import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
 import com.example.ui.components.StudyTimeAndXpBarChart
 import com.example.ui.theme.AmberGold
+import com.example.ui.theme.ElectricIndigo
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.LocalStudyQuestColors
+import com.example.ui.theme.SkyCyan
+import com.example.ui.theme.VividEmerald
 import com.example.ui.viewmodel.AdminStudioViewModel
 import com.google.firebase.FirebaseApp
 
@@ -156,7 +162,12 @@ fun ProfileTabScreen(
     onSelectPlan: (String) -> Unit = {},
     onPurchaseVideoBoost: () -> Unit = {},
     onSwitchToFreePlan: () -> Unit = {},
-    onOpenAiLab: () -> Unit = {}
+    onOpenAiLab: () -> Unit = {},
+    activeLockedBook: TextbookCatalogItem? = null,
+    cachedBooks: List<CachedBookEntity> = emptyList(),
+    onOpenTextbookReader: () -> Unit = {},
+    onReinstallBookOffline: (TextbookCatalogItem) -> Unit = {},
+    onDeleteCachedBook: (String) -> Unit = {}
 ) {
     val destinationStack = remember { mutableStateListOf<ProfileDestination>(ProfileDestination.Home) }
     val destination = destinationStack.lastOrNull() ?: ProfileDestination.Home
@@ -288,6 +299,61 @@ fun ProfileTabScreen(
                             if (profile.annualExamStatus == "failed") {
                                 Button(onClick = onRetakePromotionExam) {
                                     Text(StudyQuestStrings.t(lang, "Retake", "পুনঃপরীক্ষা"))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (activeLockedBook != null) {
+                    item {
+                        val activeCache = cachedBooks.firstOrNull { it.bookId == activeLockedBook.id }
+                        val installedCount = cachedBooks.count { it.downloadStatus == TextbookDownloadStatus.INSTALLED.id }
+                        StudyQuestCard(
+                            accentColor = ElectricIndigo,
+                            modifier = Modifier.testTag("profile_offline_books_card")
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = StudyQuestStrings.t(
+                                        lang,
+                                        "Active NCTB Book & Offline Packs ($installedCount installed)",
+                                        "সক্রিয় পাঠ্যবই ও অফলাইন প্যাক (${installedCount}টি সংরক্ষিত)"
+                                    ),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ElectricIndigo
+                                )
+                                Text(
+                                    text = if (activeCache?.downloadStatus == TextbookDownloadStatus.INSTALLED.id) {
+                                        StudyQuestStrings.t(
+                                            lang,
+                                            "Offline ready • Last read page ${(activeCache.lastReadPage + 1).coerceAtLeast(1)}",
+                                            "অফলাইনে সংরক্ষিত • সর্বশেষ পঠিত পৃষ্ঠা ${(activeCache.lastReadPage + 1).coerceAtLeast(1)}"
+                                        )
+                                    } else {
+                                        StudyQuestStrings.t(lang, "Tap Install to cache chapters offline.", "অফলাইনে সংরক্ষণ করতে ইনস্টল চাপুন।")
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = onOpenTextbookReader) {
+                                        Text(StudyQuestStrings.t(lang, "Open Reader", "বই খোলো"))
+                                    }
+                                    FilledTonalButton(onClick = { onReinstallBookOffline(activeLockedBook) }) {
+                                        Text(StudyQuestStrings.t(lang, "Install / Refresh", "ইনস্টল / রিফ্রেশ"))
+                                    }
+                                    if (activeCache != null) {
+                                        OutlinedButton(onClick = { onDeleteCachedBook(activeCache.bookId) }) {
+                                            Text(StudyQuestStrings.t(lang, "Clear", "মুছুন"))
+                                        }
+                                    }
                                 }
                             }
                         }

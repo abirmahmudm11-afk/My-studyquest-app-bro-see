@@ -7,6 +7,9 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [
+        CachedBookEntity::class,
+        BookChapterEntity::class,
+        BookPageNoteEntity::class,
         CachedLessonEntity::class,
         CachedQuestionEntity::class,
         LocalBookmarkEntity::class,
@@ -21,7 +24,7 @@ import androidx.room.RoomDatabase
         LocalBadgeProgressEntity::class,
         LocalXpLedgerEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class StudyQuestDatabase : RoomDatabase() {

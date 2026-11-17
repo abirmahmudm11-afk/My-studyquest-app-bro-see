@@ -105,7 +105,10 @@ data class LocalUserPreferences(
     val guestDisplayName: String = "Guest Scholar",
     val guestClassId: String = "class_10",
     val guestCurriculumVersion: String = "bangla",
-    val guestAvatarId: String = "owl_classic",
+    val guestAcademicGroup: String = "science",
+    val guestActiveBookYear: String = "2026",
+    val guestActiveBookId: String = "",
+    val guestAvatarId: String = "crest_indigo",
     val guestFrameId: String = "",
     val guestTitleBadge: String = "",
     val guestSelectedSubjectsCsv: String = "math,english,bangla,physics,ict",
@@ -114,7 +117,7 @@ data class LocalUserPreferences(
     val guestRating: Long = 1000L,
     val guestStreakCount: Long = 0L,
     val guestLastChallengeDateKey: String = "",
-    val guestUnlockedCosmeticsCsv: String = "owl_classic",
+    val guestUnlockedCosmeticsCsv: String = "crest_indigo",
     val guestHasPendingMerge: Boolean = false,
     // Persisted Focus Timer State
     val focusTimer: PersistedFocusTimerState = PersistedFocusTimerState()
@@ -152,6 +155,9 @@ class StudyQuestPreferences(private val context: Context) {
         val GUEST_DISPLAY_NAME = stringPreferencesKey("guest_display_name")
         val GUEST_CLASS_ID = stringPreferencesKey("guest_class_id")
         val GUEST_CURRICULUM_VERSION = stringPreferencesKey("guest_curriculum_version")
+        val GUEST_ACADEMIC_GROUP = stringPreferencesKey("guest_academic_group")
+        val GUEST_ACTIVE_BOOK_YEAR = stringPreferencesKey("guest_active_book_year")
+        val GUEST_ACTIVE_BOOK_ID = stringPreferencesKey("guest_active_book_id")
         val GUEST_AVATAR_ID = stringPreferencesKey("guest_avatar_id")
         val GUEST_FRAME_ID = stringPreferencesKey("guest_frame_id")
         val GUEST_TITLE_BADGE = stringPreferencesKey("guest_title_badge")
@@ -219,7 +225,10 @@ class StudyQuestPreferences(private val context: Context) {
             guestDisplayName = prefs[Keys.GUEST_DISPLAY_NAME] ?: "Guest Scholar",
             guestClassId = prefs[Keys.GUEST_CLASS_ID] ?: "class_10",
             guestCurriculumVersion = prefs[Keys.GUEST_CURRICULUM_VERSION] ?: "bangla",
-            guestAvatarId = prefs[Keys.GUEST_AVATAR_ID] ?: "owl_classic",
+            guestAcademicGroup = prefs[Keys.GUEST_ACADEMIC_GROUP] ?: "science",
+            guestActiveBookYear = prefs[Keys.GUEST_ACTIVE_BOOK_YEAR] ?: "2026",
+            guestActiveBookId = prefs[Keys.GUEST_ACTIVE_BOOK_ID] ?: "",
+            guestAvatarId = (prefs[Keys.GUEST_AVATAR_ID] ?: "crest_indigo").let { if (it == "owl_classic") "crest_indigo" else it },
             guestFrameId = prefs[Keys.GUEST_FRAME_ID] ?: "",
             guestTitleBadge = prefs[Keys.GUEST_TITLE_BADGE] ?: "",
             guestSelectedSubjectsCsv = prefs[Keys.GUEST_SUBJECTS_CSV] ?: "math,english,bangla,physics,ict",
@@ -228,7 +237,7 @@ class StudyQuestPreferences(private val context: Context) {
             guestRating = prefs[Keys.GUEST_RATING] ?: 1000L,
             guestStreakCount = prefs[Keys.GUEST_STREAK_COUNT] ?: 0L,
             guestLastChallengeDateKey = prefs[Keys.GUEST_LAST_STREAK_DAY] ?: "",
-            guestUnlockedCosmeticsCsv = prefs[Keys.GUEST_UNLOCKED_COSMETICS_CSV] ?: "owl_classic",
+            guestUnlockedCosmeticsCsv = (prefs[Keys.GUEST_UNLOCKED_COSMETICS_CSV] ?: "crest_indigo").replace("owl_classic", "crest_indigo"),
             guestHasPendingMerge = prefs[Keys.GUEST_HAS_PENDING_MERGE] ?: false,
             focusTimer = PersistedFocusTimerState(
                 active = prefs[Keys.TIMER_ACTIVE] ?: false,
@@ -388,7 +397,10 @@ class StudyQuestPreferences(private val context: Context) {
         classId: String,
         curriculumVersion: String,
         selectedSubjects: List<String>,
-        avatarId: String
+        avatarId: String,
+        academicGroup: String = "science",
+        activeBookYear: String = "2026",
+        activeBookId: String = ""
     ) {
         context.studyQuestDataStore.edit { prefs ->
             prefs[Keys.IS_GUEST_MODE] = true
@@ -396,12 +408,23 @@ class StudyQuestPreferences(private val context: Context) {
             prefs[Keys.GUEST_DISPLAY_NAME] = displayName.trim().ifBlank { "Guest Scholar" }.take(50)
             prefs[Keys.GUEST_CLASS_ID] = classId
             prefs[Keys.GUEST_CURRICULUM_VERSION] = curriculumVersion
+            prefs[Keys.GUEST_ACADEMIC_GROUP] = academicGroup
+            prefs[Keys.GUEST_ACTIVE_BOOK_YEAR] = activeBookYear
+            prefs[Keys.GUEST_ACTIVE_BOOK_ID] = activeBookId
             prefs[Keys.GUEST_SUBJECTS_CSV] = selectedSubjects.ifEmpty { listOf("math", "english", "bangla") }.joinToString(",")
-            prefs[Keys.GUEST_AVATAR_ID] = avatarId.ifBlank { "owl_classic" }
+            prefs[Keys.GUEST_AVATAR_ID] = avatarId.ifBlank { "crest_indigo" }.let { if (it == "owl_classic") "crest_indigo" else it }
             prefs[Keys.GUEST_HAS_PENDING_MERGE] = true
             if (prefs[Keys.GUEST_COINS] == null) {
                 prefs[Keys.GUEST_COINS] = 50L
             }
+        }
+    }
+
+    suspend fun switchGuestActiveBook(bookId: String, year: String) {
+        context.studyQuestDataStore.edit { prefs ->
+            prefs[Keys.GUEST_ACTIVE_BOOK_ID] = bookId
+            prefs[Keys.GUEST_ACTIVE_BOOK_YEAR] = year
+            prefs[Keys.GUEST_HAS_PENDING_MERGE] = true
         }
     }
 
@@ -433,7 +456,7 @@ class StudyQuestPreferences(private val context: Context) {
     suspend fun purchaseGuestCosmetic(cosmeticId: String, costCoins: Int): Boolean {
         var success = false
         context.studyQuestDataStore.edit { prefs ->
-            val unlocked = (prefs[Keys.GUEST_UNLOCKED_COSMETICS_CSV] ?: "owl_classic")
+            val unlocked = (prefs[Keys.GUEST_UNLOCKED_COSMETICS_CSV] ?: "crest_indigo")
                 .split(",").filter { it.isNotBlank() }.toMutableSet()
             if (cosmeticId in unlocked) {
                 success = true
@@ -480,7 +503,8 @@ class StudyQuestPreferences(private val context: Context) {
             prefs[Keys.GUEST_RATING] = 1000L
             prefs[Keys.GUEST_STREAK_COUNT] = 0L
             prefs[Keys.GUEST_LAST_STREAK_DAY] = ""
-            prefs[Keys.GUEST_UNLOCKED_COSMETICS_CSV] = "owl_classic"
+            prefs[Keys.GUEST_ACTIVE_BOOK_ID] = ""
+            prefs[Keys.GUEST_UNLOCKED_COSMETICS_CSV] = "crest_indigo"
         }
     }
 }

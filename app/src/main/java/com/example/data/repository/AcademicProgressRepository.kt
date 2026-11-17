@@ -21,6 +21,7 @@ import com.example.data.model.AcademicContentDoc
 import com.example.data.model.LearningRecordDoc
 import com.example.data.model.QuestionDifficulty
 import com.example.data.model.QuestionItem
+import com.example.data.model.QuestionProvenance
 import com.example.data.model.QuestionType
 import com.example.data.model.StudyLesson
 import com.example.data.model.StudyPlanDoc
@@ -109,6 +110,7 @@ class AcademicProgressRepository(
                         userId = GuestDataRepository.GUEST_UID,
                         recordType = item.actionType,
                         refId = item.refId,
+                        bookId = item.bookId.ifBlank { null },
                         subjectId = item.subjectId,
                         chapterId = item.chapterId.ifBlank { null },
                         topicId = item.topicId.ifBlank { null },
@@ -141,6 +143,7 @@ class AcademicProgressRepository(
                         id = plan.id,
                         userId = plan.userId,
                         title = plan.title,
+                        bookId = plan.bookId.ifBlank { null },
                         subjectId = plan.subjectId,
                         planType = plan.planType,
                         targetDateEpochMs = plan.targetDateEpochMs,
@@ -180,7 +183,7 @@ class AcademicProgressRepository(
     fun observePendingSyncCount(): Flow<Int> =
         dao.observePendingSyncActions().map { it.size }
 
-    suspend fun downloadChapterForOffline(chapterId: String): Result<Int> {
+    suspend fun downloadChapterForOffline(chapterId: String, bookId: String = ""): Result<Int> {
         return try {
             val lessons = BangladeshCurriculumCatalog.lessons.filter { it.chapterId == chapterId }
             val questions = BangladeshCurriculumCatalog.questions.filter { it.chapterId == chapterId }
@@ -190,6 +193,7 @@ class AcademicProgressRepository(
                     classId = lesson.classId,
                     subjectId = lesson.subjectId,
                     chapterId = lesson.chapterId,
+                    bookId = bookId,
                     titleEn = lesson.titleEn,
                     titleBn = lesson.titleBn,
                     explanationEn = lesson.explanationEn,
@@ -206,6 +210,7 @@ class AcademicProgressRepository(
                     subjectId = q.subjectId,
                     chapterId = q.chapterId,
                     topicId = q.topicId,
+                    bookId = bookId.ifBlank { q.bookId },
                     questionType = q.type.id,
                     difficulty = q.difficulty.id,
                     promptEn = q.promptEn,
@@ -215,7 +220,9 @@ class AcademicProgressRepository(
                     correctIndicesCsv = q.correctOptionIndices.joinToString(","),
                     explanationEn = q.explanationEn,
                     explanationBn = q.explanationBn,
-                    marks = q.marks
+                    marks = q.marks,
+                    provenance = q.provenance.id,
+                    sourceAttribution = q.sourceAttribution
                 )
             })
             Result.success(lessons.size + questions.size)
@@ -227,11 +234,13 @@ class AcademicProgressRepository(
     suspend fun toggleBookmark(
         question: QuestionItem,
         isMistake: Boolean = false,
-        note: String = ""
+        note: String = "",
+        bookId: String = ""
     ) {
         dao.upsertBookmark(
             LocalBookmarkEntity(
                 questionId = question.id,
+                bookId = bookId.ifBlank { question.bookId },
                 subjectId = question.subjectId,
                 chapterId = question.chapterId,
                 topicId = question.topicId,
@@ -245,12 +254,13 @@ class AcademicProgressRepository(
         dao.deleteBookmark(questionId)
     }
 
-    suspend fun addToRevisionQueue(question: QuestionItem, markWrong: Boolean = false) {
+    suspend fun addToRevisionQueue(question: QuestionItem, markWrong: Boolean = false, bookId: String = "") {
         val existing = dao.getRevision(question.id)
         if (existing == null) {
             dao.upsertRevision(
                 LocalRevisionEntity(
                     itemId = question.id,
+                    bookId = bookId.ifBlank { question.bookId },
                     subjectId = question.subjectId,
                     chapterId = question.chapterId,
                     topicId = question.topicId,
@@ -303,7 +313,8 @@ class AcademicProgressRepository(
     suspend fun recordLessonCompleted(
         userId: String,
         lesson: StudyLesson,
-        isOnline: Boolean
+        isOnline: Boolean,
+        bookId: String = ""
     ): Result<Int> {
         val xp = 20
         val idempotencyKey = "lesson_${lesson.id}"
@@ -312,6 +323,7 @@ class AcademicProgressRepository(
             userId = userId,
             recordType = "lesson",
             refId = lesson.id,
+            bookId = bookId,
             subjectId = lesson.subjectId,
             chapterId = lesson.chapterId,
             topicId = lesson.topicId,
@@ -340,7 +352,8 @@ class AcademicProgressRepository(
         totalMarks: Double,
         summary: String,
         isOnline: Boolean,
-        isPromotionExam: Boolean = false
+        isPromotionExam: Boolean = false,
+        bookId: String = ""
     ): Result<Int> {
         val baseXp = if (recordType == "exam") 30 else 10
         val bonusXp = correctCount * 3
@@ -356,6 +369,7 @@ class AcademicProgressRepository(
             userId = userId,
             recordType = recordType,
             refId = refId,
+            bookId = bookId,
             subjectId = subjectId,
             chapterId = chapterId,
             topicId = topicId,
@@ -375,7 +389,8 @@ class AcademicProgressRepository(
         userId: String,
         subjectId: String,
         focusedMinutes: Int,
-        isOnline: Boolean
+        isOnline: Boolean,
+        bookId: String = ""
     ): Result<Int> {
         val mins = focusedMinutes.coerceAtLeast(1)
         val xp = (mins * 2).coerceIn(10, 120)
@@ -384,6 +399,7 @@ class AcademicProgressRepository(
             userId = userId,
             recordType = "pomodoro",
             refId = "pomodoro_${subjectId}_${mins}m",
+            bookId = bookId,
             subjectId = subjectId,
             chapterId = null,
             topicId = null,
@@ -404,7 +420,8 @@ class AcademicProgressRepository(
         subjectId: String,
         reviewedCount: Int,
         masteredCount: Int,
-        isOnline: Boolean
+        isOnline: Boolean,
+        bookId: String = ""
     ): Result<Int> {
         val reviewed = reviewedCount.coerceAtLeast(1)
         val mastered = masteredCount.coerceIn(0, reviewed)
@@ -415,6 +432,7 @@ class AcademicProgressRepository(
             userId = userId,
             recordType = "flashcard",
             refId = "flashcards_$subjectId",
+            bookId = bookId,
             subjectId = subjectId,
             chapterId = null,
             topicId = null,
@@ -437,7 +455,8 @@ class AcademicProgressRepository(
         score: Double,
         totalMarks: Double,
         summary: String,
-        isOnline: Boolean
+        isOnline: Boolean,
+        bookId: String = ""
     ): Result<Int> {
         val todayKey = GamificationCatalog.currentDayKey()
         val xp = (40 + correctCount * 5).coerceIn(40, 150)
@@ -447,6 +466,7 @@ class AcademicProgressRepository(
             userId = userId,
             recordType = "daily_challenge",
             refId = idempotencyKey,
+            bookId = bookId,
             subjectId = subjectId,
             chapterId = null,
             topicId = null,
@@ -467,6 +487,7 @@ class AcademicProgressRepository(
         userId: String,
         recordType: String,
         refId: String,
+        bookId: String,
         subjectId: String,
         chapterId: String?,
         topicId: String?,
@@ -498,6 +519,7 @@ class AcademicProgressRepository(
                     userId = GuestDataRepository.GUEST_UID,
                     actionType = recordType,
                     refId = refId,
+                    bookId = bookId,
                     subjectId = subjectId,
                     chapterId = chapterId.orEmpty(),
                     topicId = topicId.orEmpty(),
@@ -537,6 +559,7 @@ class AcademicProgressRepository(
                 userId = userId,
                 actionType = recordType,
                 refId = refId,
+                bookId = bookId,
                 subjectId = subjectId,
                 chapterId = chapterId.orEmpty(),
                 topicId = topicId.orEmpty(),
@@ -560,6 +583,7 @@ class AcademicProgressRepository(
                     "userId" to userId,
                     "recordType" to recordType,
                     "refId" to refId,
+                    "bookId" to bookId.ifBlank { null },
                     "subjectId" to subjectId,
                     "chapterId" to chapterId,
                     "topicId" to topicId,
@@ -610,6 +634,7 @@ class AcademicProgressRepository(
                 userId = userId,
                 actionType = recordType,
                 refId = refId,
+                bookId = bookId,
                 subjectId = subjectId,
                 chapterId = chapterId.orEmpty(),
                 topicId = topicId.orEmpty(),
@@ -653,6 +678,7 @@ class AcademicProgressRepository(
         userId: String,
         actionType: String,
         refId: String,
+        bookId: String,
         subjectId: String,
         chapterId: String,
         topicId: String,
@@ -668,6 +694,7 @@ class AcademicProgressRepository(
                 userId = userId,
                 actionType = actionType,
                 refId = refId,
+                bookId = bookId,
                 subjectId = subjectId,
                 chapterId = chapterId,
                 topicId = topicId,
@@ -687,7 +714,8 @@ class AcademicProgressRepository(
         subjectId: String,
         planType: String,
         targetDateEpochMs: Long,
-        minutesPerDay: Long
+        minutesPerDay: Long,
+        bookId: String = ""
     ): Result<String> {
         val planId = "plan_${UUID.randomUUID().toString().take(12)}"
         if (userId == GuestDataRepository.GUEST_UID) {
@@ -695,6 +723,7 @@ class AcademicProgressRepository(
                 LocalStudyPlanEntity(
                     id = planId,
                     userId = GuestDataRepository.GUEST_UID,
+                    bookId = bookId,
                     title = title.trim().take(118),
                     subjectId = subjectId,
                     planType = planType,
@@ -712,6 +741,7 @@ class AcademicProgressRepository(
                 mapOf(
                     "userId" to userId,
                     "title" to title.trim().take(118),
+                    "bookId" to bookId.ifBlank { null },
                     "subjectId" to subjectId,
                     "planType" to planType,
                     "targetDateEpochMs" to targetDateEpochMs,
@@ -719,7 +749,7 @@ class AcademicProgressRepository(
                     "completed" to false,
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
-                )
+                ).filterValues { it != null }
             ).await()
             Result.success(planId)
         } catch (e: CancellationException) {
@@ -791,6 +821,9 @@ class AcademicProgressRepository(
                 (0 until optionsBnArr.length()).map { optionsBnArr.getString(it) }
             } else optionsEn
 
+            val provenanceStr = json?.optString("provenance")
+            val provenance = QuestionProvenance.entries.find { it.id == provenanceStr }
+                ?: QuestionProvenance.STUDYQUEST_ORIGINAL
             QuestionItem(
                 id = doc.id,
                 curriculumVersion = doc.curriculumVersion,
@@ -798,6 +831,7 @@ class AcademicProgressRepository(
                 subjectId = doc.subjectId,
                 chapterId = doc.chapterId ?: "ch_custom",
                 topicId = doc.topicId ?: "topic_custom",
+                bookId = json?.optString("bookId").orEmpty(),
                 board = doc.sourceAttribution ?: "StudyQuest Cloud Editorial",
                 type = QuestionType.entries.find { it.id == json?.optString("type") } ?: QuestionType.SINGLE_MCQ,
                 difficulty = QuestionDifficulty.entries.find { it.id == json?.optString("difficulty") } ?: QuestionDifficulty.MEDIUM,
@@ -808,6 +842,7 @@ class AcademicProgressRepository(
                 correctOptionIndices = listOf(json?.optInt("correctIndex", 0) ?: 0),
                 explanationEn = json?.optString("explanationEn")?.ifBlank { doc.titleEn } ?: doc.titleEn,
                 explanationBn = json?.optString("explanationBn")?.ifBlank { doc.titleBn } ?: doc.titleBn,
+                provenance = provenance,
                 sourceAttribution = doc.sourceAttribution ?: "StudyQuest Published Content",
                 publicationStatus = doc.status,
                 version = doc.version.toInt()
@@ -815,6 +850,14 @@ class AcademicProgressRepository(
         } catch (_: Exception) {
             null
         }
+    }
+
+    fun filterRecordsForActiveBook(
+        records: List<LearningRecordDoc>,
+        activeBookId: String
+    ): List<LearningRecordDoc> {
+        if (activeBookId.isBlank()) return records
+        return records.filter { it.bookId.isNullOrBlank() || it.bookId == activeBookId }
     }
 
     fun computeWeakTopics(records: List<LearningRecordDoc>): List<WeakTopicStat> {

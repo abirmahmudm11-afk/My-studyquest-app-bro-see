@@ -3,12 +3,67 @@ package com.example.data.local
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+@Entity(tableName = "cached_books")
+data class CachedBookEntity(
+    @PrimaryKey val bookId: String,
+    val academicYear: String,
+    val classId: String,
+    val curriculumVersion: String,
+    val groupId: String,
+    val subjectId: String,
+    val titleEn: String,
+    val titleBn: String,
+    val editionLabelEn: String,
+    val editionLabelBn: String,
+    val officialSourceUrl: String,
+    val pdfUrl: String?,
+    val localPdfPath: String?,
+    val downloadStatus: String, // "not_downloaded", "downloading", "installed", "failed"
+    val downloadProgress: Int = 0,
+    val fileSizeBytes: Long = 0L,
+    val totalPages: Int = 0,
+    val lastReadPage: Int = 0,
+    val installedOfflineAtMs: Long = 0L,
+    val isCustomImported: Boolean = false
+)
+
+@Entity(tableName = "cached_book_chapters")
+data class BookChapterEntity(
+    @PrimaryKey val id: String,
+    val bookId: String,
+    val orderIndex: Int,
+    val titleEn: String,
+    val titleBn: String,
+    val summaryEn: String,
+    val summaryBn: String,
+    val startPage: Int,
+    val endPage: Int,
+    val keyTopicsCsv: String,
+    val formulasCsv: String,
+    val studyNotesEn: String,
+    val studyNotesBn: String,
+    val completed: Boolean = false
+)
+
+@Entity(tableName = "book_page_notes")
+data class BookPageNoteEntity(
+    @PrimaryKey val id: String,
+    val bookId: String,
+    val pageNumber: Int,
+    val chapterId: String? = null,
+    val title: String,
+    val noteText: String,
+    val isBookmark: Boolean = false,
+    val updatedAtMs: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "cached_lessons")
 data class CachedLessonEntity(
     @PrimaryKey val id: String,
     val classId: String,
     val subjectId: String,
     val chapterId: String,
+    val bookId: String = "",
     val titleEn: String,
     val titleBn: String,
     val explanationEn: String,
@@ -27,6 +82,7 @@ data class CachedQuestionEntity(
     val subjectId: String,
     val chapterId: String,
     val topicId: String,
+    val bookId: String = "",
     val questionType: String,
     val difficulty: String,
     val promptEn: String,
@@ -37,12 +93,15 @@ data class CachedQuestionEntity(
     val explanationEn: String,
     val explanationBn: String,
     val marks: Int,
+    val provenance: String = "studyquest_original",
+    val sourceAttribution: String = "StudyQuest Original Practice Item",
     val downloadedAtMs: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "local_bookmarks")
 data class LocalBookmarkEntity(
     @PrimaryKey val questionId: String,
+    val bookId: String = "",
     val subjectId: String,
     val chapterId: String,
     val topicId: String,
@@ -54,6 +113,7 @@ data class LocalBookmarkEntity(
 @Entity(tableName = "local_revisions")
 data class LocalRevisionEntity(
     @PrimaryKey val itemId: String, // questionId or flashcardId
+    val bookId: String = "",
     val subjectId: String,
     val chapterId: String,
     val topicId: String,
@@ -72,6 +132,7 @@ data class PendingSyncActionEntity(
     val userId: String,
     val actionType: String, // "lesson", "practice", "exam"
     val refId: String,
+    val bookId: String = "",
     val subjectId: String,
     val chapterId: String,
     val topicId: String,
@@ -88,6 +149,7 @@ data class PendingSyncActionEntity(
 data class LocalStudyPlanEntity(
     @PrimaryKey val id: String,
     val userId: String,
+    val bookId: String = "",
     val title: String,
     val subjectId: String,
     val planType: String,
@@ -141,6 +203,7 @@ data class LocalStudyCircleNoteEntity(
 data class LocalStudySessionEntity(
     @PrimaryKey val id: String,
     val userId: String,
+    val bookId: String = "",
     val subjectId: String,
     val mode: String,
     val startedAtEpochMs: Long,
@@ -157,6 +220,7 @@ data class LocalStudySessionEntity(
 data class LocalStudyGoalEntity(
     @PrimaryKey val id: String,
     val userId: String,
+    val bookId: String = "",
     val title: String,
     val goalType: String,
     val periodType: String,

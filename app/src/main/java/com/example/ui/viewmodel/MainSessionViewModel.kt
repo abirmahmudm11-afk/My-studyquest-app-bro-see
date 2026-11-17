@@ -18,6 +18,8 @@ import com.example.core.StudyQuestPreferences
 import com.example.core.SurfaceStyle
 import com.example.core.ThemeMode
 import com.example.core.unwrapFirestoreMessage
+import com.example.data.curriculum.TextbookCatalog
+import com.example.data.local.CachedBookEntity
 import com.example.data.model.AiCreditLedgerDoc
 import com.example.data.model.AssignmentDefinitionDoc
 import com.example.data.model.AssignmentSubmissionDoc
@@ -25,6 +27,7 @@ import com.example.data.model.PublicProfile
 import com.example.data.model.PurchaseRecordDoc
 import com.example.data.model.StudyGoalDoc
 import com.example.data.model.SystemSettingsDoc
+import com.example.data.model.TextbookCatalogItem
 import com.example.data.model.UserBadgeDoc
 import com.example.data.model.UserNotificationDoc
 import com.example.data.model.UserQuestDoc
@@ -34,6 +37,7 @@ import com.example.data.model.XpTransactionDoc
 import com.example.data.repository.AdminStudioRepository
 import com.example.data.repository.AuthAndProfileRepository
 import com.example.data.repository.GamificationEngine
+import com.example.data.repository.TextbookDownloadRepository
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuthException
@@ -175,7 +179,10 @@ class PreAuthViewModel(
         classId: String,
         curriculumVersion: String,
         selectedSubjects: List<String>,
-        avatarId: String
+        avatarId: String,
+        academicGroup: String = "general",
+        activeBookYear: String = "2026",
+        activeBookId: String = ""
     ) {
         viewModelScope.launch {
             preferences.completeGuestQuickSetup(
@@ -183,7 +190,10 @@ class PreAuthViewModel(
                 classId = classId,
                 curriculumVersion = curriculumVersion,
                 selectedSubjects = selectedSubjects,
-                avatarId = avatarId
+                avatarId = avatarId,
+                academicGroup = academicGroup,
+                activeBookYear = activeBookYear,
+                activeBookId = activeBookId
             )
         }
     }
@@ -622,7 +632,8 @@ class MainSessionViewModel(
     connectivityObserver: ConnectivityObserver,
     private val appContext: Context? = null,
     private val gamificationEngine: GamificationEngine? = null,
-    private val billingProvider: BillingAndAdProvider? = null
+    private val billingProvider: BillingAndAdProvider? = null,
+    private val textbookRepo: TextbookDownloadRepository? = null
 ) : ViewModel() {
 
     val localPreferences: StateFlow<LocalUserPreferences> = preferences.preferencesFlow
@@ -693,8 +704,53 @@ class MainSessionViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
     val unlockedCosmetics: StateFlow<Set<String>> = authRepo.observeUnlockedCosmetics(currentUser.uid)
-        .catch { emit(setOf("owl_classic")) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), setOf("owl_classic"))
+        .catch { emit(setOf("crest_indigo")) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), setOf("crest_indigo"))
+
+    val cloudTextbooks: StateFlow<List<TextbookCatalogItem>> = (textbookRepo?.observeCloudTextbookCatalog()
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val cachedBooks: StateFlow<List<CachedBookEntity>> = (textbookRepo?.observeCachedBooks()
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val availableBooksForProfile: StateFlow<List<TextbookCatalogItem>> = combine(
+        profile,
+        cloudTextbooks
+    ) { prof, cloud ->
+        val p = prof ?: return@combine TextbookCatalog.books
+        val merged = (cloud + TextbookCatalog.books).distinctBy { it.id }
+        val filtered = TextbookCatalog.booksFor(
+            academicYear = p.activeBookYear.ifBlank { "2026" },
+            classId = p.classId,
+            curriculumVersion = p.curriculumVersion,
+            academicGroup = p.academicGroup,
+            extraCloudBooks = cloud
+        )
+        filtered.ifEmpty { merged.filter { it.classId == p.classId } }.ifEmpty { merged }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), TextbookCatalog.books)
+
+    val activeLockedBook: StateFlow<TextbookCatalogItem> = combine(
+        profile,
+        cloudTextbooks
+    ) { prof, cloud ->
+        val p = prof
+        if (p == null) {
+            TextbookCatalog.books.first()
+        } else {
+            val found = TextbookCatalog.bookById(p.activeBookId, cloud)
+            found ?: TextbookCatalog.defaultBookFor(
+                classId = p.classId,
+                curriculumVersion = p.curriculumVersion,
+                academicGroup = p.academicGroup,
+                academicYear = p.activeBookYear.ifBlank { "2026" },
+                extraCloudBooks = cloud
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), TextbookCatalog.books.first())
 
     val badges: StateFlow<List<UserBadgeDoc>> = (gamificationEngine?.observeUserBadges(currentUser.uid)
         ?: kotlinx.coroutines.flow.flowOf(emptyList()))
@@ -846,6 +902,18 @@ class MainSessionViewModel(
                         withTimeout(8_000L) { billingProvider?.ensureFreeSubscriptionInitialized(currentUser.uid) }
                     }
                 }
+                launch {
+                    val book = TextbookCatalog.bookById(loadedProfile.activeBookId)
+                        ?: TextbookCatalog.defaultBookFor(
+                            loadedProfile.classId,
+                            loadedProfile.curriculumVersion,
+                            loadedProfile.academicGroup,
+                            loadedProfile.activeBookYear.ifBlank { "2026" }
+                        )
+                    runCatching {
+                        textbookRepo?.ensureBookInstalledOffline(book, forceRedownloadPdf = false, language = currentLang)
+                    }
+                }
             }.onFailure { err ->
                 val msg = unwrapFirestoreMessage(err, err.localizedMessage ?: "Profile bootstrap failed")
                 _bootstrapError.value = msg
@@ -871,10 +939,17 @@ class MainSessionViewModel(
         avatarId: String,
         academicGroup: String = "general",
         dailyGoalMinutes: Long = 30L,
-        studyGoalTitle: String = ""
+        studyGoalTitle: String = "",
+        activeBook: TextbookCatalogItem? = null
     ) {
         viewModelScope.launch {
             _isCompletingSetup.value = true
+            val lang = localPreferences.value.uiLanguage
+            val resolvedBook = activeBook ?: TextbookCatalog.defaultBookFor(
+                classId = classId,
+                curriculumVersion = curriculumVersion,
+                academicGroup = academicGroup
+            )
             val res = authRepo.completeAcademicSetup(
                 userId = currentUser.uid,
                 displayName = displayName,
@@ -884,23 +959,64 @@ class MainSessionViewModel(
                 avatarId = avatarId,
                 academicGroup = academicGroup,
                 dailyGoalMinutes = dailyGoalMinutes,
-                studyGoalTitle = studyGoalTitle
+                studyGoalTitle = studyGoalTitle,
+                activeBook = resolvedBook
             )
             res.onSuccess {
                 _bootstrappedProfile.value = (_bootstrappedProfile.value ?: profile.value)?.copy(
                     displayName = displayName.trim().ifBlank { "Student" }.take(60),
                     classId = classId,
                     curriculumVersion = curriculumVersion,
-                    selectedSubjects = selectedSubjects.take(20),
+                    activeBookId = resolvedBook.id,
+                    activeBookTitle = if (lang == AppLanguage.BANGLA) resolvedBook.titleBn else resolvedBook.titleEn,
+                    activeBookSubjectId = resolvedBook.subjectId,
+                    activeBookYear = resolvedBook.academicYear,
+                    selectedSubjects = (listOf(resolvedBook.subjectId) + selectedSubjects).distinct().take(20),
                     avatarId = avatarId,
                     academicGroup = academicGroup,
                     dailyGoalMinutes = dailyGoalMinutes.coerceIn(5L, 360L),
                     onboardingCompleted = true
                 )
+                launch {
+                    textbookRepo?.ensureBookInstalledOffline(resolvedBook, forceRedownloadPdf = false, language = lang)
+                }
             }.onFailure {
                 _bannerMessage.value = it.localizedMessage ?: "Setup failed"
             }
             _isCompletingSetup.value = false
+        }
+    }
+
+    fun switchActiveBook(book: TextbookCatalogItem) {
+        viewModelScope.launch {
+            val lang = localPreferences.value.uiLanguage
+            val res = authRepo.switchActiveBook(currentUser.uid, book, lang)
+            res.onSuccess {
+                _bootstrappedProfile.value = (_bootstrappedProfile.value ?: profile.value)?.copy(
+                    activeBookId = book.id,
+                    activeBookTitle = if (lang == AppLanguage.BANGLA) book.titleBn else book.titleEn,
+                    activeBookSubjectId = book.subjectId,
+                    activeBookYear = book.academicYear,
+                    curriculumVersion = book.curriculumVersion,
+                    selectedSubjects = listOf(book.subjectId)
+                )
+                _bannerMessage.value = if (lang == AppLanguage.BANGLA) {
+                    "বই লক ও অফলাইনে ইনস্টল করা হচ্ছে: ${book.titleBn}"
+                } else {
+                    "Locked & installing offline: ${book.titleEn}"
+                }
+                launch {
+                    textbookRepo?.ensureBookInstalledOffline(book, forceRedownloadPdf = false, language = lang)
+                }
+            }.onFailure {
+                _bannerMessage.value = unwrapFirestoreMessage(it, "Could not switch textbook")
+            }
+        }
+    }
+
+    fun saveAgeAndConsent(ageBracket: String, guardianConsentStatus: String) {
+        viewModelScope.launch {
+            authRepo.saveAgeAndConsent(currentUser.uid, ageBracket, guardianConsentStatus)
         }
     }
 

@@ -38,6 +38,10 @@
         "pinnedBadgeIds": { "type": "array" },
         "unlockedTrophyTitles": { "type": "array" },
         "totalFocusMinutes": { "type": "integer" },
+        "activeBookId": { "type": "string" },
+        "activeBookTitle": { "type": "string" },
+        "activeBookSubjectId": { "type": "string" },
+        "activeBookYear": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -95,6 +99,7 @@
         "userId": { "type": "string" },
         "recordType": { "type": "string", "enum": ["lesson", "practice", "exam", "bookmark", "revision", "pomodoro", "flashcard", "daily_challenge", "focus_session", "assignment", "goal", "promotion_exam", "ai_video", "community"] },
         "refId": { "type": "string" },
+        "bookId": { "type": "string" },
         "subjectId": { "type": "string" },
         "chapterId": { "type": "string" },
         "topicId": { "type": "string" },
@@ -151,6 +156,7 @@
       "properties": {
         "userId": { "type": "string" },
         "title": { "type": "string" },
+        "bookId": { "type": "string" },
         "subjectId": { "type": "string" },
         "planType": { "type": "string", "enum": ["daily", "weekly", "exam_countdown", "chapter_goal"] },
         "targetDateEpochMs": { "type": "integer" },
@@ -222,6 +228,7 @@
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
+        "bookId": { "type": "string" },
         "subjectId": { "type": "string" },
         "chapterId": { "type": "string" },
         "mode": { "type": "string", "enum": ["pomodoro", "deep_focus", "custom"] },
@@ -246,6 +253,7 @@
         "title": { "type": "string" },
         "goalType": { "type": "string", "enum": ["time_minutes", "questions_solved", "chapters_finished", "sessions_count"] },
         "periodType": { "type": "string", "enum": ["daily", "weekly", "custom"] },
+        "bookId": { "type": "string" },
         "subjectId": { "type": "string" },
         "targetValue": { "type": "integer" },
         "currentValue": { "type": "integer" },
@@ -311,6 +319,7 @@
         "contentType": { "type": "string", "enum": ["lesson", "question", "exam_template"] },
         "classId": { "type": "string" },
         "curriculumVersion": { "type": "string" },
+        "bookId": { "type": "string" },
         "subjectId": { "type": "string" },
         "chapterId": { "type": "string" },
         "topicId": { "type": "string" },
@@ -660,7 +669,7 @@
       "type": "object",
       "properties": {
         "reporterUid": { "type": "string" },
-        "targetType": { "type": "string", "enum": ["user", "message", "group", "question", "match", "community_post", "community_comment"] },
+        "targetType": { "type": "string", "enum": ["user", "message", "group", "question", "book", "match", "community_post", "community_comment"] },
         "targetId": { "type": "string" },
         "reason": { "type": "string" },
         "details": { "type": "string" },
@@ -717,6 +726,56 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["aiSolverEnabled", "currentSeasonId", "seasonNameEn", "seasonNameBn", "weeklyResetTz", "updatedAt"]
+    },
+    "TextbookCatalog": {
+      "title": "TextbookCatalog",
+      "description": "NCTB 2026 & 2027 curriculum textbook catalog entry with offline pack metadata and official PDF links.",
+      "type": "object",
+      "properties": {
+        "bookId": { "type": "string" },
+        "academicYear": { "type": "string", "enum": ["2026", "2027"] },
+        "classId": { "type": "string" },
+        "curriculumVersion": { "type": "string", "enum": ["bangla", "english"] },
+        "groupId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "titleBn": { "type": "string" },
+        "bookCode": { "type": "string" },
+        "editionLabelEn": { "type": "string" },
+        "editionLabelBn": { "type": "string" },
+        "officialSourceUrl": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "estimatedPages": { "type": "integer" },
+        "estimatedSizeMb": { "type": "number" },
+        "status": { "type": "string", "enum": ["draft", "published"] },
+        "authorUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookId", "academicYear", "classId", "curriculumVersion", "subjectId", "titleEn", "titleBn", "status", "authorUid", "createdAt", "updatedAt"]
+    },
+    "TextbookChapter": {
+      "title": "TextbookChapter",
+      "description": "Structured NCTB textbook chapter index, study notes, formulas, and page range linked to a TextbookCatalog bookId.",
+      "type": "object",
+      "properties": {
+        "bookId": { "type": "string" },
+        "orderIndex": { "type": "integer" },
+        "titleEn": { "type": "string" },
+        "titleBn": { "type": "string" },
+        "summaryEn": { "type": "string" },
+        "summaryBn": { "type": "string" },
+        "startPage": { "type": "integer" },
+        "endPage": { "type": "integer" },
+        "keyTopicsEn": { "type": "array" },
+        "keyTopicsBn": { "type": "array" },
+        "formulas": { "type": "array" },
+        "studyNotesEn": { "type": "string" },
+        "studyNotesBn": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "published"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookId", "orderIndex", "titleEn", "titleBn", "status", "updatedAt"]
     }
   },
   "firestore": {
@@ -741,6 +800,8 @@
     "/community_posts/{postId}/comments/{commentId}": { "schema": { "$ref": "#/entities/CommunityComment" }, "description": "Replies on class community posts" },
     "/learning_videos/{videoId}": { "schema": { "$ref": "#/entities/LearningVideo" }, "description": "AI-generated interactive storyboard learning videos" },
     "/academic_content/{contentId}": { "schema": { "$ref": "#/entities/AcademicContent" }, "description": "Published & editorial Bangladesh curriculum content" },
+    "/textbook_catalog/{bookId}": { "schema": { "$ref": "#/entities/TextbookCatalog" }, "description": "NCTB 2026 & 2027 textbook catalog entries" },
+    "/textbook_chapters/{chapterId}": { "schema": { "$ref": "#/entities/TextbookChapter" }, "description": "Structured NCTB textbook chapters and study notes" },
     "/friend_requests/{requestId}": { "schema": { "$ref": "#/entities/FriendRequest" }, "description": "Friend discovery requests" },
     "/friendships/{friendshipId}": { "schema": { "$ref": "#/entities/Friendship" }, "description": "Mutual accepted friendships" },
     "/blocked_users/{blockId}": { "schema": { "$ref": "#/entities/BlockedUser" }, "description": "User block records" },

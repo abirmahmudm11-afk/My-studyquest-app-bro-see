@@ -9,6 +9,50 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface StudyQuestDao {
 
+    // --- Offline Textbooks, Chapters & Page Notes ---
+    @Query("SELECT * FROM cached_books ORDER BY installedOfflineAtMs DESC")
+    fun observeCachedBooks(): Flow<List<CachedBookEntity>>
+
+    @Query("SELECT * FROM cached_books WHERE bookId = :bookId LIMIT 1")
+    suspend fun getCachedBook(bookId: String): CachedBookEntity?
+
+    @Query("SELECT * FROM cached_books WHERE bookId = :bookId LIMIT 1")
+    fun observeCachedBook(bookId: String): Flow<CachedBookEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertCachedBook(book: CachedBookEntity)
+
+    @Query("UPDATE cached_books SET lastReadPage = :page WHERE bookId = :bookId")
+    suspend fun updateBookLastReadPage(bookId: String, page: Int)
+
+    @Query("UPDATE cached_books SET downloadStatus = :status, downloadProgress = :progress WHERE bookId = :bookId")
+    suspend fun updateBookDownloadProgress(bookId: String, status: String, progress: Int)
+
+    @Query("DELETE FROM cached_books WHERE bookId = :bookId")
+    suspend fun deleteCachedBook(bookId: String)
+
+    @Query("SELECT * FROM cached_book_chapters WHERE bookId = :bookId ORDER BY orderIndex ASC")
+    fun observeBookChapters(bookId: String): Flow<List<BookChapterEntity>>
+
+    @Query("SELECT * FROM cached_book_chapters WHERE bookId = :bookId ORDER BY orderIndex ASC")
+    suspend fun getBookChapters(bookId: String): List<BookChapterEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertBookChapters(chapters: List<BookChapterEntity>)
+
+    @Query("UPDATE cached_book_chapters SET completed = 1 WHERE id = :chapterEntityId")
+    suspend fun markBookChapterCompleted(chapterEntityId: String)
+
+    @Query("SELECT * FROM book_page_notes WHERE bookId = :bookId ORDER BY pageNumber ASC, updatedAtMs DESC")
+    fun observeBookNotes(bookId: String): Flow<List<BookPageNoteEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertBookPageNote(note: BookPageNoteEntity)
+
+    @Query("DELETE FROM book_page_notes WHERE id = :noteId")
+    suspend fun deleteBookPageNote(noteId: String)
+
+    // --- Cached Lessons & Questions ---
     @Query("SELECT * FROM cached_lessons ORDER BY downloadedAtMs DESC")
     fun observeCachedLessons(): Flow<List<CachedLessonEntity>>
 
@@ -33,6 +77,7 @@ interface StudyQuestDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertQuestions(questions: List<CachedQuestionEntity>)
 
+    // --- Bookmarks & Revisions ---
     @Query("SELECT * FROM local_bookmarks ORDER BY savedAtMs DESC")
     fun observeBookmarks(): Flow<List<LocalBookmarkEntity>>
 
@@ -51,6 +96,7 @@ interface StudyQuestDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertRevision(revision: LocalRevisionEntity)
 
+    // --- Pending Sync Actions ---
     @Query("SELECT * FROM pending_sync_actions WHERE synced = 0 ORDER BY createdAtMs ASC")
     fun observePendingSyncActions(): Flow<List<PendingSyncActionEntity>>
 

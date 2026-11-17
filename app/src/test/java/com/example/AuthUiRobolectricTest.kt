@@ -293,6 +293,7 @@ class AuthUiRobolectricTest {
         val deadline = System.currentTimeMillis() + 2000L
         var chosen = prefs.preferencesFlow.first().hasChosenInitialLanguage
         while (chosen && System.currentTimeMillis() < deadline) {
+            Shadows.shadowOf(Looper.getMainLooper()).idle()
             Thread.sleep(25L)
             chosen = prefs.preferencesFlow.first().hasChosenInitialLanguage
         }

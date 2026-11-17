@@ -169,7 +169,8 @@ class AiDoubtSolverRepository(
         language: AppLanguage,
         subscription: UserSubscriptionDoc,
         history: List<AiChatMessageDoc> = emptyList(),
-        requestId: String = "req_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(5)}"
+        requestId: String = "req_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(5)}",
+        activeBookTitle: String = ""
     ): Flow<AiStreamUpdate> = flow {
         val cleanText = userText.trim()
         if (cleanText.isBlank()) {
@@ -241,9 +242,10 @@ class AiDoubtSolverRepository(
         } else {
             "Respond clearly in academic English step by step."
         }
+        val bookContext = if (activeBookTitle.isNotBlank()) ", Active Locked Textbook=$activeBookTitle" else ""
         val systemPrompt = "$STUDYQUEST_HELPER_SYSTEM_PROMPT\n" +
             "Active Tool: ${toolSpec.titleEn} (${toolSpec.subtitleEn}).\n" +
-            "Student Context: Class=$classId, Subject=$subjectName. $langNote"
+            "Student Context: Class=$classId, Subject=$subjectName$bookContext. $langNote"
 
         val chatHistory = history.takeLast(8).map { msg ->
             (if (msg.role == "assistant") "assistant" else "user") to msg.text.take(1500)
@@ -406,7 +408,8 @@ class AiDoubtSolverRepository(
         studentQuestion: String,
         classId: String,
         subjectName: String,
-        language: AppLanguage
+        language: AppLanguage,
+        activeBookTitle: String = ""
     ): Flow<String> = flow {
         val cleanQuestion = studentQuestion.trim()
         if (cleanQuestion.isBlank()) {
@@ -419,6 +422,9 @@ class AiDoubtSolverRepository(
         }
         val composedPrompt = buildString {
             appendLine("Class: $classId | Subject: $subjectName")
+            if (activeBookTitle.isNotBlank()) {
+                appendLine("Active Locked Textbook: $activeBookTitle")
+            }
             appendLine(langInstruction)
             if (questionPrompt.isNotBlank()) {
                 appendLine("Reference Problem / Context:")
@@ -467,13 +473,15 @@ class AiDoubtSolverRepository(
         classId: String,
         subjectName: String,
         language: AppLanguage,
-        @Suppress("UNUSED_PARAMETER") subscription: UserSubscriptionDoc = UserSubscriptionDoc()
+        @Suppress("UNUSED_PARAMETER") subscription: UserSubscriptionDoc = UserSubscriptionDoc(),
+        activeBookTitle: String = ""
     ): Flow<String> = streamDirectGeminiDoubt(
         questionPrompt = questionPrompt,
         studentQuestion = studentQuestion,
         classId = classId,
         subjectName = subjectName,
-        language = language
+        language = language,
+        activeBookTitle = activeBookTitle
     )
 
     companion object {

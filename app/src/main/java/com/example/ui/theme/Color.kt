@@ -2,107 +2,158 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light Theme — Vivid Playful Quest Palette (Bright Gamified Learning Cards + Electric Accents)
-val VividLightCanvas = Color(0xFFF3F6FF)      // Crisp airy sky-indigo canvas
-val PureCardWhite = Color(0xFFFFFFFF)         // Elevated pure white card surface
-val VividSoftFill = Color(0xFFEAF0FF)         // Tinted soft indigo container fill
-val VividSurfaceVariant = Color(0xFFE2E8F8)   // Playful tonal variant
+// Light Theme — Premium Soft Minimalism & Editorial Quest Palette
+val WarmParchmentCanvas = Color(0xFFF7F8F4)       // Background
+val PureEditorialSurface = Color(0xFFFFFFFF)      // Primary surface
+val SoftStoneSurface = Color(0xFFF1F3ED)          // Subtle secondary fill
+val EditorialSurfaceVariant = Color(0xFFEDF0E8)   // Tonal card / chip fill
 
-// Primary Brand Accents — Electric Indigo, Vivid Emerald, Sunset Coral, Berry Violet, Sky Cyan
-val ElectricIndigo = Color(0xFF4F46E5)        // Primary hero & CTA color
-val ElectricIndigoDark = Color(0xFF3730A3)
-val IndigoContainer = Color(0xFFE0E7FF)
-val OnIndigoContainer = Color(0xFF1E1B4B)
+// Brand Forest Greens & Quest Gold
+val BrandForestGreen = Color(0xFF286A50)          // Brand green primary CTA & highlights
+val DeepForestGreen = Color(0xFF1F553F)           // Deep green hover / contrast hero
+val SoftSageGreen = Color(0xFFE8F1EB)             // Soft green active capsules & highlights
+val OnSoftSageGreen = Color(0xFF163D2D)
 
-val VividEmerald = Color(0xFF10B981)          // Success, verified answers, mastery rings
-val VividEmeraldDark = Color(0xFF059669)
-val EmeraldContainer = Color(0xFFD1FAE5)
-val OnEmeraldContainer = Color(0xFF064E3B)
+val QuestGold = Color(0xFFE7B95F)                 // Quest gold milestones & streak ribbons
+val DeepQuestGold = Color(0xFFB38326)             // High-contrast gold ink on light
+val SoftQuestGold = Color(0xFFFAF1DD)             // Soft gold streaks & positive highlights
+val OnSoftQuestGold = Color(0xFF543C0A)
 
-val SunsetCoral = Color(0xFFF97316)           // Streak flame, lively highlights, badges
-val SunsetCoralContainer = Color(0xFFFFEDD5)
-val OnSunsetCoralContainer = Color(0xFF7C2D12)
+// Botanical & Mineral Supporting Accents (restrained, harmonious)
+val MineralTeal = Color(0xFF2D7D6F)
+val SoftMineralTeal = Color(0xFFE1F1EE)
+val OnSoftMineralTeal = Color(0xFF12423A)
 
-val BerryViolet = Color(0xFF8B5CF6)           // AI Doubt Solver, quests, XP rewards
-val BerryVioletContainer = Color(0xFFEDE9FE)
-val OnBerryVioletContainer = Color(0xFF4C1D95)
+val WarmTerracotta = Color(0xFFC97343)
+val SoftTerracotta = Color(0xFFFAECE4)
+val OnSoftTerracotta = Color(0xFF5D2D12)
 
-val SkyCyan = Color(0xFF06B6D4)               // Study Groups, live multiplayer rooms
-val SkyCyanContainer = Color(0xFFCFFAFE)
-val OnSkyCyanContainer = Color(0xFF164E63)
+val SlateBotanical = Color(0xFF3E6373)
+val SoftSlateBotanical = Color(0xFFE5EEF2)
 
-// Neutral Charcoal & Slate Typography Hierarchy
-val DeepInk = Color(0xFF0F172A)               // Crisp deep navy-charcoal body & heading ink
-val MutedSlate = Color(0xFF475569)            // Readable secondary ink
-val SubtleSlateAccent = Color(0xFF334155)
-val CoolOutline = Color(0xFFCBD5E1)
-val SubtleOutline = Color(0xFFE2E8F0)
+// Editorial Ink & Hairline Borders
+val DeepForestInk = Color(0xFF202C27)             // Main text
+val MutedMossInk = Color(0xFF758078)              // Secondary text
+val SubtleForestInk = Color(0xFF47544D)
+val EditorialBorder = Color(0xFFE7EBE5)           // Primary hairline border
+val StrongEditorialBorder = Color(0xFFD2D9CF)
 
-// Semantic Accents
-val AmberGold = Color(0xFFF59E0B)             // Gold streak, XP coins, trophies
-val SilverAccent = Color(0xFF94A3B8)          // Silver 2nd place podium & rank badge
-val BronzeAccent = Color(0xFFD97706)          // Bronze 3rd place podium & rank badge
-val AmberGoldContainer = Color(0xFFFEF3C7)
-val RoseAlert = Color(0xFFEF4444)             // Accessible red for errors & wrong answers
-val RoseAlertContainer = Color(0xFFFEE2E2)
-val AccessibleRed = Color(0xFFDC2626)
-val AccessibleRedContainer = Color(0xFFFEE2E2)
+// Semantic Status Tokens
+val EditorialSuccess = Color(0xFF27865C)
+val EditorialSuccessContainer = Color(0xFFE2F3EB)
+val OnEditorialSuccessContainer = Color(0xFF134830)
 
-// Semantic Compatibility Tokens mapped to the Vivid Playful Quest palette
-val CrispWhiteCanvas = VividLightCanvas
-val CoolNeutralFill = VividSoftFill
-val CoolSurfaceVariant = VividSurfaceVariant
-val ForestGreenPrimary = ElectricIndigo
-val ForestGreenDark = ElectricIndigoDark
-val SageContainer = IndigoContainer
-val OnSageContainer = OnIndigoContainer
-val NaturalGreen = VividEmerald
-val NaturalGreenContainer = EmeraldContainer
-val OnNaturalGreenContainer = OnEmeraldContainer
+val EditorialError = Color(0xFFC34F50)
+val EditorialErrorContainer = Color(0xFFFAE6E6)
+val OnEditorialErrorContainer = Color(0xFF6B1E1F)
 
-val PureWhite = PureCardWhite
-val SoftSlateCanvas = VividLightCanvas
-val SoftSlateContainer = VividSoftFill
-val ScholarGreen = VividEmerald
-val ScholarGreenContainer = EmeraldContainer
-val OnScholarGreenContainer = OnEmeraldContainer
-val CobaltPrimary = ElectricIndigo
-val CobaltDark = Color(0xFF1E1B4B)
-val CobaltContainer = IndigoContainer
-val OnCobaltContainer = OnIndigoContainer
-val TealSecondary = VividEmerald
-val TealContainer = EmeraldContainer
-val OnTealContainer = OnEmeraldContainer
-val VioletTertiary = BerryViolet
-val VioletContainer = BerryVioletContainer
-val OnVioletContainer = OnBerryVioletContainer
-val SkyCyanAccent = SkyCyan
+// Selective Frosted Liquid Glass Tokens (whisper-light editorial translucency)
+val GlassLightSurface = Color(0xE6FFFFFF)         // 90% frosted editorial white
+val GlassLightElevated = Color(0xDDE8F1EB)        // 86% frosted sage mist
+val GlassLightBorder = Color(0xD9FFFFFF)
+val GlassDarkSurface = Color(0xBF17221E)          // 75% dark pine glass
+val GlassDarkElevated = Color(0xCC1E2C27)         // 80% elevated dark pine glass
+val GlassDarkBorder = Color(0x409AA8A0)
 
-// Glassmorphism Surface Tokens
-val GlassLightSurface = Color(0xD9FFFFFF)       // 85% translucent frosted white
-val GlassLightElevated = Color(0xCCEEF2FF)      // 80% frosted indigo mist
-val GlassLightBorder = Color(0xCCFFFFFF)        // Specular bright white highlight
-val GlassDarkSurface = Color(0xA6162040)        // 65% translucent midnight glass
-val GlassDarkElevated = Color(0xBF1E293B)       // 75% frosted slate-navy glass
-val GlassDarkBorder = Color(0x4D94A3B8)         // Luminous cool glass edge
+// Coordinated Dark Theme — Deep Charcoal-Green Night Studio
+val DarkForestBackground = Color(0xFF111916)
+val DarkForestSurface = Color(0xFF17221E)
+val DarkForestSurfaceElevated = Color(0xFF1E2C27)
+val DarkForestSurfaceHigh = Color(0xFF263731)
+val DarkForestPrimary = Color(0xFF499F7C)
+val DarkForestPrimaryContainer = Color(0xFF1F3B30)
+val DarkForestSecondary = Color(0xFF6EC2A3)
+val DarkForestSecondaryContainer = Color(0xFF183D32)
+val DarkForestTertiary = Color(0xFFE7B95F)
+val DarkForestTertiaryContainer = Color(0xFF362B14)
+val DarkOnSurface = Color(0xFFEDF2EE)
+val DarkOnSurfaceVariant = Color(0xFF9AA8A0)
+val DarkOutline = Color(0xFF283932)
+val DarkErrorRose = Color(0xFFE27C7D)
+val DarkErrorContainer = Color(0xFF4B2122)
 
-// Accessible Dark Theme — Deep Midnight Quest Navy
-val DarkMidnightBackground = Color(0xFF0B1020)
-val DarkMidnightSurface = Color(0xFF141C36)
-val DarkMidnightSurfaceElevated = Color(0xFF1C2647)
-val DarkForestPrimary = Color(0xFF818CF8)       // Luminous indigo-periwinkle
-val DarkForestContainer = Color(0xFF2E296E)
-val DarkNaturalSecondary = Color(0xFF34D399)    // Bright emerald glow
-val DarkSlateTertiary = Color(0xFFA78BFA)       // Vivid violet
-val DarkSlateContainer = Color(0xFF3B1F6E)
+// Unified Compatibility Aliases (ensures all existing modules inherit the editorial forest palette)
+val PureCardWhite = PureEditorialSurface
+val PureWhite = PureEditorialSurface
+val VividLightCanvas = WarmParchmentCanvas
+val CrispWhiteCanvas = WarmParchmentCanvas
+val SoftSlateCanvas = WarmParchmentCanvas
+val VividSoftFill = SoftStoneSurface
+val CoolNeutralFill = SoftStoneSurface
+val SoftSlateContainer = SoftStoneSurface
+val VividSurfaceVariant = EditorialSurfaceVariant
+val CoolSurfaceVariant = EditorialSurfaceVariant
+
+val ElectricIndigo = BrandForestGreen
+val ElectricIndigoDark = DeepForestGreen
+val ForestGreenPrimary = BrandForestGreen
+val ForestGreenDark = DeepForestGreen
+val CobaltPrimary = BrandForestGreen
+val CobaltDark = DeepForestGreen
+val IndigoContainer = SoftSageGreen
+val SageContainer = SoftSageGreen
+val CobaltContainer = SoftSageGreen
+val OnIndigoContainer = OnSoftSageGreen
+val OnSageContainer = OnSoftSageGreen
+val OnCobaltContainer = OnSoftSageGreen
+
+val VividEmerald = EditorialSuccess
+val VividEmeraldDark = DeepForestGreen
+val NaturalGreen = EditorialSuccess
+val ScholarGreen = EditorialSuccess
+val TealSecondary = MineralTeal
+val EmeraldContainer = EditorialSuccessContainer
+val NaturalGreenContainer = EditorialSuccessContainer
+val ScholarGreenContainer = EditorialSuccessContainer
+val TealContainer = SoftMineralTeal
+val OnEmeraldContainer = OnEditorialSuccessContainer
+val OnNaturalGreenContainer = OnEditorialSuccessContainer
+val OnScholarGreenContainer = OnEditorialSuccessContainer
+val OnTealContainer = OnSoftMineralTeal
+
+val BerryViolet = MineralTeal
+val VioletTertiary = MineralTeal
+val BerryVioletContainer = SoftMineralTeal
+val VioletContainer = SoftMineralTeal
+val OnBerryVioletContainer = OnSoftMineralTeal
+val OnVioletContainer = OnSoftMineralTeal
+
+val SkyCyan = SlateBotanical
+val SkyCyanAccent = SlateBotanical
+val SkyCyanContainer = SoftSlateBotanical
+val OnSkyCyanContainer = DeepForestInk
+
+val SunsetCoral = WarmTerracotta
+val SunsetCoralContainer = SoftTerracotta
+val OnSunsetCoralContainer = OnSoftTerracotta
+
+val DeepInk = DeepForestInk
+val MutedSlate = MutedMossInk
+val SubtleSlateAccent = SubtleForestInk
+val CoolOutline = StrongEditorialBorder
+val SubtleOutline = EditorialBorder
+
+val AmberGold = QuestGold
+val AmberGoldContainer = SoftQuestGold
+val SilverAccent = Color(0xFF8C9790)
+val BronzeAccent = Color(0xFFB77B42)
+val RoseAlert = EditorialError
+val RoseAlertContainer = EditorialErrorContainer
+val AccessibleRed = EditorialError
+val AccessibleRedContainer = EditorialErrorContainer
+
+val DarkMidnightBackground = DarkForestBackground
+val DarkMidnightSurface = DarkForestSurface
+val DarkMidnightSurfaceElevated = DarkForestSurfaceElevated
+val DarkForestContainer = DarkForestPrimaryContainer
+val DarkNaturalSecondary = DarkForestSecondary
+val DarkSlateTertiary = DarkForestTertiary
+val DarkSlateContainer = DarkForestTertiaryContainer
 val DarkCobaltPrimary = DarkForestPrimary
-val DarkCobaltPrimaryContainer = DarkForestContainer
-val DarkTealSecondary = DarkNaturalSecondary
-val DarkVioletTertiary = DarkSlateTertiary
-val DarkVioletContainer = DarkSlateContainer
-val DarkScholarGreen = Color(0xFF34D399)
-val DarkScholarGreenContainer = Color(0xFF064E3B)
-val DarkOnSurface = Color(0xFFF8FAFC)
-val DarkOnSurfaceVariant = Color(0xFFA5B4FC)
-val DarkOutline = Color(0xFF2D3A64)
-val DarkAccessibleRed = Color(0xFFFCA5A5)
+val DarkCobaltPrimaryContainer = DarkForestPrimaryContainer
+val DarkTealSecondary = DarkForestSecondary
+val DarkVioletTertiary = DarkForestTertiary
+val DarkVioletContainer = DarkForestTertiaryContainer
+val DarkScholarGreen = Color(0xFF4DB380)
+val DarkScholarGreenContainer = DarkForestSecondaryContainer
+val DarkAccessibleRed = DarkErrorRose

@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.core.StudyQuestStrings
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.TextbookCatalog
 import com.example.data.model.ExamTemplate
 import com.example.data.repository.GuestDataRepository
 import com.example.data.repository.LeaderboardCategory
@@ -56,6 +57,7 @@ import com.example.data.repository.LeaderboardPeriod
 import com.example.ui.components.AudioFeedbackHelper
 import com.example.ui.components.GamificationCelebrationHost
 import com.example.ui.components.LottieCelebrationOverlay
+import com.example.ui.components.QuestNavigationScaffold
 import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 import com.example.ui.viewmodel.AdminStudioViewModel
 import com.example.ui.viewmodel.AiVideoViewModel
@@ -123,6 +125,25 @@ fun GuestStudyQuestHost(
     val aiState by learnVm.aiState.collectAsStateWithLifecycle()
     val learnBanner by learnVm.statusBanner.collectAsStateWithLifecycle()
 
+    val activeLockedBook by guestVm.activeLockedBook.collectAsStateWithLifecycle()
+    val cachedBooks by learnVm.cachedBooks.collectAsStateWithLifecycle()
+    val bookChapters by remember(activeLockedBook.id) {
+        learnVm.observeBookChapters(activeLockedBook.id)
+    }.collectAsStateWithLifecycle(emptyList())
+    val bookNotes by remember(activeLockedBook.id) {
+        learnVm.observeBookNotes(activeLockedBook.id)
+    }.collectAsStateWithLifecycle(emptyList())
+    val availableBooksForLock = remember(profile.classId, profile.curriculumVersion, profile.academicGroup, profile.activeBookYear) {
+        TextbookCatalog.booksFor(
+            academicYear = profile.activeBookYear.ifBlank { "2026" },
+            classId = profile.classId,
+            curriculumVersion = profile.curriculumVersion,
+            academicGroup = profile.academicGroup
+        ).ifEmpty {
+            TextbookCatalog.books.filter { it.classId == profile.classId }
+        }.ifEmpty { TextbookCatalog.books }
+    }
+
     val tabBackStack = remember { mutableStateListOf(0) }
     val selectedTab = tabBackStack.lastOrNull() ?: 0
     val saveableStateHolder = rememberSaveableStateHolder()
@@ -179,41 +200,19 @@ fun GuestStudyQuestHost(
         navigateToTab(1)
     }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        bottomBar = {
-            NavigationBar(
-                containerColor = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
-            ) {
-                val tabs = listOf(
-                    Triple(0, StudyQuestStrings.tabToday(lang), Icons.Filled.Home to Icons.Outlined.Home),
-                    Triple(1, StudyQuestStrings.tabLearn(lang), Icons.AutoMirrored.Filled.MenuBook to Icons.AutoMirrored.Outlined.MenuBook),
-                    Triple(2, StudyQuestStrings.tabCompete(lang), Icons.Filled.EmojiEvents to Icons.Outlined.EmojiEvents),
-                    Triple(3, StudyQuestStrings.tabFriends(lang), Icons.Filled.Groups to Icons.Outlined.Groups),
-                    Triple(4, StudyQuestStrings.tabProfile(lang), Icons.Filled.Person to Icons.Outlined.Person)
-                )
-                tabs.forEach { (idx, label, icons) ->
-                    NavigationBarItem(
-                        selected = selectedTab == idx,
-                        onClick = {
-                            AudioFeedbackHelper.triggerClick(view, prefs.soundEnabled, prefs.reducedMotion)
-                            navigateToTab(idx)
-                        },
-                        icon = { Icon(if (selectedTab == idx) icons.first else icons.second, contentDescription = label) },
-                        label = { Text(label, maxLines = 1) },
-                        modifier = Modifier.testTag("nav_tab_$idx")
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        QuestNavigationScaffold(
+            selectedTab = selectedTab,
+            language = lang,
+            profileDisplayName = profile.displayName,
+            profileAvatarId = profile.avatarId,
+            profileFrameId = profile.frameId,
+            totalXp = profile.totalXp,
+            streakCount = profile.streakCount,
+            soundEnabled = prefs.soundEnabled,
+            reducedMotion = prefs.reducedMotion,
+            onSelectTab = { idx -> navigateToTab(idx) },
+            topBannerSlot = {
                 AnimatedVisibility(visible = !activeBanner.isNullOrBlank()) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -238,9 +237,9 @@ fun GuestStudyQuestHost(
                         }
                     }
                 }
-
-                Box(modifier = Modifier.weight(1f)) {
-                    saveableStateHolder.SaveableStateProvider(key = selectedTab) {
+            }
+        ) {
+            saveableStateHolder.SaveableStateProvider(key = selectedTab) {
                         when (selectedTab) {
                             0 -> when (todayOverlay) {
                                 TodayOverlayDestination.StudyProgress -> StudyProgressDashboardScreen(
@@ -289,7 +288,8 @@ fun GuestStudyQuestHost(
                                             studentQuestion = studentQ,
                                             classId = profile.classId,
                                             subjectName = subjName,
-                                            language = lang
+                                            language = lang,
+                                            activeBookTitle = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn)
                                         )
                                     },
                                     onBack = { todayOverlay = TodayOverlayDestination.None }
@@ -376,7 +376,15 @@ fun GuestStudyQuestHost(
                                     },
                                     onOpenLeaderboard = { todayOverlay = TodayOverlayDestination.Leaderboard },
                                     isGuestMode = true,
-                                    onRequestGoogleSignIn = onRequestGoogleSignIn
+                                    onRequestGoogleSignIn = onRequestGoogleSignIn,
+                                    activeLockedBook = activeLockedBook,
+                                    availableBooksForLock = availableBooksForLock,
+                                    cachedBooks = cachedBooks,
+                                    onOpenTextbookReader = {
+                                        pendingLearnDest = LearnDestination.TextbookReader
+                                        navigateToTab(1)
+                                    },
+                                    onSwitchActiveBook = { book -> guestVm.switchGuestActiveBook(book) }
                                 )
                             }
 
@@ -395,51 +403,57 @@ fun GuestStudyQuestHost(
                                 aiState = aiState,
                                 externalDestination = pendingLearnDest,
                                 onConsumeExternalDestination = { pendingLearnDest = null },
-                                onDownloadChapter = { learnVm.downloadChapterOffline(it) },
+                                onDownloadChapter = { learnVm.downloadChapterOffline(it, activeLockedBook.id) },
                                 onCompleteLesson = { lesson ->
-                                    learnVm.completeLesson(lesson, isOnline) {
+                                    learnVm.completeLesson(lesson, isOnline, bookId = activeLockedBook.id) {
                                         AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
                                     }
                                 },
-                                onToggleBookmark = { learnVm.toggleBookmark(it) },
+                                onToggleBookmark = { learnVm.toggleBookmark(it, bookId = activeLockedBook.id) },
                                 onAddRevision = { learnVm.addToRevision(it) },
                                 onReviewRevision = { id, q -> learnVm.reviewRevisionItem(id, q) },
-                                onCreateStudyPlan = { t, s, p, d, m -> learnVm.createStudyPlan(t, s, p, d, m) },
+                                onCreateStudyPlan = { t, s, p, d, m -> learnVm.createStudyPlan(t, s, p, d, m, bookId = activeLockedBook.id) },
                                 onToggleStudyPlan = { learnVm.toggleStudyPlan(it) },
                                 onDeleteStudyPlan = { learnVm.deleteStudyPlan(it) },
                                 onStartExamTimer = { sec, cb -> learnVm.startExamTimer(sec, cb) },
                                 onSubmitAssessment = { title, qs, sel, txt, cq, tpl ->
-                                    learnVm.submitPracticeOrExam(title, qs, sel, txt, cq, tpl, isOnline) {
+                                    learnVm.submitPracticeOrExam(title, qs, sel, txt, cq, tpl, isOnline, bookId = activeLockedBook.id) {
                                         AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
                                     }
                                 },
                                 onClearAssessmentResult = { learnVm.clearAssessmentResult() },
                                 onReportQuestion = { },
                                 onAskAi = { prompt, studentQ, cls, subj ->
-                                    learnVm.askAiDoubtSolver(prompt, studentQ, cls, subj, lang)
+                                    learnVm.askAiDoubtSolver(
+                                        prompt, studentQ, cls, subj, lang,
+                                        activeBookTitle = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn)
+                                    )
                                 },
                                 onResetAi = { learnVm.resetAiDoubtState() },
                                 reducedMotion = prefs.reducedMotion,
                                 profile = profile,
                                 subjectAnalytics = subjectAnalytics,
                                 weakTopics = weakTopics,
-                                dailyChallengeQuestions = remember(mergedQuestions, profile.classId) {
-                                    learnVm.dailyChallengeQuestions(mergedQuestions, profile.classId)
+                                dailyChallengeQuestions = remember(mergedQuestions, activeLockedBook) {
+                                    learnVm.dailyChallengeQuestions(
+                                        TextbookCatalog.questionsForActiveBook(mergedQuestions, activeLockedBook),
+                                        profile.classId
+                                    )
                                 },
                                 dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(profile),
                                 dailyChallengeDateKey = learnVm.todayChallengeDateKey(),
                                 onCompletePomodoro = { subjId, mins ->
-                                    learnVm.completePomodoroSession(subjId, mins, isOnline) {
+                                    learnVm.completePomodoroSession(subjId, mins, isOnline, bookId = activeLockedBook.id) {
                                         AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
                                     }
                                 },
                                 onCompleteFlashcardDeck = { subjId, rev, mast ->
-                                    learnVm.recordFlashcardSession(subjId, rev, mast, isOnline) {
+                                    learnVm.recordFlashcardSession(subjId, rev, mast, isOnline, bookId = activeLockedBook.id) {
                                         AudioFeedbackHelper.triggerSuccess(view, prefs.soundEnabled, prefs.reducedMotion)
                                     }
                                 },
                                 onSubmitDailyChallenge = { qs, sel, txt ->
-                                    learnVm.completeDailyChallenge(qs, sel, txt, isOnline) {
+                                    learnVm.completeDailyChallenge(qs, sel, txt, isOnline, bookId = activeLockedBook.id) {
                                         AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
                                     }
                                 },
@@ -456,11 +470,31 @@ fun GuestStudyQuestHost(
                                 onDeleteStudyGoal = { guestVm.deleteStudyGoal(it) },
                                 onSetExamOrQuizActive = { learnVm.setExamOrQuizActive(it) },
                                 onSendAiLabMessage = { msg ->
-                                    learnVm.sendStudyQuestMessage(msg, profile.classId, "General Study", lang)
+                                    learnVm.sendStudyQuestMessage(
+                                        msg, profile.classId, activeLockedBook.subjectId, lang,
+                                        activeBookTitle = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn)
+                                    )
                                 },
                                 onCancelAiRequest = { learnVm.cancelAIRequest() },
                                 onRetryAiRequest = { learnVm.retryFailedAIRequest() },
-                                onOpenPlanStore = onRequestGoogleSignIn
+                                onOpenPlanStore = onRequestGoogleSignIn,
+                                activeLockedBook = activeLockedBook,
+                                availableBooksForLock = availableBooksForLock,
+                                cachedBooks = cachedBooks,
+                                bookChapters = bookChapters,
+                                bookNotes = bookNotes,
+                                onInstallBookOffline = { book, force -> learnVm.installBookOffline(book, lang, force) },
+                                onImportPdfForBook = { book, uri -> learnVm.importPdfForBook(book, uri, lang) },
+                                onSaveLastReadPage = { bookId, page -> learnVm.saveLastReadPage(bookId, page) },
+                                onMarkBookChapterCompleted = { chId -> learnVm.markBookChapterCompleted(chId) },
+                                onSaveBookPageNote = { bookId, page, chId, title, text, isBm ->
+                                    learnVm.saveBookPageNote(bookId, page, chId, title, text, isBm)
+                                },
+                                onDeleteBookPageNote = { noteId -> learnVm.deleteBookPageNote(noteId) },
+                                onSwitchActiveBook = { book -> guestVm.switchGuestActiveBook(book) },
+                                onReportBookIssue = { tType, tId, details ->
+                                    learnVm.reportQuestionOrBook(tType, tId, "Textbook content review", details)
+                                }
                             )
 
                             2 -> CompeteTabScreen(
@@ -595,23 +629,29 @@ fun GuestStudyQuestHost(
                                 onOpenAiLab = {
                                     pendingLearnDest = LearnDestination.AiLab
                                     navigateToTab(1)
-                                }
+                                },
+                                activeLockedBook = activeLockedBook,
+                                cachedBooks = cachedBooks,
+                                onOpenTextbookReader = {
+                                    pendingLearnDest = LearnDestination.TextbookReader
+                                    navigateToTab(1)
+                                },
+                                onReinstallBookOffline = { book -> learnVm.installBookOffline(book, lang, forceRedownload = true) },
+                                onDeleteCachedBook = { bookId -> learnVm.deleteOfflineBookCache(bookId) }
                             )
-                        }
-                    }
                 }
             }
-
-            LottieCelebrationOverlay(
-                triggerKey = celebrationPulse,
-                reducedMotion = prefs.reducedMotion
-            )
-
-            GamificationCelebrationHost(
-                language = lang,
-                reducedMotion = prefs.reducedMotion
-            )
         }
+
+        LottieCelebrationOverlay(
+            triggerKey = celebrationPulse,
+            reducedMotion = prefs.reducedMotion
+        )
+
+        GamificationCelebrationHost(
+            language = lang,
+            reducedMotion = prefs.reducedMotion
+        )
     }
 
     if (showGlobalAiSheet) {

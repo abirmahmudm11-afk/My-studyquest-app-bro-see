@@ -8,6 +8,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.R
 
+val FrauncesFontFamily = FontFamily(
+    Font(R.font.fraunces, FontWeight.Normal),
+    Font(R.font.fraunces, FontWeight.Medium),
+    Font(R.font.fraunces, FontWeight.SemiBold),
+    Font(R.font.fraunces, FontWeight.Bold)
+)
+
 val PlusJakartaFontFamily = FontFamily(
     Font(R.font.plus_jakarta_sans, FontWeight.Normal),
     Font(R.font.plus_jakarta_sans, FontWeight.Medium),
@@ -30,43 +37,53 @@ val JetBrainsMonoFontFamily = FontFamily(
 
 fun studyQuestTypography(isBangla: Boolean): Typography {
     val bodyFamily = if (isBangla) NotoSansBengaliFontFamily else PlusJakartaFontFamily
-    val displayFamily = if (isBangla) NotoSansBengaliFontFamily else PlusJakartaFontFamily
+    val editorialDisplayFamily = if (isBangla) NotoSansBengaliFontFamily else FrauncesFontFamily
+    val subDisplayFamily = if (isBangla) NotoSansBengaliFontFamily else PlusJakartaFontFamily
     val lineHeightBoost = if (isBangla) 1.15f else 1.0f
 
     return Typography(
         displaySmall = TextStyle(
-            fontFamily = displayFamily,
-            fontWeight = FontWeight.Bold,
-            fontSize = 30.sp,
-            lineHeight = (38 * lineHeightBoost).sp
+            fontFamily = editorialDisplayFamily,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 32.sp,
+            lineHeight = (40 * lineHeightBoost).sp,
+            letterSpacing = (-0.4).sp
+        ),
+        headlineLarge = TextStyle(
+            fontFamily = editorialDisplayFamily,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 28.sp,
+            lineHeight = (36 * lineHeightBoost).sp,
+            letterSpacing = (-0.3).sp
         ),
         headlineMedium = TextStyle(
-            fontFamily = displayFamily,
-            fontWeight = FontWeight.Bold,
+            fontFamily = editorialDisplayFamily,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 24.sp,
-            lineHeight = (32 * lineHeightBoost).sp
+            lineHeight = (32 * lineHeightBoost).sp,
+            letterSpacing = (-0.2).sp
         ),
         headlineSmall = TextStyle(
-            fontFamily = displayFamily,
+            fontFamily = editorialDisplayFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 20.sp,
             lineHeight = (28 * lineHeightBoost).sp
         ),
         titleLarge = TextStyle(
-            fontFamily = displayFamily,
-            fontWeight = FontWeight.SemiBold,
+            fontFamily = subDisplayFamily,
+            fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
-            lineHeight = (26 * lineHeightBoost).sp
+            lineHeight = (25 * lineHeightBoost).sp
         ),
         titleMedium = TextStyle(
             fontFamily = bodyFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 16.sp,
-            lineHeight = (24 * lineHeightBoost).sp
+            lineHeight = (23 * lineHeightBoost).sp
         ),
         titleSmall = TextStyle(
             fontFamily = bodyFamily,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp,
             lineHeight = (20 * lineHeightBoost).sp
         ),
@@ -104,7 +121,8 @@ fun studyQuestTypography(isBangla: Boolean): Typography {
             fontFamily = bodyFamily,
             fontWeight = FontWeight.Medium,
             fontSize = 11.sp,
-            lineHeight = (15 * lineHeightBoost).sp
+            lineHeight = (15 * lineHeightBoost).sp,
+            letterSpacing = 0.2.sp
         )
     )
 }

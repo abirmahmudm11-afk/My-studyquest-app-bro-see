@@ -100,7 +100,7 @@ class StudyQuestRepositoriesRuleTest : FirestoreEmulatorTestBase() {
                 classId = "class_10",
                 curriculumVersion = "bangla",
                 selectedSubjects = listOf("math", "physics"),
-                avatarId = "owl_classic"
+                avatarId = "crest_indigo"
             )
         }
         assertTrue("Setup failed: ${setupRes.exceptionOrNull()?.message}", setupRes.isSuccess)
@@ -309,7 +309,7 @@ class StudyQuestRepositoriesRuleTest : FirestoreEmulatorTestBase() {
                 classId = "class_10",
                 curriculumVersion = "bangla",
                 selectedSubjects = listOf("math", "physics", "chemistry", "ict"),
-                avatarId = "owl_classic",
+                avatarId = "crest_indigo",
                 academicGroup = "science",
                 dailyGoalMinutes = 45L,
                 studyGoalTitle = "SSC Board Exam Readiness"

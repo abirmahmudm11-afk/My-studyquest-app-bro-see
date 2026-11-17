@@ -98,6 +98,10 @@ service cloud.firestore {
         (!('pinnedBadgeIds' in data) || (data.pinnedBadgeIds is list && data.pinnedBadgeIds.size() <= 6)) &&
         (!('unlockedTrophyTitles' in data) || (data.unlockedTrophyTitles is list && data.unlockedTrophyTitles.size() <= 30)) &&
         (!('totalFocusMinutes' in data) || (data.totalFocusMinutes is int && data.totalFocusMinutes >= 0)) &&
+        (!('activeBookId' in data) || data.activeBookId == null || (data.activeBookId is string && data.activeBookId.size() <= 128)) &&
+        (!('activeBookTitle' in data) || data.activeBookTitle == null || (data.activeBookTitle is string && data.activeBookTitle.size() <= 160)) &&
+        (!('activeBookSubjectId' in data) || data.activeBookSubjectId == null || (data.activeBookSubjectId is string && data.activeBookSubjectId.size() <= 64)) &&
+        (!('activeBookYear' in data) || data.activeBookYear == null || (data.activeBookYear is string && data.activeBookYear.size() <= 16)) &&
         (!('selectedSubjects' in data) || (data.selectedSubjects is list && data.selectedSubjects.size() <= 20 && (data.selectedSubjects.size() == 0 || data.selectedSubjects[0] is string)));
     }
 
@@ -136,6 +140,7 @@ service cloud.firestore {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
         data.recordType in ['lesson', 'practice', 'exam', 'bookmark', 'revision', 'pomodoro', 'flashcard', 'daily_challenge', 'focus_session', 'assignment', 'goal', 'promotion_exam', 'ai_video', 'community'] &&
         data.refId is string && data.refId.size() >= 1 && data.refId.size() <= 128 &&
+        (!('bookId' in data) || data.bookId == null || (data.bookId is string && data.bookId.size() <= 128)) &&
         data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
         data.idempotencyKey is string && data.idempotencyKey.size() >= 1 && data.idempotencyKey.size() <= 160 &&
         (!('chapterId' in data) || data.chapterId == null || (data.chapterId is string && data.chapterId.size() <= 64)) &&
@@ -173,6 +178,7 @@ service cloud.firestore {
     function isValidStudyPlanItem(data) {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
         data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        (!('bookId' in data) || data.bookId == null || (data.bookId is string && data.bookId.size() <= 128)) &&
         data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
         data.planType in ['daily', 'weekly', 'exam_countdown', 'chapter_goal'] &&
         data.completed is bool &&
@@ -215,6 +221,7 @@ service cloud.firestore {
 
     function isValidStudySession(data) {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        (!('bookId' in data) || data.bookId == null || (data.bookId is string && data.bookId.size() <= 128)) &&
         data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
         data.mode in ['pomodoro', 'deep_focus', 'custom'] &&
         data.startedAtEpochMs is int && data.endedAtEpochMs is int &&
@@ -232,6 +239,7 @@ service cloud.firestore {
         data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
         data.goalType in ['time_minutes', 'questions_solved', 'chapters_finished', 'sessions_count'] &&
         data.periodType in ['daily', 'weekly', 'custom'] &&
+        (!('bookId' in data) || data.bookId == null || (data.bookId is string && data.bookId.size() <= 128)) &&
         data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
         data.targetValue is int && data.targetValue >= 1 && data.targetValue <= 5000 &&
         (data.goalType != 'time_minutes' || data.targetValue >= 5) &&
@@ -345,10 +353,45 @@ service cloud.firestore {
         data.authorUid is string && data.authorUid.size() >= 1 && data.authorUid.size() <= 128 &&
         data.version is int && data.version >= 1 && data.version <= 1000 &&
         (!('curriculumVersion' in data) || data.curriculumVersion is string && data.curriculumVersion.size() <= 32) &&
+        (!('bookId' in data) || data.bookId == null || (data.bookId is string && data.bookId.size() <= 128)) &&
         (!('chapterId' in data) || data.chapterId == null || (data.chapterId is string && data.chapterId.size() <= 64)) &&
         (!('topicId' in data) || data.topicId == null || (data.topicId is string && data.topicId.size() <= 64)) &&
         (!('sourceAttribution' in data) || data.sourceAttribution == null || (data.sourceAttribution is string && data.sourceAttribution.size() <= 200)) &&
         (!('payloadJson' in data) || data.payloadJson == null || (data.payloadJson is string && data.payloadJson.size() <= 16000));
+    }
+
+    function isValidTextbookCatalog(data) {
+      return data.bookId is string && data.bookId.size() >= 1 && data.bookId.size() <= 128 &&
+        data.academicYear in ['2026', '2027'] &&
+        data.classId is string && data.classId.size() >= 1 && data.classId.size() <= 32 &&
+        data.curriculumVersion in ['bangla', 'english'] &&
+        data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 64 &&
+        data.titleEn is string && data.titleEn.size() >= 1 && data.titleEn.size() <= 200 &&
+        data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 200 &&
+        data.status in ['draft', 'published'] &&
+        data.authorUid is string && data.authorUid.size() >= 1 && data.authorUid.size() <= 128 &&
+        (!('groupId' in data) || data.groupId == null || (data.groupId is string && data.groupId.size() <= 32)) &&
+        (!('bookCode' in data) || data.bookCode == null || (data.bookCode is string && data.bookCode.size() <= 64)) &&
+        (!('editionLabelEn' in data) || data.editionLabelEn == null || (data.editionLabelEn is string && data.editionLabelEn.size() <= 140)) &&
+        (!('editionLabelBn' in data) || data.editionLabelBn == null || (data.editionLabelBn is string && data.editionLabelBn.size() <= 140)) &&
+        (!('officialSourceUrl' in data) || data.officialSourceUrl == null || (data.officialSourceUrl is string && data.officialSourceUrl.size() <= 400)) &&
+        (!('pdfUrl' in data) || data.pdfUrl == null || (data.pdfUrl is string && data.pdfUrl.size() <= 500)) &&
+        (!('estimatedPages' in data) || (data.estimatedPages is int && data.estimatedPages >= 1 && data.estimatedPages <= 2500)) &&
+        (!('estimatedSizeMb' in data) || (data.estimatedSizeMb is number && data.estimatedSizeMb >= 0.05 && data.estimatedSizeMb <= 500.0));
+    }
+
+    function isValidTextbookChapter(data) {
+      return data.bookId is string && data.bookId.size() >= 1 && data.bookId.size() <= 128 &&
+        data.orderIndex is int && data.orderIndex >= 1 && data.orderIndex <= 200 &&
+        data.titleEn is string && data.titleEn.size() >= 1 && data.titleEn.size() <= 200 &&
+        data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 200 &&
+        data.status in ['draft', 'published'] &&
+        (!('summaryEn' in data) || data.summaryEn == null || (data.summaryEn is string && data.summaryEn.size() <= 600)) &&
+        (!('summaryBn' in data) || data.summaryBn == null || (data.summaryBn is string && data.summaryBn.size() <= 600)) &&
+        (!('startPage' in data) || (data.startPage is int && data.startPage >= 1 && data.startPage <= 2500)) &&
+        (!('endPage' in data) || (data.endPage is int && data.endPage >= 1 && data.endPage <= 2500)) &&
+        (!('studyNotesEn' in data) || data.studyNotesEn == null || (data.studyNotesEn is string && data.studyNotesEn.size() <= 8000)) &&
+        (!('studyNotesBn' in data) || data.studyNotesBn == null || (data.studyNotesBn is string && data.studyNotesBn.size() <= 8000));
     }
 
     function isValidFriendRequest(data) {
@@ -498,7 +541,7 @@ service cloud.firestore {
 
     function isValidModerationCase(data) {
       return data.reporterUid is string && data.reporterUid.size() >= 1 && data.reporterUid.size() <= 128 &&
-        data.targetType in ['user', 'message', 'group', 'question', 'match', 'community_post', 'community_comment'] &&
+        data.targetType in ['user', 'message', 'group', 'question', 'book', 'match', 'community_post', 'community_comment'] &&
         data.targetId is string && data.targetId.size() >= 1 && data.targetId.size() <= 128 &&
         data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 120 &&
         data.status in ['open', 'triaged', 'resolved', 'dismissed', 'appealed'] &&
@@ -782,6 +825,35 @@ service cloud.firestore {
         isValidTimestamp(incoming().updatedAt) &&
         isValidAcademicContent(incoming());
       allow delete: if isAdmin() && isValidId(contentId);
+    }
+
+    match /textbook_catalog/{bookId} {
+      allow get: if isSignedIn() && isValidId(bookId) &&
+        (resource.data.status == 'published' || isContentStaff());
+      allow list: if isSignedIn() &&
+        (resource.data.status == 'published' || isContentStaff());
+      allow create: if isContentStaff() && isValidId(bookId) &&
+        isValidTimestamp(incoming().createdAt) && isValidTimestamp(incoming().updatedAt) &&
+        isValidTextbookCatalog(incoming());
+      allow update: if isContentStaff() && isValidId(bookId) &&
+        incoming().createdAt == existing().createdAt &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidTextbookCatalog(incoming());
+      allow delete: if isAdmin() && isValidId(bookId);
+    }
+
+    match /textbook_chapters/{chapterId} {
+      allow get: if isSignedIn() && isValidId(chapterId) &&
+        (resource.data.status == 'published' || isContentStaff());
+      allow list: if isSignedIn() &&
+        (resource.data.status == 'published' || isContentStaff());
+      allow create: if isContentStaff() && isValidId(chapterId) &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidTextbookChapter(incoming());
+      allow update: if isContentStaff() && isValidId(chapterId) &&
+        isValidTimestamp(incoming().updatedAt) &&
+        isValidTextbookChapter(incoming());
+      allow delete: if isAdmin() && isValidId(chapterId);
     }
 
     // --- 4. SOCIAL: FRIEND REQUESTS, FRIENDSHIPS, BLOCKS ---

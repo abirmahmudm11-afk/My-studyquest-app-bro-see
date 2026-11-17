@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,10 @@ import com.example.core.AppLanguage
 import com.example.core.StudyActivityMonitor
 import com.example.core.unwrapFirestoreMessage
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.TextbookCatalog
+import com.example.data.local.BookChapterEntity
+import com.example.data.local.BookPageNoteEntity
+import com.example.data.local.CachedBookEntity
 import com.example.data.local.CachedLessonEntity
 import com.example.data.local.LocalBookmarkEntity
 import com.example.data.local.LocalRevisionEntity
@@ -17,12 +22,15 @@ import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
 import com.example.data.model.StudyLesson
 import com.example.data.model.StudyPlanDoc
+import com.example.data.model.TextbookCatalogItem
 import com.example.data.repository.AcademicProgressRepository
 import com.example.data.repository.AiDoubtSolverRepository
 import com.example.data.repository.AuthAndProfileRepository
 import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.GuestDataRepository
+import com.example.data.repository.SocialRepository
 import com.example.data.repository.SubjectAnalyticsSummary
+import com.example.data.repository.TextbookDownloadRepository
 import com.example.data.repository.WeakTopicStat
 import kotlin.random.Random
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -70,7 +78,9 @@ data class AssessmentResultSummary(
 class LearnAndExamViewModel(
     private val currentUserId: String,
     private val academicRepo: AcademicProgressRepository,
-    private val aiRepo: AiDoubtSolverRepository
+    private val aiRepo: AiDoubtSolverRepository,
+    private val textbookRepo: TextbookDownloadRepository? = null,
+    private val socialRepo: SocialRepository? = null
 ) : ViewModel() {
 
     val learningRecords: StateFlow<List<LearningRecordDoc>> = academicRepo.observeLearningRecords(currentUserId)
@@ -98,6 +108,25 @@ class LearnAndExamViewModel(
 
     val cachedLessons: StateFlow<List<CachedLessonEntity>> = academicRepo.observeCachedLessons()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val cloudTextbooks: StateFlow<List<TextbookCatalogItem>> = (textbookRepo?.observeCloudTextbookCatalog()
+        ?: flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val cachedBooks: StateFlow<List<CachedBookEntity>> = (textbookRepo?.observeCachedBooks()
+        ?: flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    fun observeBookChapters(bookId: String): kotlinx.coroutines.flow.Flow<List<BookChapterEntity>> =
+        textbookRepo?.observeBookChapters(bookId) ?: flowOf(emptyList())
+
+    fun observeBookNotes(bookId: String): kotlinx.coroutines.flow.Flow<List<BookPageNoteEntity>> =
+        textbookRepo?.observeBookNotes(bookId) ?: flowOf(emptyList())
+
+    fun questionsForActiveBook(allQuestions: List<QuestionItem>, activeBook: TextbookCatalogItem): List<QuestionItem> =
+        TextbookCatalog.questionsForActiveBook(allQuestions, activeBook)
 
     val bookmarks: StateFlow<List<LocalBookmarkEntity>> = academicRepo.observeBookmarks()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
@@ -156,7 +185,8 @@ class LearnAndExamViewModel(
         val classId: String,
         val subjectName: String,
         val language: AppLanguage,
-        val subscription: UserSubscriptionDoc
+        val subscription: UserSubscriptionDoc,
+        val activeBookTitle: String = ""
     )
 
     private val _statusBanner = MutableStateFlow<String?>(null)
@@ -229,9 +259,9 @@ class LearnAndExamViewModel(
         _aiState.value = AiDoubtUiState.Idle
     }
 
-    fun downloadChapterOffline(chapterId: String) {
+    fun downloadChapterOffline(chapterId: String, bookId: String = "") {
         viewModelScope.launch {
-            val res = academicRepo.downloadChapterForOffline(chapterId)
+            val res = academicRepo.downloadChapterForOffline(chapterId, bookId = bookId)
             res.onSuccess { count ->
                 _statusBanner.value = "Downloaded $count items for offline study"
             }
@@ -241,9 +271,96 @@ class LearnAndExamViewModel(
         }
     }
 
-    fun completeLesson(lesson: StudyLesson, isOnline: Boolean, onXpEarned: (Int) -> Unit = {}) {
+    fun installBookOffline(book: TextbookCatalogItem, language: AppLanguage, forceRedownload: Boolean = false) {
+        val repo = textbookRepo ?: return
         viewModelScope.launch {
-            val res = academicRepo.recordLessonCompleted(currentUserId, lesson, isOnline)
+            val res = repo.ensureBookInstalledOffline(book, forceRedownloadPdf = forceRedownload, language = language)
+            res.onSuccess {
+                _statusBanner.value = if (language == AppLanguage.BANGLA) {
+                    "${book.titleBn} অফলাইনে সংরক্ষিত হয়েছে (${it.totalPages} পৃষ্ঠা)"
+                } else {
+                    "${book.titleEn} installed offline (${it.totalPages} pages)"
+                }
+            }.onFailure { err ->
+                _statusBanner.value = err.localizedMessage ?: "Offline install failed"
+            }
+        }
+    }
+
+    fun importPdfForBook(book: TextbookCatalogItem, uri: Uri, language: AppLanguage) {
+        val repo = textbookRepo ?: return
+        viewModelScope.launch {
+            val res = repo.importLocalPdfForBook(book, uri)
+            res.onSuccess {
+                _statusBanner.value = if (language == AppLanguage.BANGLA) {
+                    "অফিসিয়াল PDF সংযুক্ত ও অফলাইনে সেভ হয়েছে (${it.totalPages} পৃষ্ঠা)"
+                } else {
+                    "PDF attached & saved offline (${it.totalPages} pages)"
+                }
+            }.onFailure { err ->
+                _statusBanner.value = err.localizedMessage ?: "Unable to import PDF"
+            }
+        }
+    }
+
+    fun deleteOfflineBookCache(bookId: String) {
+        viewModelScope.launch {
+            textbookRepo?.deleteOfflineBookCache(bookId)
+            _statusBanner.value = "Removed offline textbook cache"
+        }
+    }
+
+    fun saveLastReadPage(bookId: String, pageIndex: Int) {
+        viewModelScope.launch {
+            textbookRepo?.saveLastReadPage(bookId, pageIndex)
+        }
+    }
+
+    fun markBookChapterCompleted(chapterEntityId: String) {
+        viewModelScope.launch {
+            textbookRepo?.markChapterCompleted(chapterEntityId)
+        }
+    }
+
+    fun saveBookPageNote(
+        bookId: String,
+        pageNumber: Int,
+        chapterId: String?,
+        title: String,
+        noteText: String,
+        isBookmark: Boolean
+    ) {
+        viewModelScope.launch {
+            textbookRepo?.savePageNote(bookId, pageNumber, chapterId, title, noteText, isBookmark)
+            _statusBanner.value = if (isBookmark && noteText.isBlank()) "Page ${pageNumber + 1} bookmarked" else "Note saved for page ${pageNumber + 1}"
+        }
+    }
+
+    fun deleteBookPageNote(noteId: String) {
+        viewModelScope.launch {
+            textbookRepo?.deletePageNote(noteId)
+        }
+    }
+
+    fun reportQuestionOrBook(targetType: String, targetId: String, reason: String, details: String) {
+        if (currentUserId == GuestDataRepository.GUEST_UID) {
+            _statusBanner.value = "Sign in to submit moderation reports to StudyQuest reviewers."
+            return
+        }
+        val repo = socialRepo ?: return
+        viewModelScope.launch {
+            val res = repo.reportIssue(currentUserId, targetType, targetId, reason, details)
+            res.onSuccess {
+                _statusBanner.value = "Report submitted for academic review"
+            }.onFailure {
+                _statusBanner.value = unwrapFirestoreMessage(it, "Report failed")
+            }
+        }
+    }
+
+    fun completeLesson(lesson: StudyLesson, isOnline: Boolean, bookId: String = "", onXpEarned: (Int) -> Unit = {}) {
+        viewModelScope.launch {
+            val res = academicRepo.recordLessonCompleted(currentUserId, lesson, isOnline, bookId = bookId)
             res.onSuccess { xp ->
                 if (xp > 0) onXpEarned(xp)
             }
@@ -253,13 +370,13 @@ class LearnAndExamViewModel(
         }
     }
 
-    fun toggleBookmark(question: QuestionItem, isMistake: Boolean = false) {
+    fun toggleBookmark(question: QuestionItem, isMistake: Boolean = false, bookId: String = "") {
         viewModelScope.launch {
             val existing = bookmarks.value.any { it.questionId == question.id }
             if (existing) {
                 academicRepo.removeBookmark(question.id)
             } else {
-                academicRepo.toggleBookmark(question, isMistake = isMistake)
+                academicRepo.toggleBookmark(question, isMistake = isMistake, bookId = bookId)
             }
         }
     }
@@ -308,6 +425,7 @@ class LearnAndExamViewModel(
         cqSelfScoresByQuestion: Map<String, Double>,
         template: ExamTemplate?,
         isOnline: Boolean,
+        bookId: String = "",
         onXpEarned: (Int) -> Unit = {}
     ) {
         stopExamTimer()
@@ -388,7 +506,8 @@ class LearnAndExamViewModel(
                 totalMarks = totalMarks.coerceAtLeast(1.0),
                 summary = title,
                 isOnline = isOnline,
-                isPromotionExam = (template?.id?.startsWith("promotion_") == true)
+                isPromotionExam = (template?.id?.startsWith("promotion_") == true),
+                bookId = bookId.ifBlank { firstQ?.bookId.orEmpty() }
             )
             val xpEarned = res.getOrNull() ?: 0
             if (xpEarned > 0) onXpEarned(xpEarned)
@@ -434,10 +553,11 @@ class LearnAndExamViewModel(
         subjectId: String,
         focusedMinutes: Int,
         isOnline: Boolean,
+        bookId: String = "",
         onXpEarned: (Int) -> Unit = {}
     ) {
         viewModelScope.launch {
-            val res = academicRepo.recordPomodoroSession(currentUserId, subjectId, focusedMinutes, isOnline)
+            val res = academicRepo.recordPomodoroSession(currentUserId, subjectId, focusedMinutes, isOnline, bookId = bookId)
             res.onSuccess { xp ->
                 if (xp > 0) {
                     _statusBanner.value = "Focus session saved! +$xp XP earned"
@@ -455,6 +575,7 @@ class LearnAndExamViewModel(
         reviewedCount: Int,
         masteredCount: Int,
         isOnline: Boolean,
+        bookId: String = "",
         onXpEarned: (Int) -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -463,7 +584,8 @@ class LearnAndExamViewModel(
                 subjectId = subjectId,
                 reviewedCount = reviewedCount,
                 masteredCount = masteredCount,
-                isOnline = isOnline
+                isOnline = isOnline,
+                bookId = bookId
             )
             res.onSuccess { xp ->
                 if (xp > 0) {
@@ -482,6 +604,7 @@ class LearnAndExamViewModel(
         selectedIndicesByQuestion: Map<String, Set<Int>>,
         textAnswersByQuestion: Map<String, String>,
         isOnline: Boolean,
+        bookId: String = "",
         onXpEarned: (Int) -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -532,7 +655,8 @@ class LearnAndExamViewModel(
                 score = earnedMarks,
                 totalMarks = totalMarks.coerceAtLeast(1.0),
                 summary = "Daily Challenge ($dateKey): $correctCount/${questions.size}",
-                isOnline = isOnline
+                isOnline = isOnline,
+                bookId = bookId
             )
             val xpEarned = res.getOrNull() ?: 0
             if (xpEarned > 0) {
@@ -559,7 +683,8 @@ class LearnAndExamViewModel(
         subjectId: String,
         planType: String,
         daysAhead: Int,
-        minutesPerDay: Long
+        minutesPerDay: Long,
+        bookId: String = ""
     ) {
         viewModelScope.launch {
             val targetMs = System.currentTimeMillis() + daysAhead.coerceAtLeast(1) * 86_400_000L
@@ -569,7 +694,8 @@ class LearnAndExamViewModel(
                 subjectId = subjectId,
                 planType = planType,
                 targetDateEpochMs = targetMs,
-                minutesPerDay = minutesPerDay
+                minutesPerDay = minutesPerDay,
+                bookId = bookId
             )
             res.onFailure { _statusBanner.value = unwrapFirestoreMessage(it, "Could not create plan") }
         }
@@ -593,7 +719,8 @@ class LearnAndExamViewModel(
         subjectName: String,
         language: AppLanguage,
         subscription: UserSubscriptionDoc = UserSubscriptionDoc(),
-        toolId: String = _activeToolId.value
+        toolId: String = _activeToolId.value,
+        activeBookTitle: String = ""
     ) {
         aiStreamJob?.cancel()
         aiStreamJob = viewModelScope.launch {
@@ -613,7 +740,7 @@ class LearnAndExamViewModel(
                     _activeConversationId.value = it.id
                 }
             }
-            lastRetryParams = TupleAiRetry(convId, toolId, userText, classId, subjectName, language, subscription)
+            lastRetryParams = TupleAiRetry(convId, toolId, userText, classId, subjectName, language, subscription, activeBookTitle)
             try {
                 val enabled = aiRepo.isAiSolverEnabled()
                 if (!enabled) {
@@ -634,7 +761,8 @@ class LearnAndExamViewModel(
                     subjectName = subjectName,
                     language = language,
                     subscription = subscription,
-                    history = activeAiMessages.value
+                    history = activeAiMessages.value,
+                    activeBookTitle = activeBookTitle
                 ).collect { update ->
                     latest = update.text
                     latestModel = update.modelUsed
@@ -662,7 +790,8 @@ class LearnAndExamViewModel(
             subjectName = last.subjectName,
             language = last.language,
             subscription = last.subscription,
-            toolId = last.toolId
+            toolId = last.toolId,
+            activeBookTitle = last.activeBookTitle
         )
     }
 
@@ -672,7 +801,8 @@ class LearnAndExamViewModel(
         classId: String,
         subjectName: String,
         language: AppLanguage,
-        subscription: UserSubscriptionDoc = UserSubscriptionDoc()
+        subscription: UserSubscriptionDoc = UserSubscriptionDoc(),
+        activeBookTitle: String = ""
     ) {
         aiStreamJob?.cancel()
         aiStreamJob = viewModelScope.launch {
@@ -693,7 +823,8 @@ class LearnAndExamViewModel(
                     classId = classId,
                     subjectName = subjectName,
                     language = language,
-                    subscription = subscription
+                    subscription = subscription,
+                    activeBookTitle = activeBookTitle
                 ).collect { chunk ->
                     latest = chunk
                     _aiState.value = AiDoubtUiState.Streaming(chunk)
@@ -717,13 +848,15 @@ class LearnAndExamViewModel(
         studentQuestion: String,
         classId: String,
         subjectName: String,
-        language: AppLanguage
+        language: AppLanguage,
+        activeBookTitle: String = ""
     ): kotlinx.coroutines.flow.Flow<String> = aiRepo.streamDirectGeminiDoubt(
         questionPrompt = questionPrompt,
         studentQuestion = studentQuestion,
         classId = classId,
         subjectName = subjectName,
-        language = language
+        language = language,
+        activeBookTitle = activeBookTitle
     )
 
     override fun onCleared() {

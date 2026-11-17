@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import com.example.core.AppLanguage
@@ -16,6 +17,7 @@ import com.example.core.LocalUserPreferences
 import com.example.core.StudyQuestPreferences
 import com.example.core.SurfaceStyle
 import com.example.core.ThemeMode
+import com.example.data.curriculum.TextbookCatalog
 import com.example.data.local.StudyQuestDatabase
 import com.example.data.model.LeaderboardEntryDoc
 import com.example.data.model.LearningRecordDoc
@@ -30,6 +32,7 @@ import com.example.ui.screens.LeaderboardScreen
 import com.example.ui.screens.ProfileTabScreen
 import com.example.ui.screens.StudyProgressDashboardScreen
 import com.example.ui.screens.TodayTabScreen
+import com.example.ui.screens.WelcomeAndGoogleSignInScreen
 import com.example.ui.theme.StudyQuestTheme
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -360,5 +363,77 @@ class StudyQuestRedesignRobolectricTest {
         composeRule.onNodeWithTag("ai_doubt_solver_screen").performScrollToNode(hasTestTag("ai_doubt_back_btn"))
         composeRule.onNodeWithTag("ai_doubt_back_btn").performClick()
         assertTrue(aiBack)
+    }
+
+    @Test
+    fun todayTabScreen_showsLockedNctbBookCardAndOpensReader() {
+        val mathBook = TextbookCatalog.bookById("nctb_2026_class_10_bangla_math")!!
+        var readerOpened = false
+
+        composeRule.setContent {
+            StudyQuestTheme(darkTheme = false, isBangla = false) {
+                TodayTabScreen(
+                    profile = PublicProfile(
+                        userId = "u1",
+                        displayName = "Amina",
+                        classId = "class_10",
+                        activeBookId = mathBook.id,
+                        activeBookYear = "2026"
+                    ),
+                    language = AppLanguage.ENGLISH,
+                    reducedMotion = true,
+                    isOnline = true,
+                    pendingSyncCount = 0,
+                    quests = emptyList(),
+                    notifications = emptyList(),
+                    unreadNotificationCount = 0,
+                    weakTopics = emptyList(),
+                    revisions = emptyList(),
+                    studyPlans = emptyList(),
+                    recentRecords = emptyList(),
+                    onClaimQuest = {},
+                    onMarkNotificationRead = {},
+                    onOpenQuickPractice = {},
+                    onOpenMockExam = {},
+                    onOpenRevision = {},
+                    onOpenAiDoubtSolver = {},
+                    onOpenMessages = {},
+                    activeLockedBook = mathBook,
+                    availableBooksForLock = listOf(mathBook),
+                    onOpenTextbookReader = { readerOpened = true }
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("today_home_list").performScrollToNode(hasTestTag("today_active_book_card"))
+        composeRule.onNodeWithTag("today_active_book_card").assertIsDisplayed()
+        composeRule.onNodeWithTag("today_open_reader_btn").performClick()
+        assertTrue(readerOpened)
+    }
+
+    @Test
+    fun welcomeSignInScreen_supportsOfflineGuestModeTrigger() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        ensureFirebaseAppInitialized(context)
+        var guestEntered = false
+
+        composeRule.setContent {
+            StudyQuestTheme(darkTheme = false, isBangla = false) {
+                WelcomeAndGoogleSignInScreen(
+                    language = AppLanguage.ENGLISH,
+                    reducedMotion = true,
+                    isSigningIn = false,
+                    authError = null,
+                    onSetLanguage = {},
+                    onSigningInChanged = {},
+                    onIdTokenReceived = {},
+                    onAuthError = {},
+                    onEnterGuestMode = { guestEntered = true }
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("welcome_guest_mode_btn").performScrollTo().assertIsDisplayed().performClick()
+        assertTrue(guestEntered)
     }
 }

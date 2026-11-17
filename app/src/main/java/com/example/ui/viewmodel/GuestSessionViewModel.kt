@@ -11,6 +11,8 @@ import com.example.core.StudyQuestStrings
 import com.example.core.SurfaceStyle
 import com.example.core.ThemeMode
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.TextbookCatalog
+import com.example.data.local.CachedBookEntity
 import com.example.data.local.LocalSoloMatchEntity
 import com.example.data.local.LocalStudyCircleNoteEntity
 import com.example.data.model.LeaderboardEntryDoc
@@ -18,6 +20,7 @@ import com.example.data.model.PublicProfile
 import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
 import com.example.data.model.StudyGoalDoc
+import com.example.data.model.TextbookCatalogItem
 import com.example.data.model.TournamentDoc
 import com.example.data.model.UserBadgeDoc
 import com.example.data.model.UserNotificationDoc
@@ -26,6 +29,7 @@ import com.example.data.model.XpTransactionDoc
 import com.example.data.repository.AiDoubtSolverRepository
 import com.example.data.repository.GamificationEngine
 import com.example.data.repository.GuestDataRepository
+import com.example.data.repository.TextbookDownloadRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,7 +64,8 @@ class GuestSessionViewModel(
     private val guestRepo: GuestDataRepository,
     private val aiRepo: AiDoubtSolverRepository,
     connectivityObserver: ConnectivityObserver,
-    private val gamificationEngine: GamificationEngine? = null
+    private val gamificationEngine: GamificationEngine? = null,
+    private val textbookRepo: TextbookDownloadRepository? = null
 ) : ViewModel() {
 
     val localPreferences: StateFlow<LocalUserPreferences> = preferences.preferencesFlow
@@ -79,9 +84,25 @@ class GuestSessionViewModel(
 
     val unlockedCosmetics: StateFlow<Set<String>> = localPreferences
         .map { prefs ->
-            prefs.guestUnlockedCosmeticsCsv.split(",").filter { it.isNotBlank() }.toSet() + "owl_classic"
+            prefs.guestUnlockedCosmeticsCsv.split(",").filter { it.isNotBlank() && it != "owl_classic" }.toSet() + "crest_indigo"
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), setOf("owl_classic"))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), setOf("crest_indigo"))
+
+    val cachedBooks: StateFlow<List<CachedBookEntity>> = (textbookRepo?.observeCachedBooks()
+        ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val activeLockedBook: StateFlow<TextbookCatalogItem> = profile
+        .map { prof ->
+            TextbookCatalog.bookById(prof.activeBookId)
+                ?: TextbookCatalog.defaultBookFor(
+                    classId = prof.classId,
+                    curriculumVersion = prof.curriculumVersion,
+                    academicGroup = prof.academicGroup,
+                    academicYear = prof.activeBookYear.ifBlank { "2026" }
+                )
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), TextbookCatalog.books.first())
 
     val quests: StateFlow<List<UserQuestDoc>> = guestRepo.observeGuestQuests()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
@@ -139,6 +160,15 @@ class GuestSessionViewModel(
         viewModelScope.launch {
             guestRepo.ensureGuestQuestsSeeded()
             guestRepo.ensureStudyCircleSeeded(localPreferences.value.uiLanguage)
+            val prefs = localPreferences.value
+            val initialBook = TextbookCatalog.bookById(prefs.guestActiveBookId)
+                ?: TextbookCatalog.defaultBookFor(
+                    prefs.guestClassId,
+                    prefs.guestCurriculumVersion,
+                    prefs.guestAcademicGroup,
+                    prefs.guestActiveBookYear.ifBlank { "2026" }
+                )
+            textbookRepo?.ensureBookInstalledOffline(initialBook, forceRedownloadPdf = false, language = prefs.uiLanguage)
         }
     }
 
@@ -175,10 +205,11 @@ class GuestSessionViewModel(
                         studentQuestion = text,
                         classId = classId,
                         subjectName = subjectLabel,
-                        language = lang
+                        language = lang,
+                        activeBookTitle = profile.value.activeBookTitle
                     ).collect { chunk -> latest = chunk }
                     if (latest.isNotBlank()) {
-                        guestRepo.postStudyCircleNote(channel, "Titu AI Buddy", latest, isAiBuddy = true)
+                        guestRepo.postStudyCircleNote(channel, "StudyQuest Guide", latest, isAiBuddy = true)
                     }
                 } catch (e: CancellationException) {
                     throw e
@@ -186,11 +217,11 @@ class GuestSessionViewModel(
                     Log.w(TAG, "AI circle reply failed", e)
                     guestRepo.postStudyCircleNote(
                         channel,
-                        "Titu AI Buddy",
+                        "StudyQuest Guide",
                         StudyQuestStrings.t(
                             lang,
-                            "Saved your note locally! Connect to the internet for live AI Buddy explanations.",
-                            "তোমার নোট সংরক্ষিত হয়েছে! লাইভ AI টিটুর উত্তর পেতে ইন্টারনেটে যুক্ত হও।"
+                            "Saved your note locally! Connect to the internet for live StudyQuest Guide explanations.",
+                            "তোমার নোট সংরক্ষিত হয়েছে! লাইভ StudyQuest Guide-এর উত্তর পেতে ইন্টারনেটে যুক্ত হও।"
                         ),
                         isAiBuddy = true
                     )
@@ -305,6 +336,22 @@ class GuestSessionViewModel(
             } else {
                 "Not enough Coins yet — practice or claim quests!"
             }
+        }
+    }
+
+    fun switchGuestActiveBook(book: TextbookCatalogItem) {
+        viewModelScope.launch {
+            val lang = localPreferences.value.uiLanguage
+            preferences.switchGuestActiveBook(
+                bookId = book.id,
+                year = book.academicYear
+            )
+            _bannerMessage.value = if (lang == AppLanguage.BANGLA) {
+                "বই লক ও অফলাইনে ইনস্টল হচ্ছে: ${book.titleBn}"
+            } else {
+                "Locked & installing offline: ${book.titleEn}"
+            }
+            textbookRepo?.ensureBookInstalledOffline(book, forceRedownloadPdf = false, language = lang)
         }
     }
 

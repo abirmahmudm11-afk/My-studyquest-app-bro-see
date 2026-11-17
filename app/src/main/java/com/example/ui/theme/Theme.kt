@@ -23,12 +23,13 @@ data class StudyQuestSemanticColors(
     val onSuccessContainer: Color,
     val warning: Color,
     val warningContainer: Color,
-    val coral: Color = SunsetCoral,
-    val coralContainer: Color = SunsetCoralContainer,
-    val cyan: Color = SkyCyan,
-    val cyanContainer: Color = SkyCyanContainer,
-    val violet: Color = BerryViolet,
-    val violetContainer: Color = BerryVioletContainer
+    val onWarningContainer: Color = OnSoftQuestGold,
+    val coral: Color = WarmTerracotta,
+    val coralContainer: Color = SoftTerracotta,
+    val cyan: Color = SlateBotanical,
+    val cyanContainer: Color = SoftSlateBotanical,
+    val violet: Color = MineralTeal,
+    val violetContainer: Color = SoftMineralTeal
 )
 
 @Immutable
@@ -41,11 +42,12 @@ data class StudyQuestVisualConfig(
 
 val LocalStudyQuestColors = staticCompositionLocalOf {
     StudyQuestSemanticColors(
-        success = VividEmerald,
-        successContainer = EmeraldContainer,
-        onSuccessContainer = OnEmeraldContainer,
-        warning = AmberGold,
-        warningContainer = AmberGoldContainer
+        success = EditorialSuccess,
+        successContainer = EditorialSuccessContainer,
+        onSuccessContainer = OnEditorialSuccessContainer,
+        warning = DeepQuestGold,
+        warningContainer = SoftQuestGold,
+        onWarningContainer = OnSoftQuestGold
     )
 }
 
@@ -54,73 +56,73 @@ val LocalStudyQuestSurfaceStyle = staticCompositionLocalOf {
 }
 
 private val StudyQuestLightScheme = lightColorScheme(
-    primary = ElectricIndigo,
-    onPrimary = PureCardWhite,
-    primaryContainer = IndigoContainer,
-    onPrimaryContainer = OnIndigoContainer,
-    secondary = VividEmerald,
-    onSecondary = PureCardWhite,
-    secondaryContainer = EmeraldContainer,
-    onSecondaryContainer = OnEmeraldContainer,
-    tertiary = BerryViolet,
-    onTertiary = PureCardWhite,
-    tertiaryContainer = BerryVioletContainer,
-    onTertiaryContainer = OnBerryVioletContainer,
-    background = VividLightCanvas,
-    onBackground = DeepInk,
-    surface = PureCardWhite,
-    onSurface = DeepInk,
-    surfaceVariant = VividSoftFill,
-    onSurfaceVariant = MutedSlate,
-    surfaceContainerLowest = PureCardWhite,
-    surfaceContainerLow = Color(0xFFF8FAFF),
-    surfaceContainer = VividSoftFill,
-    surfaceContainerHigh = VividSurfaceVariant,
-    outline = CoolOutline,
-    outlineVariant = SubtleOutline,
-    error = AccessibleRed,
-    onError = PureCardWhite,
-    errorContainer = AccessibleRedContainer,
-    onErrorContainer = Color(0xFF7F1D1D)
+    primary = BrandForestGreen,
+    onPrimary = PureEditorialSurface,
+    primaryContainer = SoftSageGreen,
+    onPrimaryContainer = OnSoftSageGreen,
+    secondary = MineralTeal,
+    onSecondary = PureEditorialSurface,
+    secondaryContainer = SoftMineralTeal,
+    onSecondaryContainer = OnSoftMineralTeal,
+    tertiary = DeepQuestGold,
+    onTertiary = PureEditorialSurface,
+    tertiaryContainer = SoftQuestGold,
+    onTertiaryContainer = OnSoftQuestGold,
+    background = WarmParchmentCanvas,
+    onBackground = DeepForestInk,
+    surface = PureEditorialSurface,
+    onSurface = DeepForestInk,
+    surfaceVariant = SoftStoneSurface,
+    onSurfaceVariant = MutedMossInk,
+    surfaceContainerLowest = PureEditorialSurface,
+    surfaceContainerLow = Color(0xFFFBFBF8),
+    surfaceContainer = SoftStoneSurface,
+    surfaceContainerHigh = EditorialSurfaceVariant,
+    outline = StrongEditorialBorder,
+    outlineVariant = EditorialBorder,
+    error = EditorialError,
+    onError = PureEditorialSurface,
+    errorContainer = EditorialErrorContainer,
+    onErrorContainer = OnEditorialErrorContainer
 )
 
 private val StudyQuestDarkScheme = darkColorScheme(
     primary = DarkForestPrimary,
-    onPrimary = Color(0xFF1E1B4B),
-    primaryContainer = DarkForestContainer,
-    onPrimaryContainer = Color(0xFFE0E7FF),
-    secondary = DarkNaturalSecondary,
-    onSecondary = Color(0xFF022C22),
-    secondaryContainer = DarkScholarGreenContainer,
-    onSecondaryContainer = Color(0xFFD1FAE5),
-    tertiary = DarkSlateTertiary,
-    onTertiary = Color(0xFF2E1065),
-    tertiaryContainer = DarkVioletContainer,
-    onTertiaryContainer = Color(0xFFEDE9FE),
-    background = DarkMidnightBackground,
+    onPrimary = Color(0xFF0A2419),
+    primaryContainer = DarkForestPrimaryContainer,
+    onPrimaryContainer = Color(0xFFD6EFE3),
+    secondary = DarkForestSecondary,
+    onSecondary = Color(0xFF07251C),
+    secondaryContainer = DarkForestSecondaryContainer,
+    onSecondaryContainer = Color(0xFFCDEEE2),
+    tertiary = DarkForestTertiary,
+    onTertiary = Color(0xFF332609),
+    tertiaryContainer = DarkForestTertiaryContainer,
+    onTertiaryContainer = Color(0xFFF9E6BB),
+    background = DarkForestBackground,
     onBackground = DarkOnSurface,
-    surface = DarkMidnightSurface,
+    surface = DarkForestSurface,
     onSurface = DarkOnSurface,
-    surfaceVariant = DarkMidnightSurfaceElevated,
-    onSurfaceVariant = Color(0xFFCBD5E1),
-    surfaceContainerLowest = DarkMidnightBackground,
-    surfaceContainerLow = DarkMidnightSurface,
-    surfaceContainer = DarkMidnightSurfaceElevated,
-    surfaceContainerHigh = Color(0xFF25325B),
+    surfaceVariant = DarkForestSurfaceElevated,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceContainerLowest = DarkForestBackground,
+    surfaceContainerLow = DarkForestSurface,
+    surfaceContainer = DarkForestSurfaceElevated,
+    surfaceContainerHigh = DarkForestSurfaceHigh,
     outline = DarkOutline,
-    outlineVariant = DarkOutline.copy(alpha = 0.8f),
-    error = DarkAccessibleRed,
-    onError = Color(0xFF7F1D1D),
-    errorContainer = Color(0xFF991B1B),
-    onErrorContainer = Color(0xFFFEE2E2)
+    outlineVariant = DarkOutline.copy(alpha = 0.9f),
+    error = DarkErrorRose,
+    onError = Color(0xFF471617),
+    errorContainer = DarkErrorContainer,
+    onErrorContainer = Color(0xFFFAD7D7)
 )
 
 val StudyQuestShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(14.dp),
-    medium = RoundedCornerShape(18.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(28.dp)
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(24.dp)
 )
 
 @Composable
@@ -134,30 +136,32 @@ fun StudyQuestTheme(
     val semanticColors = if (darkTheme) {
         StudyQuestSemanticColors(
             success = DarkScholarGreen,
-            successContainer = DarkScholarGreenContainer,
-            onSuccessContainer = Color(0xFFD1FAE5),
-            warning = Color(0xFFFBBF24),
-            warningContainer = Color(0xFF78350F),
-            coral = Color(0xFFFB923C),
-            coralContainer = Color(0xFF7C2D12),
-            cyan = Color(0xFF22D3EE),
-            cyanContainer = Color(0xFF164E63),
-            violet = DarkSlateTertiary,
-            violetContainer = DarkVioletContainer
+            successContainer = DarkForestSecondaryContainer,
+            onSuccessContainer = Color(0xFFD1EFE0),
+            warning = DarkForestTertiary,
+            warningContainer = DarkForestTertiaryContainer,
+            onWarningContainer = Color(0xFFF9E6BB),
+            coral = Color(0xFFE5956B),
+            coralContainer = Color(0xFF492917),
+            cyan = Color(0xFF7CB4C9),
+            cyanContainer = Color(0xFF1D353F),
+            violet = DarkForestSecondary,
+            violetContainer = DarkForestSecondaryContainer
         )
     } else {
         StudyQuestSemanticColors(
-            success = VividEmerald,
-            successContainer = EmeraldContainer,
-            onSuccessContainer = OnEmeraldContainer,
-            warning = AmberGold,
-            warningContainer = AmberGoldContainer,
-            coral = SunsetCoral,
-            coralContainer = SunsetCoralContainer,
-            cyan = SkyCyan,
-            cyanContainer = SkyCyanContainer,
-            violet = BerryViolet,
-            violetContainer = BerryVioletContainer
+            success = EditorialSuccess,
+            successContainer = EditorialSuccessContainer,
+            onSuccessContainer = OnEditorialSuccessContainer,
+            warning = QuestGold,
+            warningContainer = SoftQuestGold,
+            onWarningContainer = OnSoftQuestGold,
+            coral = WarmTerracotta,
+            coralContainer = SoftTerracotta,
+            cyan = SlateBotanical,
+            cyanContainer = SoftSlateBotanical,
+            violet = MineralTeal,
+            violetContainer = SoftMineralTeal
         )
     }
 
@@ -183,7 +187,7 @@ fun studyQuestGlassAwareSurfaceColor(baseColor: Color = MaterialTheme.colorSchem
     return if (baseColor == MaterialTheme.colorScheme.surface) {
         if (config.isDark) GlassDarkSurface else GlassLightSurface
     } else {
-        baseColor.copy(alpha = if (config.isDark) 0.72f else 0.84f)
+        baseColor.copy(alpha = if (config.isDark) 0.78f else 0.88f)
     }
 }
 
@@ -193,21 +197,21 @@ fun studyQuestGlassAwareBorder(accent: Color? = null): BorderStroke {
     if (!config.isGlass) {
         return BorderStroke(
             width = 1.dp,
-            color = accent?.copy(alpha = 0.22f) ?: MaterialTheme.colorScheme.outlineVariant
+            color = accent?.copy(alpha = 0.24f) ?: MaterialTheme.colorScheme.outlineVariant
         )
     }
     val topHighlight = if (config.isDark) {
-        accent?.copy(alpha = 0.50f) ?: Color.White.copy(alpha = 0.24f)
+        accent?.copy(alpha = 0.42f) ?: Color.White.copy(alpha = 0.20f)
     } else {
-        Color.White.copy(alpha = 0.85f)
+        Color.White.copy(alpha = 0.90f)
     }
     val bottomEdge = if (config.isDark) {
-        ElectricIndigo.copy(alpha = 0.30f)
+        DarkForestPrimary.copy(alpha = 0.30f)
     } else {
-        accent?.copy(alpha = 0.28f) ?: ElectricIndigo.copy(alpha = 0.16f)
+        accent?.copy(alpha = 0.24f) ?: BrandForestGreen.copy(alpha = 0.14f)
     }
     return BorderStroke(
-        width = 1.25.dp,
+        width = 1.dp,
         brush = Brush.linearGradient(listOf(topHighlight, bottomEdge))
     )
 }

@@ -64,14 +64,14 @@ import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.local.LocalBookmarkEntity
 import com.example.data.local.LocalRevisionEntity
 import com.example.data.model.ExamTemplate
-import com.example.data.model.MascotMood
 import com.example.data.model.QuestionDifficulty
 import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
+import com.example.data.model.QuestCoachMood
 import com.example.data.model.StudyPlanDoc
 import com.example.ui.components.EmptyStateView
 import com.example.ui.components.LottieSuccessCelebrationCard
-import com.example.ui.components.MascotTituCard
+import com.example.ui.components.QuestCoachCard
 import com.example.ui.components.QuestionPracticeCard
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.theme.CobaltPrimary
@@ -310,8 +310,8 @@ fun PracticeAndExamRunnerScreen(
                 )
             }
             item {
-                MascotTituCard(
-                    mood = MascotMood.SUCCESS,
+                QuestCoachCard(
+                    mood = QuestCoachMood.SUCCESS,
                     messageEn = "Awesome effort! You earned +${assessmentResult.xpEarned} XP on ${assessmentResult.title}.",
                     messageBn = "দারুণ প্রচেষ্টা! ${assessmentResult.title}-এ তুমি +${StudyQuestStrings.formatDigits(assessmentResult.xpEarned, uiLanguage)} XP অর্জন করেছ।",
                     language = uiLanguage,

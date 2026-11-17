@@ -12,6 +12,9 @@ import com.example.data.model.BadgeDefinitionDoc
 import com.example.data.model.CommunityPostDoc
 import com.example.data.model.ModerationCaseDoc
 import com.example.data.model.SystemSettingsDoc
+import com.example.data.model.TextbookCatalogDoc
+import com.example.data.model.TextbookCatalogItem
+import com.example.data.model.TextbookChapterSpec
 import com.example.data.model.XpRuleConfig
 import com.example.data.repository.AdminStudioRepository
 import com.example.data.repository.BusinessInsightsSummary
@@ -62,6 +65,10 @@ class AdminStudioViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), AiProviderSettingsDoc())
 
     val aiUsageLogs: StateFlow<List<AiUsageLogDoc>> = adminRepo.observeAiUsageLogs()
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val cloudTextbooks: StateFlow<List<TextbookCatalogDoc>> = adminRepo.observeCloudTextbookCatalog()
         .catch { emit(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
@@ -265,6 +272,22 @@ class AdminStudioViewModel(
     fun refreshBusinessInsights() {
         viewModelScope.launch {
             _businessInsights.value = adminRepo.computeBusinessInsights(aiUsageLogs.value)
+        }
+    }
+
+    fun publishTextbook(book: TextbookCatalogItem) {
+        viewModelScope.launch {
+            val res = adminRepo.publishTextbookCatalogItem(currentUserId, book)
+            res.onSuccess { _message.value = "Published NCTB textbook: ${book.titleEn}" }
+            res.onFailure { _message.value = unwrapFirestoreMessage(it, "Failed to publish textbook") }
+        }
+    }
+
+    fun publishTextbookChapter(chapter: TextbookChapterSpec) {
+        viewModelScope.launch {
+            val res = adminRepo.publishTextbookChapter(currentUserId, chapter)
+            res.onSuccess { _message.value = "Published chapter: ${chapter.titleEn}" }
+            res.onFailure { _message.value = unwrapFirestoreMessage(it, "Failed to publish chapter") }
         }
     }
 }

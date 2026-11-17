@@ -23,6 +23,7 @@ import com.example.data.repository.FocusSessionRepository
 import com.example.data.repository.GamificationEngine
 import com.example.data.repository.GuestDataRepository
 import com.example.data.repository.SocialRepository
+import com.example.data.repository.TextbookDownloadRepository
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -63,7 +64,8 @@ object StudyQuestViewModelFactories {
                 guestRepo = GuestDataRepository(dao, prefs),
                 aiRepo = AiDoubtSolverRepository(db),
                 connectivityObserver = ConnectivityObserver(app),
-                gamificationEngine = buildGamificationEngine(app, db)
+                gamificationEngine = buildGamificationEngine(app, db),
+                textbookRepo = TextbookDownloadRepository(app, db, dao)
             )
         }
     }
@@ -81,7 +83,8 @@ object StudyQuestViewModelFactories {
                 connectivityObserver = ConnectivityObserver(app),
                 appContext = app,
                 gamificationEngine = buildGamificationEngine(app, db),
-                billingProvider = BillingAndAdProvider(db)
+                billingProvider = BillingAndAdProvider(db),
+                textbookRepo = TextbookDownloadRepository(app, db, dao)
             )
         }
     }
@@ -97,7 +100,9 @@ object StudyQuestViewModelFactories {
             LearnAndExamViewModel(
                 currentUserId = userId,
                 academicRepo = AcademicProgressRepository(db, dao, app, prefs, guestRepo, engine),
-                aiRepo = AiDoubtSolverRepository(db)
+                aiRepo = AiDoubtSolverRepository(db),
+                textbookRepo = TextbookDownloadRepository(app, db, dao),
+                socialRepo = SocialRepository(db)
             )
         }
     }

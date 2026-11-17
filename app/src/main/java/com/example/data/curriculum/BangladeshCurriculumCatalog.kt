@@ -27,9 +27,9 @@ object BangladeshCurriculumCatalog {
         AcademicSubject("physics", listOf("class_9", "class_10", "ssc"), listOf("science"), "Physics", "পদার্থবিজ্ঞান", "PHY", 0xFF0F766E),
         AcademicSubject("chemistry", listOf("class_9", "class_10", "ssc"), listOf("science"), "Chemistry", "রসায়ন", "CHEM", 0xFFB45309),
         AcademicSubject("biology", listOf("class_9", "class_10", "ssc"), listOf("science"), "Biology", "জীববিজ্ঞান", "BIO", 0xFF15803D),
-        AcademicSubject("ict", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "ICT", "তথ্য ও যোগাযোগ প্রযুক্তি", "ICT", 0xFF1D4ED8),
-        AcademicSubject("social_studies", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "business", "humanities"), "Bangladesh & Global Studies", "বাংলাদেশ ও বিশ্বপরিচয়", "BGS", 0xFFE66A2C),
-        AcademicSubject("gk", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "General Knowledge", "সাধারণ জ্ঞান", "GK", 0xFF7C3AED)
+        AcademicSubject("ict", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "ICT", "তথ্য ও যোগাযোগ প্রযুক্তি", "ICT", 0xFF3E6373),
+        AcademicSubject("social_studies", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "business", "humanities"), "Bangladesh & Global Studies", "বাংলাদেশ ও বিশ্বপরিচয়", "BGS", 0xFFC97343),
+        AcademicSubject("gk", listOf("class_6", "class_7", "class_8", "class_9", "class_10", "ssc"), listOf("general", "science", "business", "humanities"), "General Knowledge", "সাধারণ জ্ঞান", "GK", 0xFF286A50)
     )
 
     fun subjectsForClass(classId: String): List<AcademicSubject> =
@@ -801,11 +801,14 @@ object BangladeshCurriculumCatalog {
     )
 
     val cosmeticsCatalog: List<AvatarCosmetic> = listOf(
-        AvatarCosmetic("owl_classic", "Scholar Titu", "বিদ্বান টিটু", "avatar", 0, "Default StudyQuest starter avatar", "ডিফল্ট স্টাডিকোয়েস্ট অ্যাভাটার"),
-        AvatarCosmetic("tiger_bengal", "Royal Bengal Cub", "রয়েল বেঙ্গল শাবক", "avatar", 60, "Unlock with 60 Coins", "৬০ কয়েনে আনলক করো"),
-        AvatarCosmetic("kingfisher_bd", "River Kingfisher", "মাছরাঙা অভিযাত্রী", "avatar", 90, "Unlock with 90 Coins", "৯০ কয়েনে আনলক করো"),
-        AvatarCosmetic("frame_emerald", "Forest Laurel Frame", "সবুজ বিজয় ফ্রেম", "frame", 50, "Unlock with 50 Coins", "৫০ কয়েনে আনলক করো"),
-        AvatarCosmetic("frame_mango", "Golden Mango Crest", "সোনালী আমের মুকুট ফ্রেম", "frame", 120, "Unlock with 120 Coins", "১২০ কয়েনে আনলক করো"),
+        AvatarCosmetic("crest_indigo", "Indigo Book Crest", "ইন্ডিগো ক্রেস্ট", "avatar", 0, "Default StudyQuest geometric emblem", "ডিফল্ট স্টাডিকোয়েস্ট প্রতীক"),
+        AvatarCosmetic("crest_cyan", "Cyan Compass", "সায়ান কম্পাস", "avatar", 0, "Free scholarly geometric avatar", "বিনামূল্যে একাডেমিক প্রতীক"),
+        AvatarCosmetic("crest_emerald", "Emerald Prism", "সবুজ প্রিজম", "avatar", 0, "Free scholarly geometric avatar", "বিনামূল্যে একাডেমিক প্রতীক"),
+        AvatarCosmetic("tiger_bengal", "Royal Bengal Crest", "রয়েল বেঙ্গল ক্রেস্ট", "avatar", 60, "Unlock with 60 Coins", "৬০ কয়েনে আনলক করো"),
+        AvatarCosmetic("kingfisher_bd", "River Kingfisher Crest", "মাছরাঙা ক্রেস্ট", "avatar", 90, "Unlock with 90 Coins", "৯০ কয়েনে আনলক করো"),
+        AvatarCosmetic("frame_emerald", "Emerald Laurel Frame", "সবুজ বিজয় ফ্রেম", "frame", 50, "Unlock with 50 Coins", "৫০ কয়েনে আনলক করো"),
+        AvatarCosmetic("frame_indigo", "Electric Indigo Halo", "ইলেকট্রিক ইন্ডিগো হ্যালো", "frame", 75, "Unlock with 75 Coins", "৭৫ কয়েনে আনলক করো"),
+        AvatarCosmetic("frame_mango", "Golden Crest Frame", "সোনালী মুকুট ফ্রেম", "frame", 120, "Unlock with 120 Coins", "১২০ কয়েনে আনলক করো"),
         AvatarCosmetic("title_gonit_bir", "Math Trailblazer", "গণিত পথিকৃৎ", "title", 80, "Cosmetic profile title", "প্রোফাইল উপাধি")
     )
 }
