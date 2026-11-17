@@ -1,13 +1,16 @@
 package com.example
 
 import android.content.Context
+import android.os.Looper
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestPreferences
@@ -26,6 +29,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -33,7 +37,7 @@ import org.robolectric.annotation.Config
 class AuthUiRobolectricTest {
 
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private fun ensureFirebaseAppInitialized(context: Context) {
         if (FirebaseApp.getApps(context).isEmpty()) {
@@ -60,6 +64,7 @@ class AuthUiRobolectricTest {
                     reducedMotion = true,
                     isSigningIn = true,
                     authError = "Google Sign-In timed out while contacting Firebase.",
+                    authStatusMessage = "Still contacting Firebase (retrying automatically in background, attempt #2)...",
                     onSetLanguage = {},
                     onSigningInChanged = {},
                     onIdTokenReceived = {},
@@ -68,15 +73,18 @@ class AuthUiRobolectricTest {
             }
         }
 
-        composeRule.onNodeWithTag("auth_error_banner").assertIsDisplayed()
+        composeRule.onNodeWithTag("auth_error_banner").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Google Sign-In timed out while contacting Firebase.").assertIsDisplayed()
         composeRule.onNodeWithTag("google_sign_in_button").assertIsNotEnabled()
-        composeRule.onNodeWithText("Signing in with Google...").assertIsDisplayed()
+        composeRule.onNodeWithTag("email_auth_submit_button").assertIsNotEnabled()
+        composeRule.onNodeWithTag("auth_status_message").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Still contacting Firebase (retrying automatically in background, attempt #2)...").assertIsDisplayed()
     }
 
     @Test
     fun preAuthViewModel_blankTokenSurfacesErrorWithoutHanging() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        ensureFirebaseAppInitialized(context)
         val vm = PreAuthViewModel(StudyQuestPreferences(context))
 
         vm.setSigningIn(true)
@@ -147,11 +155,78 @@ class AuthUiRobolectricTest {
     }
 
     @Test
-    fun welcomeSignInScreen_emailGuideTabAndBackButtonWork() {
+    fun welcomeSignInScreen_emailSignInSignUpAndResetPasswordWork() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         ensureFirebaseAppInitialized(context)
 
-        var backPressed = false
+        var signedInEmail = ""
+        var signedInPassword = ""
+        var signedUpName = ""
+        var signedUpEmail = ""
+        var resetRequestedEmail = ""
+
+        composeRule.setContent {
+            StudyQuestTheme(darkTheme = false, isBangla = false) {
+                WelcomeAndGoogleSignInScreen(
+                    language = AppLanguage.ENGLISH,
+                    reducedMotion = true,
+                    isSigningIn = false,
+                    authError = null,
+                    passwordResetStatus = true to "Password reset email sent.",
+                    onSetLanguage = {},
+                    onSigningInChanged = {},
+                    onIdTokenReceived = {},
+                    onAuthError = {},
+                    onEmailSignIn = { email, pass ->
+                        signedInEmail = email
+                        signedInPassword = pass
+                    },
+                    onEmailSignUp = { name, email, _, _ ->
+                        signedUpName = name
+                        signedUpEmail = email
+                    },
+                    onSendPasswordReset = { email ->
+                        resetRequestedEmail = email
+                    }
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("auth_email_input").performScrollTo().performTextInput("student@studyquest.bd")
+        composeRule.onNodeWithTag("auth_password_input").performScrollTo().performTextInput("secret123")
+        composeRule.onNodeWithTag("email_auth_submit_button").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertEquals("student@studyquest.bd", signedInEmail)
+        assertEquals("secret123", signedInPassword)
+
+        // Switch to Create Account
+        composeRule.onNodeWithTag("auth_mode_sign_up").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("auth_name_input").performScrollTo().performTextInput("Amina Rahman")
+        composeRule.onNodeWithTag("auth_confirm_password_input").performScrollTo().performTextInput("secret123")
+        composeRule.onNodeWithTag("email_auth_submit_button").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertEquals("Amina Rahman", signedUpName)
+        assertEquals("student@studyquest.bd", signedUpEmail)
+
+        // Switch back to Sign In and test Forgot Password dialog
+        composeRule.onNodeWithTag("auth_mode_sign_in").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("auth_forgot_password_btn").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("reset_send_btn").performClick()
+        composeRule.waitForIdle()
+        assertEquals("student@studyquest.bd", resetRequestedEmail)
+        composeRule.onNodeWithTag("password_reset_banner").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun welcomeSignInScreen_topBarBackAndSystemBackReturnToLanguagePicker() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        ensureFirebaseAppInitialized(context)
+
+        var backCount = 0
         composeRule.setContent {
             StudyQuestTheme(darkTheme = false, isBangla = false) {
                 WelcomeAndGoogleSignInScreen(
@@ -163,31 +238,45 @@ class AuthUiRobolectricTest {
                     onSigningInChanged = {},
                     onIdTokenReceived = {},
                     onAuthError = {},
-                    onBackToLanguagePicker = { backPressed = true }
+                    onBackToLanguagePicker = { backCount += 1 }
                 )
             }
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("auth_tab_email_guide").performScrollTo().performClick()
+        // System back press invokes BackHandler -> returns to Language Picker
+        composeRule.runOnUiThread {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("email_console_guide_panel").performScrollTo().assertIsDisplayed()
+        assertEquals(1, backCount)
 
-        composeRule.onNodeWithTag("switch_back_to_google_auth_btn").performScrollTo().performClick()
+        // Top-bar Back IconButton also returns to Language Picker
+        composeRule.onNodeWithTag("welcome_back_to_lang_btn").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("google_sign_in_button").performScrollTo().assertIsDisplayed()
-
-        composeRule.onNodeWithTag("welcome_back_to_lang_btn").performScrollTo().performClick()
-        composeRule.waitForIdle()
-        assertTrue(backPressed)
+        assertEquals(2, backCount)
     }
 
     @Test
-    fun preAuthViewModel_cancelSignInAndReturnToLanguagePickerWork() = runBlocking {
+    fun preAuthViewModel_validationAndInstantLanguagePickerToggleWork() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        ensureFirebaseAppInitialized(context)
         val prefs = StudyQuestPreferences(context)
         prefs.setInitialLanguage(AppLanguage.ENGLISH)
         val vm = PreAuthViewModel(prefs)
+
+        vm.selectInitialLanguage(AppLanguage.BANGLA)
+        Shadows.shadowOf(Looper.getMainLooper()).idle()
+        assertFalse(vm.shouldShowLanguagePicker.value)
+
+        vm.signInWithEmail("invalid-email", "123456", AppLanguage.ENGLISH)
+        assertEquals("Please enter a valid email address.", vm.authMessage.value)
+
+        vm.signUpWithEmail("Amina", "amina@example.com", "123456", "different", AppLanguage.ENGLISH)
+        assertEquals("Passwords do not match.", vm.authMessage.value)
+
+        vm.sendPasswordReset("bad", AppLanguage.ENGLISH)
+        assertEquals(false, vm.passwordResetStatus.value?.first)
 
         vm.setSigningIn(true)
         assertTrue(vm.isSigningIn.value)
@@ -198,6 +287,9 @@ class AuthUiRobolectricTest {
         assertNotNull(vm.authMessage.value)
 
         vm.returnToLanguagePicker()
+        Shadows.shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(vm.shouldShowLanguagePicker.value)
+
         val deadline = System.currentTimeMillis() + 2000L
         var chosen = prefs.preferencesFlow.first().hasChosenInitialLanguage
         while (chosen && System.currentTimeMillis() < deadline) {

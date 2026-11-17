@@ -21,7 +21,10 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -72,6 +75,16 @@ fun GuestStudyCircleContent(
 ) {
     var noteInput by remember { mutableStateOf("") }
     var askAiBuddy by remember { mutableStateOf(true) }
+    var pinnedProblemText by remember(selectedChannelId) {
+        mutableStateOf(
+            when (selectedChannelId) {
+                "science_lab" -> "If mass = 5 kg and acceleration = 3 m/s², find net Force (F = ma)."
+                "english_prep" -> "Change into Passive: 'Students solve math problems together.'"
+                else -> "Solve x² - 5x + 6 = 0 and verify the roots."
+            }
+        )
+    }
+    var showEditPinDialog by remember { mutableStateOf(false) }
 
     val channels = listOf(
         "ssc_math" to StudyQuestStrings.t(uiLanguage, "Math & Formulas", "গণিত ও সূত্র"),
@@ -115,6 +128,40 @@ fun GuestStudyCircleContent(
                             label = { Text(label) },
                             modifier = Modifier.testTag("circle_channel_$id")
                         )
+                    }
+                }
+            }
+
+            item {
+                StudyQuestCard(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Filled.PushPin, contentDescription = null, tint = CobaltPrimary, modifier = Modifier.size(16.dp))
+                            Text(
+                                text = StudyQuestStrings.t(uiLanguage, "Pinned Circle Problem", "পিন করা সমস্যা"),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        TextButton(onClick = { showEditPinDialog = true }) {
+                            Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(StudyQuestStrings.t(uiLanguage, "Edit", "এডিট"))
+                        }
+                    }
+                    Text(text = pinnedProblemText, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(6.dp))
+                    Button(
+                        onClick = { onPostNote("Please solve step-by-step: $pinnedProblemText", true) },
+                        enabled = !isAiReplying
+                    ) {
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(StudyQuestStrings.t(uiLanguage, "Solve with Titu AI", "টিটু AI দিয়ে সমাধান"))
                     }
                 }
             }
@@ -274,6 +321,40 @@ fun GuestStudyCircleContent(
                 }
             }
         }
+    }
+
+    if (showEditPinDialog) {
+        var draft by remember(pinnedProblemText) { mutableStateOf(pinnedProblemText) }
+        AlertDialog(
+            onDismissRequest = { showEditPinDialog = false },
+            title = { Text(StudyQuestStrings.t(uiLanguage, "Update Pinned Problem", "পিন করা সমস্যা পরিবর্তন")) },
+            text = {
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    minLines = 2,
+                    maxLines = 4,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (draft.isNotBlank()) {
+                            pinnedProblemText = draft.trim()
+                            showEditPinDialog = false
+                        }
+                    }
+                ) {
+                    Text(StudyQuestStrings.t(uiLanguage, "Save", "সংরক্ষণ"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditPinDialog = false }) {
+                    Text(StudyQuestStrings.t(uiLanguage, "Cancel", "বাতিল"))
+                }
+            }
+        )
     }
 }
 

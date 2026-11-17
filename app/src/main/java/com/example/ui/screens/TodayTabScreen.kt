@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -71,6 +72,9 @@ import com.example.data.model.StudyPlanDoc
 import com.example.data.model.UserNotificationDoc
 import com.example.data.model.UserQuestDoc
 import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.WorkspacePremium
 import com.example.data.repository.DailyStudyMetric
@@ -92,8 +96,14 @@ import com.example.ui.components.SubjectCard
 import com.example.ui.components.SyncStatusPill
 import com.example.data.model.QuestPlanCatalog
 import com.example.data.model.UserSubscriptionDoc
+import com.example.ui.theme.AmberGold
+import com.example.ui.theme.BerryViolet
+import com.example.ui.theme.ElectricIndigo
 import com.example.ui.theme.LocalStudyQuestColors
 import com.example.ui.theme.RoseAlert
+import com.example.ui.theme.VividEmerald
+import com.example.ui.theme.studyQuestGlassAwareBorder
+import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -133,6 +143,9 @@ fun TodayTabScreen(
     subscription: UserSubscriptionDoc = UserSubscriptionDoc(),
     onOpenAiLab: () -> Unit = {},
     onOpenPlanStore: () -> Unit = {},
+    onOpenStudyProgress: () -> Unit = {},
+    onOpenStudyGroups: () -> Unit = {},
+    onOpenLeaderboard: () -> Unit = {},
     isGuestMode: Boolean = false,
     onRequestGoogleSignIn: () -> Unit = {}
 ) {
@@ -161,7 +174,9 @@ fun TodayTabScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("today_home_list"),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -433,6 +448,91 @@ fun TodayTabScreen(
                     onBuyFreeze = if (!isGuestMode) onBuyStreakFreeze else null,
                     showBuyFreeze = !isGuestMode
                 )
+            }
+        }
+
+        // 4 Vivid Playful Quest Feature Hero Cards (Study Progress, Study Groups, Leaderboard, AI Doubt Solver)
+        item {
+            val completedLessonsCount = remember(recentRecords) { recentRecords.count { it.recordType == "lesson" } }
+            val completedExamsCount = remember(recentRecords) { recentRecords.count { it.recordType in listOf("exam", "promotion_exam") } }
+            StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = StudyQuestStrings.t(language, "Quest Destinations", "কুইক ডেস্টিনেশন"),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        TodayFeatureHeroTile(
+                            title = StudyQuestStrings.t(language, "Study Progress", "অধ্যয়ন অগ্রগতি"),
+                            subtitle = StudyQuestStrings.t(
+                                language,
+                                "${completedLessonsCount} lessons • ${completedExamsCount} exams",
+                                "${StudyQuestStrings.formatDigits(completedLessonsCount, language)} পাঠ • ${StudyQuestStrings.formatDigits(completedExamsCount, language)} পরীক্ষা"
+                            ),
+                            badge = StudyQuestStrings.t(language, "Charts", "চার্ট"),
+                            icon = Icons.Filled.TrendingUp,
+                            accentColor = ElectricIndigo,
+                            onClick = onOpenStudyProgress,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("today_hero_study_progress")
+                        )
+                        TodayFeatureHeroTile(
+                            title = StudyQuestStrings.t(language, "Study Groups", "স্টাডি গ্রুপ"),
+                            subtitle = StudyQuestStrings.t(
+                                language,
+                                "Live rooms & problem board",
+                                "লাইভ রুম ও প্রশ্ন বোর্ড"
+                            ),
+                            badge = StudyQuestStrings.t(language, "Live", "লাইভ"),
+                            icon = Icons.Filled.Groups,
+                            accentColor = VividEmerald,
+                            onClick = onOpenStudyGroups,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("today_hero_study_groups")
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        TodayFeatureHeroTile(
+                            title = StudyQuestStrings.t(language, "Leaderboard", "লিডারবোর্ড"),
+                            subtitle = StudyQuestStrings.t(
+                                language,
+                                "${profile.rankTier} • ${profile.totalXp} XP",
+                                "${profile.rankTier} • ${StudyQuestStrings.formatDigits(profile.totalXp, language)} XP"
+                            ),
+                            badge = StudyQuestStrings.t(language, "Top 50", "শীর্ষ ৫০"),
+                            icon = Icons.Filled.EmojiEvents,
+                            accentColor = AmberGold,
+                            onClick = onOpenLeaderboard,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("today_hero_leaderboard")
+                        )
+                        TodayFeatureHeroTile(
+                            title = StudyQuestStrings.t(language, "AI Doubt Solver", "এআই সমাধান"),
+                            subtitle = StudyQuestStrings.t(
+                                language,
+                                "Instant Gemini NCTB answers",
+                                "তাৎক্ষণিক জেমিনি উত্তর"
+                            ),
+                            badge = "Gemini",
+                            icon = Icons.Filled.AutoAwesome,
+                            accentColor = BerryViolet,
+                            onClick = onOpenAiDoubtSolver,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("today_hero_ai_solver")
+                        )
+                    }
+                }
             }
         }
 
@@ -858,7 +958,9 @@ fun TodayTabScreen(
     }
 
     if (showNotificationsSheet) {
+        BackHandler { showNotificationsSheet = false }
         ModalBottomSheet(onDismissRequest = { showNotificationsSheet = false }) {
+            BackHandler { showNotificationsSheet = false }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -903,6 +1005,76 @@ fun TodayTabScreen(
                 }
                 Spacer(Modifier.height(16.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun TodayFeatureHeroTile(
+    title: String,
+    subtitle: String,
+    badge: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(22.dp),
+        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
+        border = studyQuestGlassAwareBorder(accentColor.copy(alpha = 0.55f)),
+        shadowElevation = 2.dp,
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = accentColor.copy(alpha = 0.16f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = accentColor,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = accentColor.copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = badge,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2
+            )
         }
     }
 }

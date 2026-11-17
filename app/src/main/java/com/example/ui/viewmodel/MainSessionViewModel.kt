@@ -15,6 +15,7 @@ import com.example.core.ConnectivityObserver
 import com.example.core.LocalUserPreferences
 import com.example.core.StudyActivityMonitor
 import com.example.core.StudyQuestPreferences
+import com.example.core.SurfaceStyle
 import com.example.core.ThemeMode
 import com.example.core.unwrapFirestoreMessage
 import com.example.data.model.AiCreditLedgerDoc
@@ -34,16 +35,19 @@ import com.example.data.repository.AdminStudioRepository
 import com.example.data.repository.AuthAndProfileRepository
 import com.example.data.repository.GamificationEngine
 import com.google.firebase.Firebase
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
+import com.google.firebase.auth.userProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -54,6 +58,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -79,12 +84,30 @@ class PreAuthViewModel(
     val localPreferences: StateFlow<LocalUserPreferences> = preferences.preferencesFlow
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000L),
+            started = SharingStarted.Eagerly,
             initialValue = LocalUserPreferences()
         )
 
+    private val _languagePickerOverride = MutableStateFlow<Boolean?>(null)
+    val shouldShowLanguagePicker: StateFlow<Boolean> = combine(
+        localPreferences,
+        _languagePickerOverride
+    ) { prefs, override ->
+        override ?: !prefs.hasChosenInitialLanguage
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = true
+    )
+
     private val _authMessage = MutableStateFlow<String?>(null)
     val authMessage: StateFlow<String?> = _authMessage.asStateFlow()
+
+    private val _authStatusMessage = MutableStateFlow<String?>(null)
+    val authStatusMessage: StateFlow<String?> = _authStatusMessage.asStateFlow()
+
+    private val _passwordResetStatus = MutableStateFlow<Pair<Boolean, String>?>(null)
+    val passwordResetStatus: StateFlow<Pair<Boolean, String>?> = _passwordResetStatus.asStateFlow()
 
     private val _isSigningIn = MutableStateFlow(false)
     val isSigningIn: StateFlow<Boolean> = _isSigningIn.asStateFlow()
@@ -93,8 +116,10 @@ class PreAuthViewModel(
     val canCancelSignIn: StateFlow<Boolean> = _canCancelSignIn.asStateFlow()
 
     private var cancelTimerJob: Job? = null
+    private var signInJob: Job? = null
 
     fun selectInitialLanguage(lang: AppLanguage) {
+        _languagePickerOverride.value = false
         viewModelScope.launch {
             preferences.setInitialLanguage(lang)
         }
@@ -102,6 +127,8 @@ class PreAuthViewModel(
 
     fun returnToLanguagePicker() {
         cancelSignIn(showMessage = false)
+        _passwordResetStatus.value = null
+        _languagePickerOverride.value = true
         viewModelScope.launch {
             preferences.resetInitialLanguageSelection()
         }
@@ -122,6 +149,12 @@ class PreAuthViewModel(
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch {
             preferences.setThemeMode(mode)
+        }
+    }
+
+    fun setSurfaceStyle(style: SurfaceStyle) {
+        viewModelScope.launch {
+            preferences.setSurfaceStyle(style)
         }
     }
 
@@ -155,13 +188,21 @@ class PreAuthViewModel(
         }
     }
 
-    private var signInJob: Job? = null
+    fun clearAuthMessages() {
+        _authMessage.value = null
+        _passwordResetStatus.value = null
+    }
 
-    fun setSigningIn(loading: Boolean) {
+    fun clearPasswordResetStatus() {
+        _passwordResetStatus.value = null
+    }
+
+    fun setSigningIn(loading: Boolean, statusMessage: String? = null) {
         _isSigningIn.value = loading
         cancelTimerJob?.cancel()
         if (loading) {
             _authMessage.value = null
+            _authStatusMessage.value = statusMessage
             _canCancelSignIn.value = false
             cancelTimerJob = viewModelScope.launch {
                 delay(CANCEL_REVEAL_DELAY_MS)
@@ -170,6 +211,7 @@ class PreAuthViewModel(
                 }
             }
         } else {
+            _authStatusMessage.value = null
             _canCancelSignIn.value = false
         }
     }
@@ -177,6 +219,7 @@ class PreAuthViewModel(
     fun setAuthError(msg: String?) {
         cancelTimerJob?.cancel()
         _canCancelSignIn.value = false
+        _authStatusMessage.value = null
         _authMessage.value = msg
         _isSigningIn.value = false
     }
@@ -188,8 +231,9 @@ class PreAuthViewModel(
         cancelTimerJob = null
         _isSigningIn.value = false
         _canCancelSignIn.value = false
+        _authStatusMessage.value = null
         _authMessage.value = if (showMessage) {
-            "Sign-in cancelled. Check your connection or tap Continue with Google when ready."
+            "Sign-in cancelled. Check your connection or try again when ready."
         } else {
             null
         }
@@ -197,10 +241,18 @@ class PreAuthViewModel(
 
     fun signInWithGoogleIdToken(
         idToken: String,
+        language: AppLanguage = AppLanguage.ENGLISH,
         onSuccess: () -> Unit = {}
     ) {
         if (idToken.isBlank()) {
             setAuthError("Google Sign-In did not return a valid ID token. Please try again.")
+            return
+        }
+        val existingUser = runCatching { Firebase.auth.currentUser }.getOrNull()
+        if (existingUser != null) {
+            Log.d(TAG, "Firebase user already signed in (uid=${existingUser.uid}); completing immediately")
+            setSigningIn(false)
+            onSuccess()
             return
         }
         if (signInJob?.isActive == true) {
@@ -208,38 +260,356 @@ class PreAuthViewModel(
             return
         }
         signInJob = viewModelScope.launch {
-            setSigningIn(true)
+            setSigningIn(
+                loading = true,
+                statusMessage = if (language == AppLanguage.BANGLA) {
+                    "গুগল দিয়ে সাইন-ইন হচ্ছে..."
+                } else {
+                    "Signing in with Google..."
+                }
+            )
             try {
-                Log.d(TAG, "Exchanging Google ID token with Firebase Auth")
                 val credential = GoogleAuthProvider.getCredential(idToken, null)
-                withTimeout(FIREBASE_AUTH_TIMEOUT_MS) {
-                    Firebase.auth.signInWithCredential(credential).await()
+                executeWithBackgroundRetry(
+                    language = language,
+                    operationLabelEn = "contacting Firebase",
+                    operationLabelBn = "Firebase-এর সাথে সংযোগ"
+                ) {
+                    if (Firebase.auth.currentUser == null) {
+                        Firebase.auth.signInWithCredential(credential).await()
+                    }
                 }
                 Log.d(TAG, "Firebase signInWithCredential succeeded for uid=${Firebase.auth.currentUser?.uid}")
                 setSigningIn(false)
                 onSuccess()
-            } catch (e: TimeoutCancellationException) {
-                Log.e(TAG, "Firebase Google signIn timed out", e)
-                setAuthError("Google Sign-In timed out while contacting Firebase. Please check your internet connection and try again.")
             } catch (e: CancellationException) {
                 cancelTimerJob?.cancel()
                 _canCancelSignIn.value = false
+                _authStatusMessage.value = null
                 _isSigningIn.value = false
                 throw e
             } catch (e: FirebaseAuthException) {
                 Log.e(TAG, "FirebaseAuthException during Google signIn [${e.errorCode}]", e)
-                setAuthError("Sign-in failed [${e.errorCode}]: ${e.localizedMessage ?: "Firebase authentication rejected the credential."}")
+                setAuthError(mapFirebaseAuthError(e, language))
             } catch (e: Exception) {
                 Log.e(TAG, "Firebase Google signIn failed", e)
-                setAuthError(e.localizedMessage ?: "Google Sign-In failed. Please try again.")
+                setAuthError(e.localizedMessage ?: "Google Sign-In failed. Please check your internet and try again.")
+            } finally {
+                signInJob = null
             }
+        }
+    }
+
+    fun signInWithEmail(
+        email: String,
+        password: String,
+        language: AppLanguage,
+        onSuccess: () -> Unit = {}
+    ) {
+        val cleanEmail = email.trim()
+        if (!isValidEmailFormat(cleanEmail)) {
+            setAuthError(
+                if (language == AppLanguage.BANGLA) "অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা লিখো।"
+                else "Please enter a valid email address."
+            )
+            return
+        }
+        if (password.length < 6) {
+            setAuthError(
+                if (language == AppLanguage.BANGLA) "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।"
+                else "Password must be at least 6 characters."
+            )
+            return
+        }
+        if (signInJob?.isActive == true) return
+        signInJob = viewModelScope.launch {
+            setSigningIn(
+                loading = true,
+                statusMessage = if (language == AppLanguage.BANGLA) "ইমেইল দিয়ে সাইন-ইন হচ্ছে..." else "Signing in with email..."
+            )
+            try {
+                executeWithBackgroundRetry(
+                    language = language,
+                    operationLabelEn = "signing in",
+                    operationLabelBn = "সাইন-ইন করা"
+                ) {
+                    Firebase.auth.signInWithEmailAndPassword(cleanEmail, password).await()
+                }
+                setSigningIn(false)
+                onSuccess()
+            } catch (e: CancellationException) {
+                cancelTimerJob?.cancel()
+                _canCancelSignIn.value = false
+                _authStatusMessage.value = null
+                _isSigningIn.value = false
+                throw e
+            } catch (e: FirebaseAuthException) {
+                Log.e(TAG, "Email signIn failed [${e.errorCode}]", e)
+                setAuthError(mapFirebaseAuthError(e, language))
+            } catch (e: Exception) {
+                Log.e(TAG, "Email signIn error", e)
+                setAuthError(e.localizedMessage ?: "Email sign-in failed. Please try again.")
+            }
+        }
+    }
+
+    fun signUpWithEmail(
+        displayName: String,
+        email: String,
+        password: String,
+        confirmPassword: String,
+        language: AppLanguage,
+        onSuccess: () -> Unit = {}
+    ) {
+        val cleanName = displayName.trim()
+        val cleanEmail = email.trim()
+        if (cleanName.length < 2) {
+            setAuthError(
+                if (language == AppLanguage.BANGLA) "অনুগ্রহ করে তোমার নাম লিখো (কমপক্ষে ২ অক্ষর)।"
+                else "Please enter your full name (at least 2 characters)."
+            )
+            return
+        }
+        if (!isValidEmailFormat(cleanEmail)) {
+            setAuthError(
+                if (language == AppLanguage.BANGLA) "অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা লিখো।"
+                else "Please enter a valid email address."
+            )
+            return
+        }
+        if (password.length < 6) {
+            setAuthError(
+                if (language == AppLanguage.BANGLA) "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।"
+                else "Password must be at least 6 characters."
+            )
+            return
+        }
+        if (password != confirmPassword) {
+            setAuthError(
+                if (language == AppLanguage.BANGLA) "দুটি পাসওয়ার্ড মিলছে না।"
+                else "Passwords do not match."
+            )
+            return
+        }
+        if (signInJob?.isActive == true) return
+        signInJob = viewModelScope.launch {
+            setSigningIn(
+                loading = true,
+                statusMessage = if (language == AppLanguage.BANGLA) "অ্যাকাউন্ট তৈরি হচ্ছে..." else "Creating your StudyQuest account..."
+            )
+            try {
+                executeWithBackgroundRetry(
+                    language = language,
+                    operationLabelEn = "creating account",
+                    operationLabelBn = "অ্যাকাউন্ট তৈরি"
+                ) {
+                    val result = Firebase.auth.createUserWithEmailAndPassword(cleanEmail, password).await()
+                    val createdUser = result.user ?: Firebase.auth.currentUser
+                    if (createdUser != null) {
+                        runCatching {
+                            createdUser.updateProfile(
+                                userProfileChangeRequest {
+                                    this.displayName = cleanName.take(58)
+                                }
+                            ).await()
+                        }
+                    }
+                }
+                setSigningIn(false)
+                onSuccess()
+            } catch (e: CancellationException) {
+                cancelTimerJob?.cancel()
+                _canCancelSignIn.value = false
+                _authStatusMessage.value = null
+                _isSigningIn.value = false
+                throw e
+            } catch (e: FirebaseAuthException) {
+                Log.e(TAG, "Email signUp failed [${e.errorCode}]", e)
+                setAuthError(mapFirebaseAuthError(e, language))
+            } catch (e: Exception) {
+                Log.e(TAG, "Email signUp error", e)
+                setAuthError(e.localizedMessage ?: "Account creation failed. Please try again.")
+            }
+        }
+    }
+
+    fun sendPasswordReset(email: String, language: AppLanguage) {
+        val cleanEmail = email.trim()
+        if (!isValidEmailFormat(cleanEmail)) {
+            _passwordResetStatus.value = false to if (language == AppLanguage.BANGLA) {
+                "পাসওয়ার্ড রিসেটের জন্য একটি সঠিক ইমেইল ঠিকানা লিখো।"
+            } else {
+                "Enter a valid email address to send a reset link."
+            }
+            return
+        }
+        viewModelScope.launch {
+            try {
+                withTimeout(15_000L) {
+                    Firebase.auth.sendPasswordResetEmail(cleanEmail).await()
+                }
+                _passwordResetStatus.value = true to if (language == AppLanguage.BANGLA) {
+                    "$cleanEmail ঠিকানায় পাসওয়ার্ড রিসেট ইমেইল পাঠানো হয়েছে।"
+                } else {
+                    "Password reset email sent to $cleanEmail. Check your inbox."
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: FirebaseAuthException) {
+                _passwordResetStatus.value = false to mapFirebaseAuthError(e, language)
+            } catch (e: Exception) {
+                _passwordResetStatus.value = false to (
+                    e.localizedMessage ?: if (language == AppLanguage.BANGLA) {
+                        "পাসওয়ার্ড রিসেট ইমেইল পাঠানো যায়নি।"
+                    } else {
+                        "Could not send password reset email. Check your connection."
+                    }
+                )
+            }
+        }
+    }
+
+    private suspend fun executeWithBackgroundRetry(
+        language: AppLanguage,
+        operationLabelEn: String,
+        operationLabelBn: String,
+        block: suspend () -> Unit
+    ) {
+        var attempt = 1
+        while (attempt <= MAX_RETRY_ATTEMPTS && currentCoroutineContext().isActive && _isSigningIn.value) {
+            val attemptTimeoutMs = when (attempt) {
+                1 -> 10_000L
+                2 -> 12_000L
+                else -> 14_000L
+            }
+            try {
+                withTimeout(attemptTimeoutMs) {
+                    block()
+                }
+                return
+            } catch (e: TimeoutCancellationException) {
+                if (!currentCoroutineContext().isActive || !_isSigningIn.value) throw CancellationException("Sign-in cancelled")
+                if (attempt >= MAX_RETRY_ATTEMPTS) {
+                    throw IllegalStateException(
+                        if (language == AppLanguage.BANGLA) {
+                            "Firebase-এর সাথে সংযোগে সময় শেষ হয়েছে। ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করো।"
+                        } else {
+                            "Sign-in timed out while contacting Firebase. Please check your internet connection and try again."
+                        },
+                        e
+                    )
+                }
+                attempt += 1
+                Log.w(TAG, "Auth attempt timed out; background retry #$attempt", e)
+                _authStatusMessage.value = if (language == AppLanguage.BANGLA) {
+                    "$operationLabelBn বিলম্বিত হচ্ছে (রিট্রাই #$attempt/$MAX_RETRY_ATTEMPTS)..."
+                } else {
+                    "Still $operationLabelEn (retrying in background, attempt #$attempt/$MAX_RETRY_ATTEMPTS)..."
+                }
+                delay(1_200L)
+            } catch (e: FirebaseNetworkException) {
+                if (!currentCoroutineContext().isActive || !_isSigningIn.value) throw CancellationException("Sign-in cancelled")
+                if (attempt >= MAX_RETRY_ATTEMPTS) {
+                    throw IllegalStateException(
+                        if (language == AppLanguage.BANGLA) {
+                            "নেটওয়ার্ক ত্রুটির কারণে সাইন-ইন সম্পন্ন হয়নি। ওয়াই-ফাই বা মোবাইল ডেটা পরীক্ষা করো।"
+                        } else {
+                            "Network error prevented sign-in. Check Wi-Fi or mobile data and try again."
+                        },
+                        e
+                    )
+                }
+                attempt += 1
+                Log.w(TAG, "Transient FirebaseNetworkException; background retry #$attempt", e)
+                _authStatusMessage.value = if (language == AppLanguage.BANGLA) {
+                    "নেটওয়ার্ক ধীরগতির, আবার চেষ্টা চলছে (#$attempt/$MAX_RETRY_ATTEMPTS)..."
+                } else {
+                    "Slow network detected — retrying in background (#$attempt/$MAX_RETRY_ATTEMPTS)..."
+                }
+                delay(1_200L)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                val msg = e.message.orEmpty()
+                val isTransient = e !is FirebaseAuthException && (
+                    msg.contains("network", ignoreCase = true) ||
+                        msg.contains("timeout", ignoreCase = true) ||
+                        msg.contains("unreachable", ignoreCase = true) ||
+                        msg.contains("unable to resolve", ignoreCase = true)
+                    )
+                if (isTransient && attempt < MAX_RETRY_ATTEMPTS && currentCoroutineContext().isActive && _isSigningIn.value) {
+                    attempt += 1
+                    Log.w(TAG, "Transient auth failure; background retry #$attempt: $msg")
+                    _authStatusMessage.value = if (language == AppLanguage.BANGLA) {
+                        "Firebase সংযোগে আবার চেষ্টা চলছে (#$attempt/$MAX_RETRY_ATTEMPTS)..."
+                    } else {
+                        "Reconnecting to Firebase (#$attempt/$MAX_RETRY_ATTEMPTS)..."
+                    }
+                    delay(1_200L)
+                } else {
+                    throw e
+                }
+            }
+        }
+    }
+
+    private fun isValidEmailFormat(email: String): Boolean {
+        if (email.isBlank() || !email.contains("@")) return false
+        val parts = email.split("@")
+        if (parts.size != 2 || parts[0].isBlank()) return false
+        val domain = parts[1]
+        return domain.contains(".") && !domain.startsWith(".") && !domain.endsWith(".")
+    }
+
+    private fun mapFirebaseAuthError(e: FirebaseAuthException, language: AppLanguage): String {
+        return when (e.errorCode) {
+            "ERROR_INVALID_EMAIL" -> if (language == AppLanguage.BANGLA) {
+                "ইমেইল ঠিকানাটি সঠিক নয়।"
+            } else {
+                "The email address is badly formatted."
+            }
+            "ERROR_WRONG_PASSWORD", "ERROR_INVALID_CREDENTIAL" -> if (language == AppLanguage.BANGLA) {
+                "ইমেইল বা পাসওয়ার্ড ভুল হয়েছে। অনুগ্রহ করে আবার যাচাই করো।"
+            } else {
+                "Incorrect email or password. Please check your credentials and try again."
+            }
+            "ERROR_USER_NOT_FOUND" -> if (language == AppLanguage.BANGLA) {
+                "এই ইমেইলে কোনো অ্যাকাউন্ট পাওয়া যায়নি। নতুন অ্যাকাউন্ট তৈরি করো।"
+            } else {
+                "No account found with this email. Switch to Create Account to sign up."
+            }
+            "ERROR_EMAIL_ALREADY_IN_USE" -> if (language == AppLanguage.BANGLA) {
+                "এই ইমেইল দিয়ে আগেই একটি অ্যাকাউন্ট তৈরি করা আছে। সাইন-ইন করো।"
+            } else {
+                "An account already exists with this email. Switch to Sign In instead."
+            }
+            "ERROR_WEAK_PASSWORD" -> if (language == AppLanguage.BANGLA) {
+                "পাসওয়ার্ডটি আরও শক্তিশালী করো (কমপক্ষে ৬ অক্ষর)।"
+            } else {
+                "Please choose a stronger password (at least 6 characters)."
+            }
+            "ERROR_OPERATION_NOT_ALLOWED" -> if (language == AppLanguage.BANGLA) {
+                "Firebase Console → Authentication → Sign-in method থেকে Email/Password চালু করা প্রয়োজন (অথবা নিচে গুগল সাইন-ইন ব্যবহার করো)।"
+            } else {
+                "Email/Password sign-in is not enabled in Firebase Console (Authentication → Sign-in method) yet. Enable it there or use Google Sign-In below."
+            }
+            "ERROR_TOO_MANY_REQUESTS" -> if (language == AppLanguage.BANGLA) {
+                "অনেকবার চেষ্টা করা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করো।"
+            } else {
+                "Too many attempts. Please wait a moment and try again."
+            }
+            "ERROR_USER_DISABLED" -> if (language == AppLanguage.BANGLA) {
+                "এই অ্যাকাউন্টটি নিষ্ক্রিয় করা হয়েছে।"
+            } else {
+                "This account has been disabled."
+            }
+            else -> "Sign-in failed [${e.errorCode}]: ${e.localizedMessage ?: "Firebase authentication error."}"
         }
     }
 
     companion object {
         private const val TAG = "PreAuthVM"
-        private const val CANCEL_REVEAL_DELAY_MS = 6_000L
-        private const val FIREBASE_AUTH_TIMEOUT_MS = 45_000L
+        private const val CANCEL_REVEAL_DELAY_MS = 2_500L
+        private const val MAX_RETRY_ATTEMPTS = 3
     }
 }
 
@@ -430,37 +800,58 @@ class MainSessionViewModel(
             val currentLang = localPreferences.value.uiLanguage
             val boot = authRepo.ensureUserBootstrapped(currentUser, currentLang)
             boot.onSuccess { loadedProfile ->
+                // Immediately unblock UI as soon as profile is ready — run secondary tasks asynchronously
                 _bootstrappedProfile.value = loadedProfile
                 _bootstrapError.value = null
-                runCatching {
-                    withTimeout(15_000L) {
-                        authRepo.mergeGuestProgressToAccount(currentUser.uid, preferences)
-                    }
-                }.getOrNull()?.onSuccess { count ->
-                    if (count > 0) {
-                        _guestMergedCount.value = count
-                        _bannerMessage.value = if (currentLang == AppLanguage.BANGLA) {
-                            "গেস্ট মোডের অগ্রগতি আপনার গুগল অ্যাকাউন্টে স্বয়ংক্রিয়ভাবে সিঙ্ক হয়েছে!"
-                        } else {
-                            "Guest progress synced automatically to your Google account!"
+                _bootstrapping.value = false
+
+                launch {
+                    runCatching {
+                        withTimeout(8_000L) {
+                            if (loadedProfile.showOnlineStatus) {
+                                authRepo.setOnlinePresence(currentUser.uid, true)
+                            }
+                            authRepo.ensureActivePeriodQuests(currentUser.uid)
                         }
+                    }
+                }
+                launch {
+                    runCatching {
+                        withTimeout(15_000L) {
+                            authRepo.mergeGuestProgressToAccount(currentUser.uid, preferences)
+                        }
+                    }.getOrNull()?.onSuccess { count ->
+                        if (count > 0) {
+                            _guestMergedCount.value = count
+                            _bannerMessage.value = if (currentLang == AppLanguage.BANGLA) {
+                                "গেস্ট মোডের অগ্রগতি আপনার গুগল অ্যাকাউন্টে স্বয়ংক্রিয়ভাবে সিঙ্ক হয়েছে!"
+                            } else {
+                                "Guest progress synced automatically to your Google account!"
+                            }
+                        }
+                    }
+                }
+                launch {
+                    _adminRole.value = runCatching {
+                        withTimeout(8_000L) { adminRepo.resolveAdminRole(currentUser) }
+                    }.getOrNull()
+                }
+                launch {
+                    runCatching {
+                        withTimeout(8_000L) { gamificationEngine?.evaluateAcademicYearLifecycle(currentUser.uid) }
+                    }
+                }
+                launch {
+                    runCatching {
+                        withTimeout(8_000L) { billingProvider?.ensureFreeSubscriptionInitialized(currentUser.uid) }
                     }
                 }
             }.onFailure { err ->
                 val msg = unwrapFirestoreMessage(err, err.localizedMessage ?: "Profile bootstrap failed")
                 _bootstrapError.value = msg
                 _bannerMessage.value = msg
+                _bootstrapping.value = false
             }
-            _adminRole.value = runCatching {
-                withTimeout(8_000L) { adminRepo.resolveAdminRole(currentUser) }
-            }.getOrNull()
-            runCatching {
-                withTimeout(8_000L) { gamificationEngine?.evaluateAcademicYearLifecycle(currentUser.uid) }
-            }
-            runCatching {
-                withTimeout(8_000L) { billingProvider?.ensureFreeSubscriptionInitialized(currentUser.uid) }
-            }
-            _bootstrapping.value = false
         }
     }
 
@@ -566,6 +957,13 @@ class MainSessionViewModel(
         viewModelScope.launch {
             preferences.setThemeMode(mode)
             authRepo.syncPreferencesToCloud(currentUser.uid, localPreferences.value.copy(themeMode = mode, darkMode = mode == ThemeMode.DARK))
+        }
+    }
+
+    fun updateSurfaceStyle(style: SurfaceStyle) {
+        viewModelScope.launch {
+            preferences.setSurfaceStyle(style)
+            authRepo.syncPreferencesToCloud(currentUser.uid, localPreferences.value.copy(surfaceStyle = style))
         }
     }
 

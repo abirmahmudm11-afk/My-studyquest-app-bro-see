@@ -47,6 +47,16 @@ enum class ThemeMode(val code: String, val labelEn: String, val labelBn: String)
     }
 }
 
+enum class SurfaceStyle(val code: String, val labelEn: String, val labelBn: String) {
+    NORMAL("normal", "Vivid Classic", "ভিভিড ক্লাসিক"),
+    GLASSMORPHISM("glassmorphism", "Glassmorphism", "গ্লাসমরফিজম");
+
+    companion object {
+        fun fromCode(code: String?): SurfaceStyle =
+            if (code == "glassmorphism") GLASSMORPHISM else NORMAL
+    }
+}
+
 data class PersistedFocusTimerState(
     val active: Boolean = false,
     val sessionId: String = "",
@@ -73,6 +83,7 @@ data class LocalUserPreferences(
     val questionLanguage: AppLanguage = AppLanguage.BANGLA,
     val themeMode: ThemeMode = ThemeMode.LIGHT,
     val darkMode: Boolean = false,
+    val surfaceStyle: SurfaceStyle = SurfaceStyle.NORMAL,
     val reducedMotion: Boolean = false,
     val soundEnabled: Boolean = true,
     val quietHoursEnabled: Boolean = false,
@@ -118,6 +129,7 @@ class StudyQuestPreferences(private val context: Context) {
         val QUESTION_LANGUAGE = stringPreferencesKey("question_language")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DARK_MODE = booleanPreferencesKey("dark_mode")
+        val SURFACE_STYLE = stringPreferencesKey("surface_style")
         val REDUCED_MOTION = booleanPreferencesKey("reduced_motion")
         val SOUND_ENABLED = booleanPreferencesKey("sound_enabled")
         val QUIET_HOURS = booleanPreferencesKey("quiet_hours_enabled")
@@ -186,6 +198,7 @@ class StudyQuestPreferences(private val context: Context) {
             questionLanguage = AppLanguage.fromCode(prefs[Keys.QUESTION_LANGUAGE] ?: "bn"),
             themeMode = resolvedThemeMode,
             darkMode = resolvedThemeMode == ThemeMode.DARK,
+            surfaceStyle = SurfaceStyle.fromCode(prefs[Keys.SURFACE_STYLE]),
             reducedMotion = prefs[Keys.REDUCED_MOTION] ?: false,
             soundEnabled = prefs[Keys.SOUND_ENABLED] ?: true,
             quietHoursEnabled = prefs[Keys.QUIET_HOURS] ?: false,
@@ -281,6 +294,12 @@ class StudyQuestPreferences(private val context: Context) {
 
     suspend fun setDarkMode(enabled: Boolean) {
         setThemeMode(if (enabled) ThemeMode.DARK else ThemeMode.LIGHT)
+    }
+
+    suspend fun setSurfaceStyle(style: SurfaceStyle) {
+        context.studyQuestDataStore.edit { prefs ->
+            prefs[Keys.SURFACE_STYLE] = style.code
+        }
     }
 
     suspend fun setReducedMotion(enabled: Boolean) {

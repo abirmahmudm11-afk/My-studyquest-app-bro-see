@@ -1,11 +1,6 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +38,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,9 +51,12 @@ import com.example.core.StudyQuestStrings
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.model.ExamTemplate
 import com.example.data.repository.GuestDataRepository
+import com.example.data.repository.LeaderboardCategory
+import com.example.data.repository.LeaderboardPeriod
 import com.example.ui.components.AudioFeedbackHelper
 import com.example.ui.components.GamificationCelebrationHost
 import com.example.ui.components.LottieCelebrationOverlay
+import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 import com.example.ui.viewmodel.AdminStudioViewModel
 import com.example.ui.viewmodel.AiVideoViewModel
 import com.example.ui.viewmodel.FocusTimerViewModel
@@ -126,8 +125,20 @@ fun GuestStudyQuestHost(
 
     val tabBackStack = remember { mutableStateListOf(0) }
     val selectedTab = tabBackStack.lastOrNull() ?: 0
+    val saveableStateHolder = rememberSaveableStateHolder()
+    var todayOverlay by remember { mutableStateOf(TodayOverlayDestination.None) }
+    var leaderboardScope by remember { mutableStateOf(LeaderboardScopeFilter.CLASS_ONLY) }
+    var leaderboardPeriod by remember { mutableStateOf(LeaderboardPeriod.WEEKLY) }
+    var leaderboardCategory by remember { mutableStateOf(LeaderboardCategory.XP) }
+    var pendingFriendsSubTab by remember { mutableStateOf<Int?>(null) }
+
     fun navigateToTab(idx: Int) {
-        if (tabBackStack.lastOrNull() != idx) {
+        todayOverlay = TodayOverlayDestination.None
+        if (idx == 0) {
+            tabBackStack.clear()
+            tabBackStack.add(0)
+        } else if (tabBackStack.lastOrNull() != idx) {
+            tabBackStack.remove(idx)
             tabBackStack.add(idx)
         }
     }
@@ -139,7 +150,11 @@ fun GuestStudyQuestHost(
         showGlobalAiSheet = false
     }
 
-    BackHandler(enabled = !showGlobalAiSheet && tabBackStack.size > 1) {
+    BackHandler(enabled = !showGlobalAiSheet && selectedTab == 0 && todayOverlay != TodayOverlayDestination.None) {
+        todayOverlay = TodayOverlayDestination.None
+    }
+
+    BackHandler(enabled = !showGlobalAiSheet && (selectedTab != 0 || todayOverlay == TodayOverlayDestination.None) && tabBackStack.size > 1) {
         tabBackStack.removeAt(tabBackStack.lastIndex)
     }
 
@@ -165,8 +180,10 @@ fun GuestStudyQuestHost(
     }
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         bottomBar = {
             NavigationBar(
+                containerColor = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
                 modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
             ) {
                 val tabs = listOf(
@@ -223,95 +240,145 @@ fun GuestStudyQuestHost(
                 }
 
                 Box(modifier = Modifier.weight(1f)) {
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        transitionSpec = {
-                            if (prefs.reducedMotion) {
-                                fadeIn(tween(10)) togetherWith fadeOut(tween(10))
-                            } else {
-                                fadeIn(tween(220)) togetherWith fadeOut(tween(160))
+                    saveableStateHolder.SaveableStateProvider(key = selectedTab) {
+                        when (selectedTab) {
+                            0 -> when (todayOverlay) {
+                                TodayOverlayDestination.StudyProgress -> StudyProgressDashboardScreen(
+                                    profile = profile,
+                                    language = lang,
+                                    reducedMotion = prefs.reducedMotion,
+                                    learningRecords = learningRecords,
+                                    dailyStudySeries = dailyStudySeries,
+                                    subjectAnalytics = subjectAnalytics,
+                                    weakTopics = weakTopics,
+                                    onOpenQuickPractice = {
+                                        todayOverlay = TodayOverlayDestination.None
+                                        val qs = mergedQuestions.filter { it.classId == profile.classId }.ifEmpty { mergedQuestions }.take(6)
+                                        pendingLearnDest = LearnDestination.PracticeSession(
+                                            StudyQuestStrings.t(lang, "Quick Practice", "কুইক প্র্যাকটিস"),
+                                            qs
+                                        )
+                                        navigateToTab(1)
+                                    },
+                                    onBack = { todayOverlay = TodayOverlayDestination.None }
+                                )
+
+                                TodayOverlayDestination.Leaderboard -> LeaderboardScreen(
+                                    myProfile = profile,
+                                    language = lang,
+                                    reducedMotion = prefs.reducedMotion,
+                                    leaderboard = leaderboard,
+                                    selectedScope = leaderboardScope,
+                                    selectedPeriod = leaderboardPeriod,
+                                    selectedCategory = leaderboardCategory,
+                                    isGuestMode = true,
+                                    onSelectScope = { leaderboardScope = it },
+                                    onSelectPeriod = { leaderboardPeriod = it },
+                                    onSelectCategory = { leaderboardCategory = it },
+                                    onRequestGoogleSignIn = onRequestGoogleSignIn,
+                                    onBack = { todayOverlay = TodayOverlayDestination.None }
+                                )
+
+                                TodayOverlayDestination.AiDoubtSolver -> AiDoubtSolverScreen(
+                                    profile = profile,
+                                    language = lang,
+                                    reducedMotion = prefs.reducedMotion,
+                                    onAskGeminiDoubt = { prompt, studentQ, subjName ->
+                                        learnVm.streamDirectGeminiDoubt(
+                                            questionPrompt = prompt,
+                                            studentQuestion = studentQ,
+                                            classId = profile.classId,
+                                            subjectName = subjName,
+                                            language = lang
+                                        )
+                                    },
+                                    onBack = { todayOverlay = TodayOverlayDestination.None }
+                                )
+
+                                TodayOverlayDestination.None -> TodayTabScreen(
+                                    profile = profile,
+                                    language = lang,
+                                    reducedMotion = prefs.reducedMotion,
+                                    isOnline = isOnline,
+                                    pendingSyncCount = 0,
+                                    quests = quests,
+                                    notifications = notifications,
+                                    unreadNotificationCount = notifications.count { !it.read },
+                                    weakTopics = weakTopics,
+                                    revisions = revisions,
+                                    studyPlans = studyPlans,
+                                    recentRecords = learningRecords,
+                                    onClaimQuest = { q ->
+                                        guestVm.claimQuest(q) { _, _ ->
+                                            AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
+                                        }
+                                    },
+                                    onMarkNotificationRead = {},
+                                    onOpenQuickPractice = {
+                                        val qs = mergedQuestions.filter { it.classId == profile.classId }.ifEmpty { mergedQuestions }.take(6)
+                                        pendingLearnDest = LearnDestination.PracticeSession(
+                                            StudyQuestStrings.t(lang, "Quick Practice", "কুইক প্র্যাকটিস"),
+                                            qs
+                                        )
+                                        navigateToTab(1)
+                                    },
+                                    onOpenMockExam = { navigateToTab(1) },
+                                    onOpenRevision = {
+                                        pendingLearnDest = LearnDestination.RevisionAndPlanner
+                                        navigateToTab(1)
+                                    },
+                                    onOpenAiDoubtSolver = { todayOverlay = TodayOverlayDestination.AiDoubtSolver },
+                                    onOpenMessages = { navigateToTab(3) },
+                                    subjectAnalytics = subjectAnalytics,
+                                    dailyStudySeries = dailyStudySeries,
+                                    dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(profile),
+                                    onOpenSubjectCategory = { subj ->
+                                        pendingLearnDest = LearnDestination.SubjectDetail(subj)
+                                        navigateToTab(1)
+                                    },
+                                    onOpenFlashcardsVault = {
+                                        pendingLearnDest = LearnDestination.FlashcardsAndVault
+                                        navigateToTab(1)
+                                    },
+                                    onOpenPomodoro = {
+                                        pendingLearnDest = LearnDestination.PomodoroFocus
+                                        navigateToTab(1)
+                                    },
+                                    onOpenDailyChallenge = {
+                                        pendingLearnDest = LearnDestination.DailyChallenge
+                                        navigateToTab(1)
+                                    },
+                                    onOpenMasteryAnalytics = {
+                                        pendingLearnDest = LearnDestination.MasteryAnalytics
+                                        navigateToTab(1)
+                                    },
+                                    onOpenAssignmentsAndGoals = {
+                                        pendingLearnDest = LearnDestination.AssignmentsAndGoals
+                                        navigateToTab(1)
+                                    },
+                                    onOpenAiVideoStudio = {
+                                        pendingLearnDest = LearnDestination.AiVideoStudio
+                                        navigateToTab(1)
+                                    },
+                                    onOpenBadgesAndXp = {
+                                        pendingLearnDest = LearnDestination.BadgesAndXp
+                                        navigateToTab(1)
+                                    },
+                                    onRetakePromotionExam = { openPromotionExam() },
+                                    onOpenAiLab = {
+                                        pendingLearnDest = LearnDestination.AiLab
+                                        navigateToTab(1)
+                                    },
+                                    onOpenStudyProgress = { todayOverlay = TodayOverlayDestination.StudyProgress },
+                                    onOpenStudyGroups = {
+                                        pendingFriendsSubTab = 0
+                                        navigateToTab(3)
+                                    },
+                                    onOpenLeaderboard = { todayOverlay = TodayOverlayDestination.Leaderboard },
+                                    isGuestMode = true,
+                                    onRequestGoogleSignIn = onRequestGoogleSignIn
+                                )
                             }
-                        },
-                        label = "guest_tab_transition"
-                    ) { tabIndex ->
-                        when (tabIndex) {
-                            0 -> TodayTabScreen(
-                                profile = profile,
-                                language = lang,
-                                reducedMotion = prefs.reducedMotion,
-                                isOnline = isOnline,
-                                pendingSyncCount = 0,
-                                quests = quests,
-                                notifications = notifications,
-                                unreadNotificationCount = notifications.count { !it.read },
-                                weakTopics = weakTopics,
-                                revisions = revisions,
-                                studyPlans = studyPlans,
-                                recentRecords = learningRecords,
-                                onClaimQuest = { q ->
-                                    guestVm.claimQuest(q) { _, _ ->
-                                        AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
-                                    }
-                                },
-                                onMarkNotificationRead = {},
-                                onOpenQuickPractice = {
-                                    val qs = mergedQuestions.filter { it.classId == profile.classId }.ifEmpty { mergedQuestions }.take(6)
-                                    pendingLearnDest = LearnDestination.PracticeSession(
-                                        StudyQuestStrings.t(lang, "Quick Practice", "কুইক প্র্যাকটিস"),
-                                        qs
-                                    )
-                                    navigateToTab(1)
-                                },
-                                onOpenMockExam = { navigateToTab(1) },
-                                onOpenRevision = {
-                                    pendingLearnDest = LearnDestination.RevisionAndPlanner
-                                    navigateToTab(1)
-                                },
-                                onOpenAiDoubtSolver = { showGlobalAiSheet = true },
-                                onOpenMessages = { navigateToTab(3) },
-                                subjectAnalytics = subjectAnalytics,
-                                dailyStudySeries = dailyStudySeries,
-                                dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(profile),
-                                onOpenSubjectCategory = { subj ->
-                                    pendingLearnDest = LearnDestination.SubjectDetail(subj)
-                                    navigateToTab(1)
-                                },
-                                onOpenFlashcardsVault = {
-                                    pendingLearnDest = LearnDestination.FlashcardsAndVault
-                                    navigateToTab(1)
-                                },
-                                onOpenPomodoro = {
-                                    pendingLearnDest = LearnDestination.PomodoroFocus
-                                    navigateToTab(1)
-                                },
-                                onOpenDailyChallenge = {
-                                    pendingLearnDest = LearnDestination.DailyChallenge
-                                    navigateToTab(1)
-                                },
-                                onOpenMasteryAnalytics = {
-                                    pendingLearnDest = LearnDestination.MasteryAnalytics
-                                    navigateToTab(1)
-                                },
-                                onOpenAssignmentsAndGoals = {
-                                    pendingLearnDest = LearnDestination.AssignmentsAndGoals
-                                    navigateToTab(1)
-                                },
-                                onOpenAiVideoStudio = {
-                                    pendingLearnDest = LearnDestination.AiVideoStudio
-                                    navigateToTab(1)
-                                },
-                                onOpenBadgesAndXp = {
-                                    pendingLearnDest = LearnDestination.BadgesAndXp
-                                    navigateToTab(1)
-                                },
-                                onRetakePromotionExam = { openPromotionExam() },
-                                onOpenAiLab = {
-                                    pendingLearnDest = LearnDestination.AiLab
-                                    navigateToTab(1)
-                                },
-                                isGuestMode = true,
-                                onRequestGoogleSignIn = onRequestGoogleSignIn
-                            )
 
                             1 -> LearnTabScreen(
                                 uiLanguage = lang,
@@ -473,7 +540,9 @@ fun GuestStudyQuestHost(
                                 onPostStudyCircleNote = { txt, askAi -> guestVm.postStudyCircleNote(txt, askAi) },
                                 onToggleCircleReaction = { note, emoji -> guestVm.toggleCircleNoteReaction(note, emoji) },
                                 onDeleteCircleNote = { guestVm.deleteCircleNote(it) },
-                                onRequestGoogleSignIn = onRequestGoogleSignIn
+                                onRequestGoogleSignIn = onRequestGoogleSignIn,
+                                externalSubTab = pendingFriendsSubTab,
+                                onConsumeExternalSubTab = { pendingFriendsSubTab = null }
                             )
 
                             4 -> ProfileTabScreen(
@@ -520,6 +589,7 @@ fun GuestStudyQuestHost(
                                 xpLedger = xpLedger,
                                 dailyStudySeries = dailyStudySeries,
                                 onUpdateThemeMode = { guestVm.updateThemeMode(it) },
+                                onUpdateSurfaceStyle = { guestVm.updateSurfaceStyle(it) },
                                 onUpdateNotificationCategory = { c, e -> guestVm.updateNotificationCategory(c, e) },
                                 onRetakePromotionExam = { openPromotionExam() },
                                 onOpenAiLab = {

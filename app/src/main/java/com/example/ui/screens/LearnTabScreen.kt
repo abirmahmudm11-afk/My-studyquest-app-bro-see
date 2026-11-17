@@ -74,6 +74,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import com.example.R
 import com.example.ui.components.AnimatedCircularMasteryRing
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.LessonSuccessLottieDialog
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
@@ -734,6 +735,7 @@ fun LearnTabScreen(
                 lesson = dest.lesson,
                 uiLanguage = uiLanguage,
                 isCompleted = cachedLessons.any { it.id == dest.lesson.id && it.completed },
+                reducedMotion = reducedMotion,
                 onBack = { popDest() },
                 onCompleteLesson = { onCompleteLesson(dest.lesson) },
                 onPracticeTopic = {
@@ -781,6 +783,7 @@ fun LearnTabScreen(
                 bookmarks = bookmarks,
                 examRemainingSeconds = 0,
                 assessmentResult = lastAssessmentResult,
+                reducedMotion = reducedMotion,
                 onBack = {
                     onClearAssessmentResult()
                     popDest()
@@ -808,6 +811,7 @@ fun LearnTabScreen(
                 bookmarks = bookmarks,
                 examRemainingSeconds = examRemainingSeconds,
                 assessmentResult = lastAssessmentResult,
+                reducedMotion = reducedMotion,
                 onBack = {
                     onClearAssessmentResult()
                     popDest()
@@ -1034,12 +1038,15 @@ fun LearnTabScreen(
 private fun LessonDetailScreen(
     lesson: StudyLesson,
     uiLanguage: AppLanguage,
+    reducedMotion: Boolean = false,
     isCompleted: Boolean,
     onBack: () -> Unit,
     onCompleteLesson: () -> Unit,
     onPracticeTopic: () -> Unit,
     onAskAi: () -> Unit
 ) {
+    var showSuccessLottie by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -1139,7 +1146,10 @@ private fun LessonDetailScreen(
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = onCompleteLesson,
+                    onClick = {
+                        onCompleteLesson()
+                        showSuccessLottie = true
+                    },
                     enabled = !isCompleted,
                     modifier = Modifier
                         .weight(1f)
@@ -1172,5 +1182,15 @@ private fun LessonDetailScreen(
                 Text(StudyQuestStrings.t(uiLanguage, "Ask AI Doubt Solver about this lesson", "এই পাঠ নিয়ে AI-কে প্রশ্ন করো"))
             }
         }
+    }
+
+    if (showSuccessLottie) {
+        LessonSuccessLottieDialog(
+            lessonTitle = StudyQuestStrings.t(uiLanguage, lesson.titleEn, lesson.titleBn),
+            xpEarned = 15,
+            language = uiLanguage,
+            reducedMotion = reducedMotion,
+            onDismiss = { showSuccessLottie = false }
+        )
     }
 }

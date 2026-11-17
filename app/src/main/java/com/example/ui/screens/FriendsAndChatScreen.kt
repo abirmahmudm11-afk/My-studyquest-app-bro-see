@@ -21,10 +21,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -43,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,11 +54,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
+import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.local.LocalStudyCircleNoteEntity
 import com.example.data.model.BlockedUserDoc
 import com.example.data.model.ChatMessageDoc
@@ -64,13 +70,21 @@ import com.example.data.model.ConversationDoc
 import com.example.data.model.FriendRequestDoc
 import com.example.data.model.FriendshipDoc
 import com.example.data.model.PublicProfile
+import com.example.data.model.StudyGroupParticipantDoc
 import com.example.ui.components.AvatarBadgeView
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.PulseLiveDot
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
+import com.example.ui.theme.BerryViolet
 import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.ElectricIndigo
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.SkyCyan
 import com.example.ui.theme.TealSecondary
+import com.example.ui.theme.VividEmerald
+import com.example.ui.theme.studyQuestGlassAwareBorder
+import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -123,7 +137,14 @@ fun FriendsTabScreen(
     onToggleCommunityUpvote: (CommunityPostDoc) -> Unit = {},
     onMarkCommentHelpful: (CommunityPostDoc, CommunityCommentDoc) -> Unit = { _, _ -> },
     onReportCommunityPost: (CommunityPostDoc, String) -> Unit = { _, _ -> },
-    onDeleteOwnCommunityPost: (String) -> Unit = {}
+    onDeleteOwnCommunityPost: (String) -> Unit = {},
+    externalSubTab: Int? = null,
+    onConsumeExternalSubTab: () -> Unit = {},
+    activeGroupParticipants: List<StudyGroupParticipantDoc> = emptyList(),
+    onUpdateGroupStatus: (ConversationDoc, String) -> Unit = { _, _ -> },
+    onUpdateGroupSharedProblem: (ConversationDoc, String, String) -> Unit = { _, _, _ -> },
+    onAskAiAboutProblem: (String) -> Unit = {},
+    onCreateStudyGroupWithSubject: ((name: String, invitedUids: List<String>, subjectId: String?) -> Unit)? = null
 ) {
     if (activeConversation != null) {
         ChatConversationScreen(
@@ -131,6 +152,8 @@ fun FriendsTabScreen(
             myProfile = myProfile,
             uiLanguage = uiLanguage,
             messages = activeMessages,
+            groupParticipants = activeGroupParticipants,
+            reducedMotion = reducedMotion,
             onBack = onCloseConversation,
             onSendMessage = { txt, reply -> onSendMessage(activeConversation, txt, reply) },
             onToggleReaction = { msg, emoji -> onToggleReaction(activeConversation.id, msg, emoji) },
@@ -148,7 +171,12 @@ fun FriendsTabScreen(
                     reason,
                     "Reported from StudyQuest chat"
                 )
-            }
+            },
+            onUpdateGroupStatus = { status -> onUpdateGroupStatus(activeConversation, status) },
+            onUpdateGroupSharedProblem = { title, prompt ->
+                onUpdateGroupSharedProblem(activeConversation, title, prompt)
+            },
+            onAskAiAboutProblem = onAskAiAboutProblem
         )
         return
     }
@@ -156,6 +184,17 @@ fun FriendsTabScreen(
     var selectedTab by remember { mutableStateOf(0) } // 0=Friends & Chats (or Study Circle), 1=Discover, 2=Requests, 3=Study Groups
     var searchText by remember { mutableStateOf("") }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(externalSubTab) {
+        if (externalSubTab != null) {
+            selectedTab = externalSubTab.coerceIn(0, 4)
+            onConsumeExternalSubTab()
+        }
+    }
+
+    BackHandler(enabled = showCreateGroupDialog) {
+        showCreateGroupDialog = false
+    }
 
     BackHandler(enabled = !showCreateGroupDialog && selectedCommunityPost == null && selectedTab != 0) {
         selectedTab = 0
@@ -578,6 +617,10 @@ fun FriendsTabScreen(
     if (showCreateGroupDialog) {
         var groupName by remember { mutableStateOf("") }
         var invitedSet by remember { mutableStateOf<Set<String>>(emptySet()) }
+        val classSubjects = remember(myProfile.classId) {
+            BangladeshCurriculumCatalog.subjectsForClass(myProfile.classId).take(6)
+        }
+        var selectedSubjectId by remember(classSubjects) { mutableStateOf(classSubjects.firstOrNull()?.id) }
         AlertDialog(
             onDismissRequest = { showCreateGroupDialog = false },
             title = { Text(StudyQuestStrings.t(uiLanguage, "New Study Group", "নতুন স্টাডি গ্রুপ")) },
@@ -589,6 +632,18 @@ fun FriendsTabScreen(
                         label = { Text(StudyQuestStrings.t(uiLanguage, "Group Name (e.g. SSC Science Squad)", "গ্রুপের নাম")) },
                         singleLine = true
                     )
+                    if (classSubjects.isNotEmpty()) {
+                        Text(StudyQuestStrings.t(uiLanguage, "Focus Subject:", "বিষয় নির্বাচন:"), style = MaterialTheme.typography.labelMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            classSubjects.forEach { subj ->
+                                FilterChip(
+                                    selected = selectedSubjectId == subj.id,
+                                    onClick = { selectedSubjectId = subj.id },
+                                    label = { Text(StudyQuestStrings.t(uiLanguage, subj.titleEn, subj.titleBn)) }
+                                )
+                            }
+                        }
+                    }
                     if (friendProfiles.isNotEmpty()) {
                         Text(StudyQuestStrings.t(uiLanguage, "Invite Friends:", "বন্ধুদের আমন্ত্রণ জানান:"), style = MaterialTheme.typography.labelMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -608,7 +663,8 @@ fun FriendsTabScreen(
                 Button(
                     onClick = {
                         if (groupName.isNotBlank()) {
-                            onCreateStudyGroup(groupName, invitedSet.toList())
+                            onCreateStudyGroupWithSubject?.invoke(groupName, invitedSet.toList(), selectedSubjectId)
+                                ?: onCreateStudyGroup(groupName, invitedSet.toList())
                             showCreateGroupDialog = false
                         }
                     }
@@ -625,12 +681,15 @@ fun FriendsTabScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatConversationScreen(
     conversation: ConversationDoc,
     myProfile: PublicProfile,
     uiLanguage: AppLanguage,
     messages: List<ChatMessageDoc>,
+    groupParticipants: List<StudyGroupParticipantDoc> = emptyList(),
+    reducedMotion: Boolean = false,
     onBack: () -> Unit,
     onSendMessage: (String, ChatMessageDoc?) -> Unit,
     onToggleReaction: (ChatMessageDoc, String) -> Unit,
@@ -638,12 +697,33 @@ fun ChatConversationScreen(
     onToggleMute: () -> Unit,
     onLeaveGroup: () -> Unit,
     onBlockOther: () -> Unit,
-    onReportConversation: (String) -> Unit
+    onReportConversation: (String) -> Unit,
+    onUpdateGroupStatus: (String) -> Unit = {},
+    onUpdateGroupSharedProblem: (title: String, prompt: String) -> Unit = { _, _ -> },
+    onAskAiAboutProblem: (String) -> Unit = {}
 ) {
     BackHandler(onBack = onBack)
 
     var inputText by remember { mutableStateOf("") }
     var replyTarget by remember { mutableStateOf<ChatMessageDoc?>(null) }
+    var myGroupStatus by remember(conversation.id) { mutableStateOf("online") }
+    var showEditProblemDialog by remember { mutableStateOf(false) }
+
+    val isGroup = conversation.type == "group"
+
+    LaunchedEffect(conversation.id, isGroup) {
+        if (isGroup) {
+            onUpdateGroupStatus("online")
+        }
+    }
+
+    DisposableEffect(conversation.id, isGroup) {
+        onDispose {
+            if (isGroup) {
+                onUpdateGroupStatus("idle")
+            }
+        }
+    }
 
     LaunchedEffect(messages.size) {
         onMarkRead(messages)
@@ -669,7 +749,12 @@ fun ChatConversationScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${conversation.memberUids.size} members",
+                            text = buildString {
+                                append("${conversation.memberUids.size} members")
+                                if (isGroup && !conversation.subjectId.isNullOrBlank()) {
+                                    append(" • ${conversation.subjectId.uppercase()}")
+                                }
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -690,6 +775,169 @@ fun ChatConversationScreen(
                     }
                     IconButton(onClick = { onReportConversation("Inappropriate chat message") }) {
                         Icon(Icons.Filled.Report, contentDescription = "Report")
+                    }
+                }
+            }
+        }
+
+        if (isGroup) {
+            // Live Firestore Participant Statuses + My Status Switcher
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
+                border = studyQuestGlassAwareBorder(ElectricIndigo.copy(alpha = 0.35f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .testTag("group_participants_panel")
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = StudyQuestStrings.t(
+                                uiLanguage,
+                                "Room Participants (${groupParticipants.size})",
+                                "রুমের অংশগ্রহণকারী (${StudyQuestStrings.formatDigits(groupParticipants.size, uiLanguage)})"
+                            ),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(
+                                "online" to StudyQuestStrings.t(uiLanguage, "Online", "অনলাইন"),
+                                "solving" to StudyQuestStrings.t(uiLanguage, "Solving", "সমাধান"),
+                                "reviewing" to StudyQuestStrings.t(uiLanguage, "Review", "রিভিউ")
+                            ).forEach { (statusId, label) ->
+                                FilterChip(
+                                    selected = myGroupStatus == statusId,
+                                    onClick = {
+                                        myGroupStatus = statusId
+                                        onUpdateGroupStatus(statusId)
+                                    },
+                                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                                    modifier = Modifier.testTag("group_status_$statusId")
+                                )
+                            }
+                        }
+                    }
+                    if (groupParticipants.isNotEmpty()) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            groupParticipants.take(8).forEach { p ->
+                                val statusColor = when (p.status) {
+                                    "solving" -> ElectricIndigo
+                                    "reviewing" -> SkyCyan
+                                    "online" -> VividEmerald
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = statusColor.copy(alpha = 0.14f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        if (p.status != "idle") {
+                                            PulseLiveDot(color = statusColor, reducedMotion = reducedMotion)
+                                        }
+                                        Text(
+                                            text = "${p.displayName} • ${p.status}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = statusColor
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Collaborative Shared Problem Board
+            val hasProblem = !conversation.activeProblemTitle.isNullOrBlank() || !conversation.activeProblemPrompt.isNullOrBlank()
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = studyQuestGlassAwareSurfaceColor(BerryViolet.copy(alpha = 0.10f)),
+                border = studyQuestGlassAwareBorder(BerryViolet.copy(alpha = 0.45f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 2.dp)
+                    .testTag("group_shared_problem_board")
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Filled.PushPin, contentDescription = null, tint = BerryViolet, modifier = Modifier.size(16.dp))
+                            Text(
+                                text = conversation.activeProblemTitle?.takeIf { it.isNotBlank() }
+                                    ?: StudyQuestStrings.t(uiLanguage, "Shared Problem Board", "শেয়ার করা সমস্যা বোর্ড"),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        TextButton(
+                            onClick = { showEditProblemDialog = true },
+                            modifier = Modifier.testTag("group_edit_problem_btn")
+                        ) {
+                            Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(StudyQuestStrings.t(uiLanguage, if (hasProblem) "Edit" else "Pin Problem", if (hasProblem) "এডিট" else "সমস্যা যোগ"))
+                        }
+                    }
+                    Text(
+                        text = conversation.activeProblemPrompt?.takeIf { it.isNotBlank() }
+                            ?: StudyQuestStrings.t(
+                                uiLanguage,
+                                "Pin a math equation, physics question, or chapter doubt for the whole group to solve together.",
+                                "সবাই মিলে সমাধান করার জন্য একটি অংক বা প্রশ্ন পিন করো।"
+                            ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (hasProblem) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (!conversation.activeProblemUpdatedBy.isNullOrBlank()) {
+                                Text(
+                                    text = StudyQuestStrings.t(
+                                        uiLanguage,
+                                        "Pinned by ${conversation.activeProblemUpdatedBy}",
+                                        "পিন করেছেন: ${conversation.activeProblemUpdatedBy}"
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Spacer(Modifier.width(1.dp))
+                            }
+                            FilledTonalButton(
+                                onClick = {
+                                    val fullPrompt = buildString {
+                                        if (!conversation.activeProblemTitle.isNullOrBlank()) appendLine(conversation.activeProblemTitle)
+                                        if (!conversation.activeProblemPrompt.isNullOrBlank()) append(conversation.activeProblemPrompt)
+                                    }
+                                    onAskAiAboutProblem(fullPrompt.trim())
+                                },
+                                modifier = Modifier.testTag("group_problem_ask_ai_btn")
+                            ) {
+                                Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "Ask Gemini AI", "জেমিনি সমাধান"))
+                            }
+                        }
                     }
                 }
             }
@@ -804,5 +1052,54 @@ fun ChatConversationScreen(
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
             }
         }
+    }
+
+    if (showEditProblemDialog) {
+        var problemTitle by remember(conversation.activeProblemTitle) {
+            mutableStateOf(conversation.activeProblemTitle.orEmpty())
+        }
+        var problemPrompt by remember(conversation.activeProblemPrompt) {
+            mutableStateOf(conversation.activeProblemPrompt.orEmpty())
+        }
+        AlertDialog(
+            onDismissRequest = { showEditProblemDialog = false },
+            title = { Text(StudyQuestStrings.t(uiLanguage, "Pin Shared Problem", "সমস্যা পিন করুন")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = problemTitle,
+                        onValueChange = { problemTitle = it },
+                        label = { Text(StudyQuestStrings.t(uiLanguage, "Problem Title", "শিরোনাম")) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = problemPrompt,
+                        onValueChange = { problemPrompt = it },
+                        label = { Text(StudyQuestStrings.t(uiLanguage, "Question or Equation", "প্রশ্ন বা সমীকরণ")) },
+                        minLines = 3,
+                        maxLines = 5,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (problemPrompt.isNotBlank() || problemTitle.isNotBlank()) {
+                            onUpdateGroupSharedProblem(problemTitle, problemPrompt)
+                            showEditProblemDialog = false
+                        }
+                    }
+                ) {
+                    Text(StudyQuestStrings.t(uiLanguage, "Pin to Room", "পিন করুন"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditProblemDialog = false }) {
+                    Text(StudyQuestStrings.t(uiLanguage, "Cancel", "বাতিল"))
+                }
+            }
+        )
     }
 }

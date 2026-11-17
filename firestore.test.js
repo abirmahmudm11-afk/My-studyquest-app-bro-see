@@ -820,4 +820,84 @@ test("Quest Plan tiers, AI/Video credit ledgers, AI Lab conversations & learning
   );
 });
 
+test("Collaborative Study Groups & Preferences: validates surfaceStyle, shared problem board, and participant status rules", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+
+  // Preferences surfaceStyle allowed values vs invalid value
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("preferences").doc("app").set({
+      userId: ALICE_UID,
+      uiLanguage: "en",
+      questionLanguage: "en",
+      themeMode: "dark",
+      surfaceStyle: "glassmorphism",
+      updatedAt: serverTs(),
+    })
+  );
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("preferences").doc("app").set({
+      userId: ALICE_UID,
+      uiLanguage: "en",
+      questionLanguage: "en",
+      surfaceStyle: "neon_unsupported",
+      updatedAt: serverTs(),
+    })
+  );
+
+  // Collaborative Study Group room creation + shared problem update + participant status
+  await assertSucceeds(
+    aliceDb.collection("conversations").doc("grp_math_1").set({
+      type: "group",
+      name: "SSC Math Problem Lab",
+      subjectId: "math",
+      ownerId: ALICE_UID,
+      memberUids: [ALICE_UID, BOB_UID],
+      invitedUids: [],
+      mutedByUids: [],
+      createdAt: serverTs(),
+      updatedAt: serverTs(),
+    })
+  );
+  await assertSucceeds(
+    bobDb.collection("conversations").doc("grp_math_1").update({
+      activeProblemTitle: "Trig Identity Proof",
+      activeProblemPrompt: "Prove that (1 - sin^2 A) * sec^2 A = 1",
+      activeProblemUpdatedBy: "Bob",
+      updatedAt: serverTs(),
+    })
+  );
+  await assertSucceeds(
+    bobDb.collection("conversations").doc("grp_math_1").collection("participants").doc(BOB_UID).set({
+      userId: BOB_UID,
+      displayName: "Bob",
+      status: "solving",
+      updatedAt: serverTs(),
+    })
+  );
+  // Bob cannot spoof Alice's participant doc or use invalid status
+  await assertFails(
+    bobDb.collection("conversations").doc("grp_math_1").collection("participants").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      displayName: "Alice",
+      status: "idle",
+      updatedAt: serverTs(),
+    })
+  );
+  await assertFails(
+    bobDb.collection("conversations").doc("grp_math_1").collection("participants").doc(BOB_UID).set({
+      userId: BOB_UID,
+      displayName: "Bob",
+      status: "gaming",
+      updatedAt: serverTs(),
+    })
+  );
+  // Charlie (non-member) cannot read or write group participant statuses
+  await assertFails(
+    charlieDb.collection("conversations").doc("grp_math_1").collection("participants").doc(BOB_UID).get()
+  );
+});
+
+
 

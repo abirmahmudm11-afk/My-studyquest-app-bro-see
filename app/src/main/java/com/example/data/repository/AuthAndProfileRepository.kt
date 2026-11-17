@@ -98,30 +98,17 @@ class AuthAndProfileRepository(
         val profileRef = db.collection("public_profiles").document(uid)
         val privateRef = db.collection("users").document(uid).collection("private").document("account")
         return try {
-            // Ensure Firebase Auth ID token is ready before issuing Firestore requests
+            // Ensure Firebase Auth ID token is ready before issuing Firestore requests (non-fatal if offline)
             runCatching {
-                withTimeout(8_000L) { user.getIdToken(false).await() }
+                withTimeout(6_000L) { user.getIdToken(false).await() }
             }
 
-            val existing = withTimeout(20_000L) { profileRef.get().await() }
+            val existing = withTimeout(10_000L) { profileRef.get().await() }
             if (existing.exists()) {
                 val profile = existing.toObject(
                     PublicProfile::class.java,
                     DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
                 ) ?: return Result.failure(IllegalStateException("Profile unreadable"))
-                if (profile.showOnlineStatus && !profile.isOnline) {
-                    runCatching {
-                        withTimeout(8_000L) {
-                            profileRef.update(
-                                mapOf(
-                                    "isOnline" to true,
-                                    "updatedAt" to FieldValue.serverTimestamp()
-                                )
-                            ).await()
-                        }
-                    }
-                }
-                ensureActivePeriodQuests(uid)
                 return Result.success(profile.copy(isOnline = if (profile.showOnlineStatus) true else profile.isOnline))
             }
 
@@ -204,17 +191,9 @@ class AuthAndProfileRepository(
                     "createdAt" to FieldValue.serverTimestamp()
                 )
             )
-            withTimeout(20_000L) { batch.commit().await() }
-            ensureActivePeriodQuests(uid)
+            withTimeout(12_000L) { batch.commit().await() }
 
-            val created = runCatching {
-                withTimeout(5_000L) {
-                    profileRef.get().await().toObject(
-                        PublicProfile::class.java,
-                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
-                    )
-                }
-            }.getOrNull() ?: PublicProfile(
+            val created = PublicProfile(
                 id = uid,
                 userId = uid,
                 studyQuestId = sqCode,
@@ -463,6 +442,7 @@ class AuthAndProfileRepository(
                     "questionLanguage" to prefs.questionLanguage.code,
                     "darkMode" to prefs.darkMode,
                     "themeMode" to prefs.themeMode.code,
+                    "surfaceStyle" to prefs.surfaceStyle.code,
                     "reducedMotion" to prefs.reducedMotion,
                     "soundEnabled" to prefs.soundEnabled,
                     "quietHoursEnabled" to prefs.quietHoursEnabled,

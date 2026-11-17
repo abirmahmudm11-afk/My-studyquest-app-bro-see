@@ -12,6 +12,7 @@ import com.example.data.model.ConversationDoc
 import com.example.data.model.FriendRequestDoc
 import com.example.data.model.FriendshipDoc
 import com.example.data.model.PublicProfile
+import com.example.data.model.StudyGroupParticipantDoc
 import com.example.data.repository.AuthAndProfileRepository
 import com.example.data.repository.CommunityRepository
 import com.example.data.repository.SocialRepository
@@ -74,6 +75,13 @@ class SocialViewModel(
         .flatMapLatest { conv ->
             if (conv == null) flowOf(emptyList())
             else socialRepo.observeMessages(conv.id, currentUserId).catch { emit(emptyList()) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val activeGroupParticipants: StateFlow<List<StudyGroupParticipantDoc>> = _activeConversation
+        .flatMapLatest { conv ->
+            if (conv == null || conv.type != "group") flowOf(emptyList())
+            else socialRepo.observeGroupParticipants(conv.id).catch { emit(emptyList()) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
@@ -175,14 +183,36 @@ class SocialViewModel(
         _activeConversation.value = null
     }
 
-    fun createStudyGroup(name: String, invitedUids: List<String>) {
+    fun createStudyGroup(name: String, invitedUids: List<String>, subjectId: String? = null) {
         viewModelScope.launch {
-            val res = socialRepo.createStudyGroup(currentUserId, name, invitedUids)
+            val res = socialRepo.createStudyGroup(currentUserId, name, invitedUids, subjectId)
             res.onSuccess {
                 _activeConversation.value = it
                 _message.value = "Study group '${it.name}' created"
             }
             res.onFailure { _message.value = unwrapFirestoreMessage(it, "Could not create group") }
+        }
+    }
+
+    fun updateGroupParticipantStatus(conv: ConversationDoc, profile: PublicProfile, status: String) {
+        if (conv.type != "group") return
+        viewModelScope.launch {
+            socialRepo.updateGroupParticipantStatus(conv.id, profile, status)
+        }
+    }
+
+    fun updateGroupSharedProblem(conv: ConversationDoc, updaterName: String, title: String, prompt: String) {
+        if (conv.type != "group") return
+        viewModelScope.launch {
+            val res = socialRepo.updateGroupSharedProblem(conv.id, updaterName, title, prompt)
+            res.onSuccess {
+                _activeConversation.value = conv.copy(
+                    activeProblemTitle = title.trim().take(120),
+                    activeProblemPrompt = prompt.trim().take(800),
+                    activeProblemUpdatedBy = updaterName.trim().take(60)
+                )
+            }
+            res.onFailure { _message.value = unwrapFirestoreMessage(it, "Could not update shared problem") }
         }
     }
 

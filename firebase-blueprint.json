@@ -68,6 +68,7 @@
         "questionLanguage": { "type": "string", "enum": ["bn", "en"] },
         "darkMode": { "type": "boolean" },
         "themeMode": { "type": "string", "enum": ["system", "light", "dark"] },
+        "surfaceStyle": { "type": "string", "enum": ["normal", "glassmorphism"] },
         "reducedMotion": { "type": "boolean" },
         "soundEnabled": { "type": "boolean" },
         "quietHoursEnabled": { "type": "boolean" },
@@ -375,6 +376,10 @@
         "type": { "type": "string", "enum": ["direct", "group"] },
         "name": { "type": "string" },
         "avatarId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "activeProblemTitle": { "type": "string" },
+        "activeProblemPrompt": { "type": "string" },
+        "activeProblemUpdatedBy": { "type": "string" },
         "ownerId": { "type": "string" },
         "memberUids": { "type": "array" },
         "invitedUids": { "type": "array" },
@@ -385,6 +390,19 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["type", "ownerId", "memberUids", "createdAt", "updatedAt"]
+    },
+    "StudyGroupParticipant": {
+      "title": "StudyGroupParticipant",
+      "description": "Real-time participant solving status inside a collaborative Study Group room.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "avatarId": { "type": "string" },
+        "status": { "type": "string", "enum": ["online", "solving", "reviewing", "idle"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "status", "updatedAt"]
     },
     "ChatMessage": {
       "title": "ChatMessage",
@@ -728,6 +746,7 @@
     "/blocked_users/{blockId}": { "schema": { "$ref": "#/entities/BlockedUser" }, "description": "User block records" },
     "/conversations/{conversationId}": { "schema": { "$ref": "#/entities/Conversation" }, "description": "Friend chats and private study groups" },
     "/conversations/{conversationId}/messages/{messageId}": { "schema": { "$ref": "#/entities/ChatMessage" }, "description": "Messages in friend chats and study groups" },
+    "/conversations/{conversationId}/participants/{participantUid}": { "schema": { "$ref": "#/entities/StudyGroupParticipant" }, "description": "Real-time participant solving status inside collaborative study groups" },
     "/match_requests/{requestId}": { "schema": { "$ref": "#/entities/MatchRequest" }, "description": "Quick battle matchmaking tickets" },
     "/matches/{matchId}": { "schema": { "$ref": "#/entities/Match" }, "description": "Live multiplayer matches and private rooms" },
     "/matches/{matchId}/submissions/{submissionId}": { "schema": { "$ref": "#/entities/MatchSubmission" }, "description": "Verified match answer submissions" },

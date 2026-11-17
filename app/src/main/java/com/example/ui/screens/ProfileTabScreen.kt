@@ -48,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,6 +66,7 @@ import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.LocalUserPreferences
 import com.example.core.StudyQuestStrings
+import com.example.core.SurfaceStyle
 import com.example.core.ThemeMode
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.curriculum.GamificationCatalog
@@ -142,6 +144,7 @@ fun ProfileTabScreen(
     subscription: UserSubscriptionDoc = UserSubscriptionDoc(),
     billingConfigured: Boolean = false,
     onUpdateThemeMode: (ThemeMode) -> Unit = {},
+    onUpdateSurfaceStyle: (SurfaceStyle) -> Unit = {},
     onUpdateNotificationCategory: (String, Boolean) -> Unit = { _, _ -> },
     onToggleBadgeFavorite: (String) -> Unit = {},
     onToggleBadgePin: (String) -> Unit = {},
@@ -155,13 +158,26 @@ fun ProfileTabScreen(
     onSwitchToFreePlan: () -> Unit = {},
     onOpenAiLab: () -> Unit = {}
 ) {
-    var destination by remember { mutableStateOf<ProfileDestination>(ProfileDestination.Home) }
+    val destinationStack = remember { mutableStateListOf<ProfileDestination>(ProfileDestination.Home) }
+    val destination = destinationStack.lastOrNull() ?: ProfileDestination.Home
     val lang = preferences.uiLanguage
     val reducedMotion = preferences.reducedMotion
     val semantic = LocalStudyQuestColors.current
 
-    if (destination != ProfileDestination.Home) {
-        BackHandler { destination = ProfileDestination.Home }
+    fun pushDest(next: ProfileDestination) {
+        if (next == ProfileDestination.Home) {
+            while (destinationStack.size > 1) {
+                destinationStack.removeAt(destinationStack.lastIndex)
+            }
+        } else if (destinationStack.lastOrNull() != next) {
+            destinationStack.add(next)
+        }
+    }
+
+    fun popDest() {
+        if (destinationStack.size > 1) {
+            destinationStack.removeAt(destinationStack.lastIndex)
+        }
     }
 
     when (destination) {
@@ -173,7 +189,9 @@ fun ProfileTabScreen(
                 userBadges.filter { it.unlocked && it.pinned }.take(3)
             }
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("profile_home_list"),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -281,7 +299,7 @@ fun ProfileTabScreen(
                     StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
                         StudyQuestCard(
                             containerColor = MaterialTheme.colorScheme.surface,
-                            onClick = { destination = ProfileDestination.BadgesAndXp },
+                            onClick = { pushDest(ProfileDestination.BadgesAndXp) },
                             modifier = Modifier.testTag("profile_open_badges_xp")
                         ) {
                             Row(
@@ -358,7 +376,7 @@ fun ProfileTabScreen(
                                             Text(StudyQuestStrings.t(lang, "AI Lab", "AI ল্যাব"))
                                         }
                                         Button(
-                                            onClick = { destination = ProfileDestination.PlanStore },
+                                            onClick = { pushDest(ProfileDestination.PlanStore) },
                                             modifier = Modifier.testTag("upgrade_premium_btn")
                                         ) {
                                             Text(StudyQuestStrings.t(lang, "Plans", "প্ল্যান"))
@@ -376,7 +394,7 @@ fun ProfileTabScreen(
                             icon = Icons.Filled.Analytics,
                             title = StudyQuestStrings.t(lang, "Academic Analytics & Charts", "অ্যাকাডেমিক বিশ্লেষণ ও চার্ট"),
                             subtitle = StudyQuestStrings.t(lang, "${learningRecords.size} records • Subject mastery & trends", "বিষয়ভিত্তিক দক্ষতা ও গ্রাফ"),
-                            onClick = { destination = ProfileDestination.Analytics },
+                            onClick = { pushDest(ProfileDestination.Analytics) },
                             testTag = "profile_open_analytics"
                         )
                     }
@@ -388,7 +406,7 @@ fun ProfileTabScreen(
                             icon = Icons.Filled.ShoppingBag,
                             title = StudyQuestStrings.t(lang, "Avatar & Coin Shop", "অ্যাভাটার ও কয়েন শপ"),
                             subtitle = StudyQuestStrings.t(lang, "Unlock scholarly frames, avatars & titles with earned Coins", "অর্জিত কয়েন দিয়ে অ্যাভাটার ও ফ্রেম আনলক করো"),
-                            onClick = { destination = ProfileDestination.CosmeticsShop },
+                            onClick = { pushDest(ProfileDestination.CosmeticsShop) },
                             testTag = "profile_open_shop"
                         )
                     }
@@ -400,7 +418,7 @@ fun ProfileTabScreen(
                             icon = Icons.Filled.Tune,
                             title = StudyQuestStrings.t(lang, "Languages, Accessibility & Privacy", "ভাষা, অ্যাক্সেসিবিলিটি ও নিরাপত্তা"),
                             subtitle = StudyQuestStrings.t(lang, "Bangla/English, Dark mode, Reduced motion, Export & Account deletion", "ভাষা, ডার্ক মোড, ডেটা এক্সপোর্ট ও অ্যাকাউন্ট সেটিংস"),
-                            onClick = { destination = ProfileDestination.SettingsAndSafety },
+                            onClick = { pushDest(ProfileDestination.SettingsAndSafety) },
                             testTag = "profile_open_settings"
                         )
                     }
@@ -412,7 +430,7 @@ fun ProfileTabScreen(
                             icon = Icons.Filled.AdminPanelSettings,
                             title = StudyQuestStrings.t(lang, "Admin Studio ($adminRole)", "অ্যাডমিন স্টুডিও ($adminRole)"),
                             subtitle = StudyQuestStrings.t(lang, "Editorial content pipeline, moderation queue, tournaments & AI toggle", "কনটেন্ট অনুমোদন, মডারেশন ও সিস্টেম সেটিংস"),
-                            onClick = { destination = ProfileDestination.AdminStudio },
+                            onClick = { pushDest(ProfileDestination.AdminStudio) },
                             testTag = "profile_open_admin_studio"
                         )
                     }
@@ -449,6 +467,7 @@ fun ProfileTabScreen(
         }
 
         ProfileDestination.Analytics -> {
+            BackHandler { popDest() }
             AnalyticsAndAchievementsScreen(
                 lang = lang,
                 learningRecords = learningRecords,
@@ -457,7 +476,7 @@ fun ProfileTabScreen(
                 dailyStudySeries = dailyStudySeries,
                 friendCount = friendCount,
                 matchCount = profile.competitionRating.let { if (it > 1000L) 1 else 0 },
-                onBack = { destination = ProfileDestination.Home }
+                onBack = { popDest() }
             )
         }
 
@@ -470,32 +489,35 @@ fun ProfileTabScreen(
                 isGuestMode = isGuestMode,
                 onToggleFavorite = onToggleBadgeFavorite,
                 onTogglePin = onToggleBadgePin,
-                onBack = { destination = ProfileDestination.Home }
+                onBack = { popDest() }
             )
         }
 
         ProfileDestination.CosmeticsShop -> {
+            BackHandler { popDest() }
             CosmeticsShopScreen(
                 lang = lang,
                 profile = profile,
                 unlockedCosmetics = unlockedCosmetics,
-                onBack = { destination = ProfileDestination.Home },
+                onBack = { popDest() },
                 onPurchase = onPurchaseCosmetic,
                 onEquip = onEquipCosmetic
             )
         }
 
         ProfileDestination.SettingsAndSafety -> {
+            BackHandler { popDest() }
             PreferencesAndSafetyScreen(
                 profile = profile,
                 preferences = preferences,
                 isGuestMode = isGuestMode,
                 exportedJson = exportedJson,
                 onClearExportedJson = onClearExportedJson,
-                onBack = { destination = ProfileDestination.Home },
+                onBack = { popDest() },
                 onUpdateUiLanguage = onUpdateUiLanguage,
                 onUpdateQuestionLanguage = onUpdateQuestionLanguage,
                 onUpdateThemeMode = onUpdateThemeMode,
+                onUpdateSurfaceStyle = onUpdateSurfaceStyle,
                 onUpdateReducedMotion = onUpdateReducedMotion,
                 onUpdateSound = onUpdateSound,
                 onUpdateQuietHours = onUpdateQuietHours,
@@ -515,7 +537,7 @@ fun ProfileTabScreen(
                 adminRole = adminRole ?: "moderator",
                 language = lang,
                 viewModel = adminVm,
-                onBack = { destination = ProfileDestination.Home }
+                onBack = { popDest() }
             )
         }
 
@@ -531,10 +553,10 @@ fun ProfileTabScreen(
                 onPurchaseVideoBoost = onPurchaseVideoBoost,
                 onSwitchToFree = onSwitchToFreePlan,
                 onOpenAiLab = {
-                    destination = ProfileDestination.Home
+                    pushDest(ProfileDestination.Home)
                     onOpenAiLab()
                 },
-                onBack = { destination = ProfileDestination.Home }
+                onBack = { popDest() }
             )
         }
     }
@@ -746,6 +768,7 @@ private fun PreferencesAndSafetyScreen(
     onUpdateUiLanguage: (AppLanguage) -> Unit,
     onUpdateQuestionLanguage: (AppLanguage) -> Unit,
     onUpdateThemeMode: (ThemeMode) -> Unit,
+    onUpdateSurfaceStyle: (SurfaceStyle) -> Unit,
     onUpdateReducedMotion: (Boolean) -> Unit,
     onUpdateSound: (Boolean) -> Unit,
     onUpdateQuietHours: (Boolean) -> Unit,
@@ -761,7 +784,9 @@ private fun PreferencesAndSafetyScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("settings_safety_list"),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -806,6 +831,32 @@ private fun PreferencesAndSafetyScreen(
                             onClick = { onUpdateThemeMode(mode) },
                             label = { Text(StudyQuestStrings.t(lang, mode.labelEn, mode.labelBn)) },
                             modifier = Modifier.testTag("settings_theme_${mode.code}")
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = StudyQuestStrings.t(lang, "Card & Surface Style", "কার্ড ও সারফেস স্টাইল"),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = StudyQuestStrings.t(
+                        lang,
+                        "Switch between crisp Vivid Classic cards or translucent Glassmorphism.",
+                        "উজ্জ্বল ভিভিড ক্লাসিক কার্ড অথবা স্বচ্ছ গ্লাসমরফিজম স্টাইল বেছে নাও।"
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SurfaceStyle.entries.forEach { style ->
+                        FilterChip(
+                            selected = preferences.surfaceStyle == style,
+                            onClick = { onUpdateSurfaceStyle(style) },
+                            label = { Text(StudyQuestStrings.t(lang, style.labelEn, style.labelBn)) },
+                            modifier = Modifier.testTag("settings_surface_${style.code}")
                         )
                     }
                 }

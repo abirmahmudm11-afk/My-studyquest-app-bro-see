@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -48,9 +47,13 @@ import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.model.MascotMood
-import com.example.ui.theme.CobaltPrimary
-import com.example.ui.theme.TealSecondary
-import com.example.ui.theme.VioletTertiary
+import com.example.ui.theme.BerryViolet
+import com.example.ui.theme.ElectricIndigo
+import com.example.ui.theme.LocalStudyQuestSurfaceStyle
+import com.example.ui.theme.SkyCyan
+import com.example.ui.theme.VividEmerald
+import com.example.ui.theme.studyQuestGlassAwareBorder
+import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 
 @Composable
 fun MascotTituCard(
@@ -63,10 +66,11 @@ fun MascotTituCard(
     showCelebrationLottie: Boolean = false,
     trailingAction: @Composable (() -> Unit)? = null
 ) {
+    val visualConfig = LocalStudyQuestSurfaceStyle.current
     val infiniteTransition = rememberInfiniteTransition(label = "titu_bob")
     val bobOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = if (reducedMotion) 0f else -6f,
+        targetValue = if (reducedMotion) 0f else -5f,
         animationSpec = infiniteRepeatable(
             animation = tween(1400),
             repeatMode = RepeatMode.Reverse
@@ -86,25 +90,26 @@ fun MascotTituCard(
     }
 
     val ringColor = when (mood) {
-        MascotMood.SUCCESS, MascotMood.QUEST_COMPLETION, MascotMood.ACHIEVEMENT -> VioletTertiary
-        MascotMood.ENCOURAGEMENT, MascotMood.STUDY_REMINDER -> CobaltPrimary
-        else -> TealSecondary
+        MascotMood.SUCCESS, MascotMood.QUEST_COMPLETION, MascotMood.ACHIEVEMENT -> VividEmerald
+        MascotMood.ENCOURAGEMENT, MascotMood.STUDY_REMINDER -> BerryViolet
+        else -> ElectricIndigo
     }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
+        tonalElevation = if (visualConfig.isGlass) 0.dp else 2.dp,
+        border = studyQuestGlassAwareBorder(ringColor)
     ) {
         Box(
             modifier = Modifier
                 .background(
                     Brush.horizontalGradient(
                         listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
-                            MaterialTheme.colorScheme.surface
+                            ringColor.copy(alpha = 0.14f),
+                            SkyCyan.copy(alpha = 0.06f),
+                            Color.Transparent
                         )
                     )
                 )
@@ -135,15 +140,15 @@ fun MascotTituCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = ringColor.copy(alpha = 0.14f)
+                        shape = RoundedCornerShape(999.dp),
+                        color = ringColor.copy(alpha = 0.16f)
                     ) {
                         Text(
                             text = moodBadge,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = ringColor,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                         )
                     }
                     Spacer(Modifier.size(6.dp))
@@ -172,13 +177,16 @@ fun MascotTituCard(
 @Composable
 fun MascotAvatar(
     size: Dp = 56.dp,
-    ringColor: Color = TealSecondary,
+    ringColor: Color = ElectricIndigo,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier.size(size),
         shape = CircleShape,
-        border = BorderStroke(2.5.dp, ringColor),
+        border = BorderStroke(
+            2.5.dp,
+            Brush.linearGradient(listOf(ringColor, SkyCyan))
+        ),
         color = MaterialTheme.colorScheme.primaryContainer
     ) {
         Image(

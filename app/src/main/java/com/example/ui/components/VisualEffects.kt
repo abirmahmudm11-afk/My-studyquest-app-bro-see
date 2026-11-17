@@ -14,6 +14,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -21,6 +22,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -34,7 +36,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -62,21 +67,122 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
-import com.example.ui.theme.CoolNeutralFill
-import com.example.ui.theme.ForestGreenPrimary
-import com.example.ui.theme.NaturalGreen
-import com.example.ui.theme.OnSageContainer
+import com.example.ui.theme.BerryViolet
+import com.example.ui.theme.ElectricIndigo
+import com.example.ui.theme.LocalStudyQuestColors
+import com.example.ui.theme.LocalStudyQuestSurfaceStyle
 import com.example.ui.theme.PureCardWhite
-import com.example.ui.theme.SageContainer
+import com.example.ui.theme.SkyCyan
+import com.example.ui.theme.SunsetCoral
+import com.example.ui.theme.VividEmerald
+import com.example.ui.theme.studyQuestGlassAwareBorder
+import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 import kotlinx.coroutines.delay
+
+/**
+ * Full-screen playful ambient canvas supporting both Vivid Classic and Glassmorphism modes.
+ * When Glassmorphism is enabled, multi-color blurred-like gradient orbs sit behind translucent
+ * frosted surfaces so specular glass cards pop naturally.
+ */
+@Composable
+fun StudyQuestAmbientBackdrop(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val visualConfig = LocalStudyQuestSurfaceStyle.current
+    val baseBg = MaterialTheme.colorScheme.background
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(baseBg)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            if (visualConfig.isGlass) {
+                val indigoAlpha = if (visualConfig.isDark) 0.34f else 0.22f
+                val cyanAlpha = if (visualConfig.isDark) 0.24f else 0.18f
+                val violetAlpha = if (visualConfig.isDark) 0.26f else 0.16f
+                val emeraldAlpha = if (visualConfig.isDark) 0.18f else 0.14f
+
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(ElectricIndigo.copy(alpha = indigoAlpha), Color.Transparent),
+                        center = Offset(w * 0.14f, h * 0.08f),
+                        radius = w * 0.72f
+                    ),
+                    radius = w * 0.72f,
+                    center = Offset(w * 0.14f, h * 0.08f)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(SkyCyan.copy(alpha = cyanAlpha), Color.Transparent),
+                        center = Offset(w * 0.92f, h * 0.24f),
+                        radius = w * 0.62f
+                    ),
+                    radius = w * 0.62f,
+                    center = Offset(w * 0.92f, h * 0.24f)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(BerryViolet.copy(alpha = violetAlpha), Color.Transparent),
+                        center = Offset(w * 0.22f, h * 0.68f),
+                        radius = w * 0.65f
+                    ),
+                    radius = w * 0.65f,
+                    center = Offset(w * 0.22f, h * 0.68f)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(VividEmerald.copy(alpha = emeraldAlpha), Color.Transparent),
+                        center = Offset(w * 0.85f, h * 0.88f),
+                        radius = w * 0.58f
+                    ),
+                    radius = w * 0.58f,
+                    center = Offset(w * 0.85f, h * 0.88f)
+                )
+            } else {
+                // Subtle top playful sky accent in Normal Vivid mode
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            ElectricIndigo.copy(alpha = if (visualConfig.isDark) 0.16f else 0.07f),
+                            Color.Transparent
+                        ),
+                        center = Offset(w * 0.88f, h * 0.05f),
+                        radius = w * 0.6f
+                    ),
+                    radius = w * 0.6f,
+                    center = Offset(w * 0.88f, h * 0.05f)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            SkyCyan.copy(alpha = if (visualConfig.isDark) 0.10f else 0.05f),
+                            Color.Transparent
+                        ),
+                        center = Offset(w * 0.08f, h * 0.92f),
+                        radius = w * 0.5f
+                    ),
+                    radius = w * 0.5f,
+                    center = Offset(w * 0.08f, h * 0.92f)
+                )
+            }
+        }
+        content()
+    }
+}
 
 @Composable
 fun StaggeredEntrance(
@@ -91,18 +197,18 @@ fun StaggeredEntrance(
     }
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(index) {
-        delay((index.coerceIn(0, 8) * 45L))
+        delay((index.coerceIn(0, 8) * 40L))
         visible = true
     }
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
-        enter = fadeIn(animationSpec = tween(280)) + slideInVertically(
+        enter = fadeIn(animationSpec = tween(260)) + slideInVertically(
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioLowBouncy,
                 stiffness = Spring.StiffnessMediumLow
             ),
-            initialOffsetY = { it / 5 }
+            initialOffsetY = { it / 6 }
         )
     ) {
         content()
@@ -117,9 +223,11 @@ fun StudyQuestGradientHeroBanner(
     reducedMotion: Boolean,
     modifier: Modifier = Modifier,
     @DrawableRes backgroundResId: Int? = null,
+    heroGradientColors: List<Color> = listOf(ElectricIndigo, BerryViolet),
     trailingSlot: @Composable (() -> Unit)? = null,
     bottomContent: @Composable (ColumnScope.() -> Unit)? = null
 ) {
+    val visualConfig = LocalStudyQuestSurfaceStyle.current
     val shimmer = if (reducedMotion) 0f else {
         val inf = rememberInfiniteTransition(label = "hero_wave")
         val anim by inf.animateFloat(
@@ -134,15 +242,30 @@ fun StudyQuestGradientHeroBanner(
         anim
     }
 
+    val containerBrush = if (visualConfig.isGlass) {
+        Brush.linearGradient(
+            listOf(
+                heroGradientColors.first().copy(alpha = if (visualConfig.isDark) 0.52f else 0.82f),
+                heroGradientColors.last().copy(alpha = if (visualConfig.isDark) 0.45f else 0.78f)
+            )
+        )
+    } else {
+        Brush.linearGradient(heroGradientColors)
+    }
+
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(24.dp),
+        color = Color.Transparent,
         tonalElevation = 0.dp,
-        shadowElevation = 1.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        shadowElevation = if (visualConfig.isGlass) 0.dp else 4.dp,
+        border = if (visualConfig.isGlass) studyQuestGlassAwareBorder(heroGradientColors.first()) else null
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(containerBrush)
+        ) {
             if (backgroundResId != null) {
                 Image(
                     painter = painterResource(id = backgroundResId),
@@ -150,21 +273,21 @@ fun StudyQuestGradientHeroBanner(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .matchParentSize()
-                        .alpha(0.06f)
+                        .alpha(0.14f)
                 )
             }
             Canvas(modifier = Modifier.matchParentSize()) {
                 val w = size.width
                 val h = size.height
                 drawCircle(
-                    color = ForestGreenPrimary.copy(alpha = 0.045f + 0.015f * shimmer),
-                    radius = h * 0.52f,
-                    center = Offset(w * 0.94f, h * 0.14f)
+                    color = Color.White.copy(alpha = 0.14f + 0.05f * shimmer),
+                    radius = h * 0.56f,
+                    center = Offset(w * 0.94f, h * 0.12f)
                 )
                 drawCircle(
-                    color = CoolNeutralFill.copy(alpha = 0.65f),
-                    radius = h * 0.42f,
-                    center = Offset(w * 0.12f, h * 1.05f)
+                    color = SkyCyan.copy(alpha = 0.20f),
+                    radius = h * 0.40f,
+                    center = Offset(w * 0.08f, h * 1.04f)
                 )
             }
 
@@ -182,13 +305,14 @@ fun StudyQuestGradientHeroBanner(
                         if (!eyebrow.isNullOrBlank()) {
                             Surface(
                                 shape = RoundedCornerShape(999.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer
+                                color = Color.White.copy(alpha = 0.22f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
                             ) {
                                 Text(
                                     text = eyebrow,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    color = Color.White,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
                             }
@@ -197,14 +321,14 @@ fun StudyQuestGradientHeroBanner(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.White.copy(alpha = 0.90f)
                         )
                     }
                     if (trailingSlot != null) {
@@ -228,10 +352,10 @@ fun AnimatedCircularMasteryRing(
     centerCaptionText: String,
     reducedMotion: Boolean,
     size: Dp = 76.dp,
-    ringColor: Color = MaterialTheme.colorScheme.primary,
-    trackColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface,
-    captionColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    ringColor: Color = Color.White,
+    trackColor: Color = Color.White.copy(alpha = 0.26f),
+    valueColor: Color = Color.White,
+    captionColor: Color = Color.White.copy(alpha = 0.85f),
     modifier: Modifier = Modifier
 ) {
     val clamped = progress.coerceIn(0f, 1f)
@@ -304,7 +428,7 @@ fun AnimatedCounterText(
 
 @Composable
 fun PulseLiveDot(
-    color: Color = NaturalGreen,
+    color: Color = VividEmerald,
     reducedMotion: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -339,7 +463,7 @@ fun LottieCelebrationOverlay(
     LaunchedEffect(triggerKey) {
         if (triggerKey > 0 && !reducedMotion) {
             visible = true
-            delay(2100L)
+            delay(2500L)
             visible = false
         }
     }
@@ -357,10 +481,195 @@ fun LottieCelebrationOverlay(
             LottieAnimation(
                 composition = comp,
                 iterations = 1,
-                modifier = Modifier.size(220.dp)
+                modifier = Modifier.size(260.dp)
             )
         }
     }
+}
+
+/**
+ * Prominent Lottie 'Success' celebration card shown on finishing a Mock Exam, Practice Quiz, or Lesson.
+ */
+@Composable
+fun LottieSuccessCelebrationCard(
+    title: String,
+    subtitle: String,
+    xpAwardedText: String? = null,
+    reducedMotion: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val semantic = LocalStudyQuestColors.current
+    val comp by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_celebration))
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("lottie_success_card"),
+        shape = RoundedCornerShape(22.dp),
+        color = studyQuestGlassAwareSurfaceColor(semantic.successContainer.copy(alpha = 0.55f)),
+        border = studyQuestGlassAwareBorder(semantic.success)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier.size(136.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!reducedMotion) {
+                    LottieAnimation(
+                        composition = comp,
+                        iterations = LottieConstants.IterateForever,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = semantic.success,
+                    modifier = Modifier.size(56.dp),
+                    shadowElevation = 4.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(34.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            if (!xpAwardedText.isNullOrBlank()) {
+                Spacer(Modifier.height(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = ElectricIndigo
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Text(
+                            text = xpAwardedText,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LessonSuccessLottieDialog(
+    lessonTitle: String,
+    xpEarned: Int,
+    language: AppLanguage,
+    reducedMotion: Boolean,
+    onDismiss: () -> Unit
+) {
+    val comp by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_celebration))
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .minimumInteractiveComponentSize()
+                    .testTag("lesson_success_dismiss_btn")
+            ) {
+                Text(StudyQuestStrings.t(language, "Continue Learning", "শেখা চালিয়ে যাও"))
+            }
+        },
+        title = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("lesson_success_lottie_dialog"),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier.size(130.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!reducedMotion) {
+                        LottieAnimation(
+                            composition = comp,
+                            iterations = LottieConstants.IterateForever,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    Surface(
+                        shape = CircleShape,
+                        color = VividEmerald,
+                        modifier = Modifier.size(54.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = StudyQuestStrings.t(language, "Lesson Mastered!", "পাঠ সম্পন্ন হয়েছে!"),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = lessonTitle,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Text(
+                        text = "+${StudyQuestStrings.formatDigits(xpEarned, language)} XP",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                    )
+                }
+            }
+        }
+    )
 }
 
 @Composable
@@ -375,9 +684,9 @@ fun GuestUpgradeBannerCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("guest_upgrade_banner"),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        shape = RoundedCornerShape(20.dp),
+        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
+        border = studyQuestGlassAwareBorder(SunsetCoral)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -386,14 +695,14 @@ fun GuestUpgradeBannerCard(
         ) {
             Surface(
                 shape = CircleShape,
-                color = SageContainer,
-                modifier = Modifier.size(40.dp)
+                color = SunsetCoral.copy(alpha = 0.16f),
+                modifier = Modifier.size(44.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.CloudUpload,
                         contentDescription = null,
-                        tint = OnSageContainer
+                        tint = SunsetCoral
                     )
                 }
             }
@@ -416,7 +725,7 @@ fun GuestUpgradeBannerCard(
             Button(
                 onClick = onSignInClick,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ForestGreenPrimary,
+                    containerColor = ElectricIndigo,
                     contentColor = PureCardWhite
                 ),
                 modifier = Modifier

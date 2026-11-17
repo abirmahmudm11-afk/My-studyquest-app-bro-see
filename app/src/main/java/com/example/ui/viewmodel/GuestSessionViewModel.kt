@@ -8,6 +8,7 @@ import com.example.core.ConnectivityObserver
 import com.example.core.LocalUserPreferences
 import com.example.core.StudyQuestPreferences
 import com.example.core.StudyQuestStrings
+import com.example.core.SurfaceStyle
 import com.example.core.ThemeMode
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.local.LocalSoloMatchEntity
@@ -341,6 +342,10 @@ class GuestSessionViewModel(
 
     fun updateThemeMode(mode: ThemeMode) {
         viewModelScope.launch { preferences.setThemeMode(mode) }
+    }
+
+    fun updateSurfaceStyle(style: SurfaceStyle) {
+        viewModelScope.launch { preferences.setSurfaceStyle(style) }
     }
 
     fun updateReducedMotion(enabled: Boolean) {

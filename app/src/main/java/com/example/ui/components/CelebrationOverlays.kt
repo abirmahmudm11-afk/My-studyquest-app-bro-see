@@ -49,6 +49,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.model.BadgeRarity
@@ -189,12 +194,24 @@ fun GamificationCelebrationHost(
                 }
             },
             title = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .scale(pulse.value),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
+                    if (!reducedMotion) {
+                        val comp by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_celebration))
+                        LottieAnimation(
+                            composition = comp,
+                            iterations = LottieConstants.IterateForever,
+                            modifier = Modifier.size(140.dp)
+                        )
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .scale(pulse.value),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                     when (currentEvent) {
                         is CelebrationEvent.LevelUp -> {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.size(84.dp)) {
@@ -294,6 +311,7 @@ fun GamificationCelebrationHost(
                         }
 
                         else -> Unit
+                    }
                     }
                 }
             },

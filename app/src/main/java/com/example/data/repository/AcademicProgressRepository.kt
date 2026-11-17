@@ -66,7 +66,9 @@ data class DailyStudyMetric(
     val xpEarned: Long,
     val studyMinutes: Int,
     val examAccuracy: Double,
-    val sessionsCount: Int
+    val sessionsCount: Int,
+    val lessonsCompleted: Int = 0,
+    val examsCompleted: Int = 0
 )
 
 class AcademicProgressRepository(
@@ -878,21 +880,29 @@ class AcademicProgressRepository(
 
         val xpByDay = mutableMapOf<String, Long>()
         val countByDay = mutableMapOf<String, Int>()
+        val lessonsByDay = mutableMapOf<String, Int>()
+        val examsByDay = mutableMapOf<String, Int>()
         val examAccByDay = mutableMapOf<String, MutableList<Double>>()
         for (rec in records) {
-            val ts = (rec.createdAt?.seconds ?: 0L) * 1000L
-            if (ts <= 0L) continue
+            val rawSec = rec.createdAt?.seconds ?: 0L
+            val ts = if (rawSec > 0L) rawSec * 1000L else nowMs
             val day = fmt.format(ts)
             xpByDay[day] = (xpByDay[day] ?: 0L) + rec.xpAwarded
             countByDay[day] = (countByDay[day] ?: 0) + 1
+            if (rec.recordType == "lesson") {
+                lessonsByDay[day] = (lessonsByDay[day] ?: 0) + 1
+            }
+            if (rec.recordType in listOf("exam", "promotion_exam")) {
+                examsByDay[day] = (examsByDay[day] ?: 0) + 1
+            }
             if (rec.recordType in listOf("exam", "promotion_exam", "practice", "daily_challenge")) {
                 examAccByDay.getOrPut(day) { mutableListOf() }.add(rec.accuracy)
             }
         }
         val minsByDay = mutableMapOf<String, Long>()
         for (s in focusSessions) {
-            val ts = s.endedAtEpochMs.takeIf { it > 0L } ?: ((s.createdAt?.seconds ?: 0L) * 1000L)
-            if (ts <= 0L) continue
+            val ts = s.endedAtEpochMs.takeIf { it > 0L }
+                ?: ((s.createdAt?.seconds ?: 0L) * 1000L).let { if (it > 0L) it else nowMs }
             val day = fmt.format(ts)
             minsByDay[day] = (minsByDay[day] ?: 0L) + (s.focusedSeconds / 60L)
         }
@@ -906,7 +916,9 @@ class AcademicProgressRepository(
                 xpEarned = xpByDay[key] ?: 0L,
                 studyMinutes = (minsByDay[key] ?: 0L).toInt(),
                 examAccuracy = avgAcc,
-                sessionsCount = countByDay[key] ?: 0
+                sessionsCount = countByDay[key] ?: 0,
+                lessonsCompleted = lessonsByDay[key] ?: 0,
+                examsCompleted = examsByDay[key] ?: 0
             )
         }
     }

@@ -299,6 +299,10 @@ data class ConversationDoc(
     val type: String = "direct",
     val name: String? = null,
     val avatarId: String? = null,
+    val subjectId: String? = null,
+    val activeProblemTitle: String? = null,
+    val activeProblemPrompt: String? = null,
+    val activeProblemUpdatedBy: String? = null,
     val ownerId: String = "",
     val memberUids: List<String> = emptyList(),
     val invitedUids: List<String> = emptyList(),
@@ -306,6 +310,16 @@ data class ConversationDoc(
     val lastMessagePreview: String? = null,
     @ServerTimestamp val lastMessageAt: Timestamp? = null,
     @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class StudyGroupParticipantDoc(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val displayName: String = "",
+    val avatarId: String = "owl_classic",
+    val status: String = "online", // "online", "solving", "reviewing", "idle"
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
 

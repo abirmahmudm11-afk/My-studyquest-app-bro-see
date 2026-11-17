@@ -70,6 +70,7 @@ import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
 import com.example.data.model.StudyPlanDoc
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.LottieSuccessCelebrationCard
 import com.example.ui.components.MascotTituCard
 import com.example.ui.components.QuestionPracticeCard
 import com.example.ui.components.StudyQuestCard
@@ -256,6 +257,7 @@ fun PracticeAndExamRunnerScreen(
     bookmarks: List<LocalBookmarkEntity>,
     examRemainingSeconds: Int,
     assessmentResult: AssessmentResultSummary?,
+    reducedMotion: Boolean = false,
     onBack: () -> Unit,
     onStartExamTimer: (Int, () -> Unit) -> Unit,
     onToggleBookmark: (QuestionItem) -> Unit,
@@ -285,19 +287,36 @@ fun PracticeAndExamRunnerScreen(
     }
 
     if (assessmentResult != null) {
+        val accuracyPct = if (questions.isEmpty()) 0 else ((assessmentResult.correctCount * 100f) / questions.size).toInt().coerceIn(0, 100)
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
+                LottieSuccessCelebrationCard(
+                    title = if (template != null) {
+                        StudyQuestStrings.t(uiLanguage, "Mock Exam Completed!", "মডেল টেস্ট সম্পন্ন!")
+                    } else {
+                        StudyQuestStrings.t(uiLanguage, "Practice Session Complete!", "অনুশীলন সম্পন্ন!")
+                    },
+                    subtitle = StudyQuestStrings.t(
+                        uiLanguage,
+                        "${assessmentResult.title} • $accuracyPct% accuracy",
+                        "${assessmentResult.title} • ${StudyQuestStrings.formatDigits(accuracyPct, uiLanguage)}% সঠিকতা"
+                    ),
+                    xpAwardedText = if (assessmentResult.xpEarned > 0) "+${StudyQuestStrings.formatDigits(assessmentResult.xpEarned, uiLanguage)} XP" else null,
+                    reducedMotion = reducedMotion
+                )
+            }
+            item {
                 MascotTituCard(
                     mood = MascotMood.SUCCESS,
                     messageEn = "Awesome effort! You earned +${assessmentResult.xpEarned} XP on ${assessmentResult.title}.",
                     messageBn = "দারুণ প্রচেষ্টা! ${assessmentResult.title}-এ তুমি +${StudyQuestStrings.formatDigits(assessmentResult.xpEarned, uiLanguage)} XP অর্জন করেছ।",
                     language = uiLanguage,
-                    reducedMotion = false,
-                    showCelebrationLottie = true
+                    reducedMotion = reducedMotion,
+                    showCelebrationLottie = false
                 )
             }
             item {
@@ -740,6 +759,7 @@ fun AiDoubtSolverSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

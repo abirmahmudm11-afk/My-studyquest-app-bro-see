@@ -10,9 +10,11 @@ import com.example.data.model.ConversationDoc
 import com.example.data.model.FriendRequestDoc
 import com.example.data.model.FriendshipDoc
 import com.example.data.model.PublicProfile
+import com.example.data.model.StudyGroupParticipantDoc
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -112,6 +114,69 @@ class SocialRepository(
                     DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
                 ).sortedBy { it.createdAt?.seconds ?: Long.MAX_VALUE }
             }
+
+    fun observeGroupParticipants(conversationId: String): Flow<List<StudyGroupParticipantDoc>> =
+        db.collection("conversations").document(conversationId).collection("participants")
+            .snapshots()
+            .map { snapshot ->
+                snapshot.toObjects(
+                    StudyGroupParticipantDoc::class.java,
+                    DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                ).sortedByDescending { it.updatedAt?.seconds ?: 0L }
+            }
+
+    suspend fun updateGroupParticipantStatus(
+        conversationId: String,
+        profile: PublicProfile,
+        status: String
+    ): Result<Unit> {
+        val allowed = if (status in listOf("online", "solving", "reviewing", "idle")) status else "online"
+        val ref = db.collection("conversations").document(conversationId)
+            .collection("participants").document(profile.userId)
+        return try {
+            ref.set(
+                mapOf(
+                    "userId" to profile.userId,
+                    "displayName" to profile.displayName.take(60),
+                    "avatarId" to profile.avatarId.ifBlank { "owl_classic" }.take(40),
+                    "status" to allowed,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ),
+                SetOptions.merge()
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, ref.path)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateGroupSharedProblem(
+        conversationId: String,
+        updaterName: String,
+        title: String,
+        prompt: String
+    ): Result<Unit> {
+        val ref = db.collection("conversations").document(conversationId)
+        return try {
+            ref.update(
+                mapOf(
+                    "activeProblemTitle" to title.trim().take(120),
+                    "activeProblemPrompt" to prompt.trim().take(800),
+                    "activeProblemUpdatedBy" to updaterName.trim().take(60),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, ref.path)
+            Result.failure(e)
+        }
+    }
 
     suspend fun fetchProfilesByIds(uids: List<String>): Map<String, PublicProfile> {
         if (uids.isEmpty()) return emptyMap()
@@ -355,7 +420,8 @@ class SocialRepository(
     suspend fun createStudyGroup(
         ownerUid: String,
         groupName: String,
-        invitedFriendUids: List<String>
+        invitedFriendUids: List<String>,
+        subjectId: String? = null
     ): Result<ConversationDoc> {
         val cleanName = groupName.trim().take(78)
         if (cleanName.isBlank()) return Result.failure(IllegalArgumentException("Group name required"))
@@ -363,11 +429,13 @@ class SocialRepository(
         val ref = db.collection("conversations").document(groupId)
         return try {
             val invited = invitedFriendUids.filter { it != ownerUid }.distinct()
+            val cleanSubject = subjectId?.trim()?.takeIf { it.isNotBlank() }?.take(64)
             ref.set(
                 mapOf(
                     "type" to "group",
                     "name" to cleanName,
                     "avatarId" to "owl_classic",
+                    "subjectId" to cleanSubject,
                     "ownerId" to ownerUid,
                     "memberUids" to listOf(ownerUid),
                     "invitedUids" to invited,
@@ -375,7 +443,7 @@ class SocialRepository(
                     "lastMessagePreview" to "Study Group created",
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
-                )
+                ).filterValues { it != null }
             ).await()
             val created = ref.get().await().toObject(
                 ConversationDoc::class.java,
@@ -384,6 +452,7 @@ class SocialRepository(
                 id = groupId,
                 type = "group",
                 name = cleanName,
+                subjectId = cleanSubject,
                 ownerId = ownerUid,
                 memberUids = listOf(ownerUid),
                 invitedUids = invited

@@ -712,6 +712,20 @@ class LearnAndExamViewModel(
         }
     }
 
+    fun streamDirectGeminiDoubt(
+        questionPrompt: String,
+        studentQuestion: String,
+        classId: String,
+        subjectName: String,
+        language: AppLanguage
+    ): kotlinx.coroutines.flow.Flow<String> = aiRepo.streamDirectGeminiDoubt(
+        questionPrompt = questionPrompt,
+        studentQuestion = studentQuestion,
+        classId = classId,
+        subjectName = subjectName,
+        language = language
+    )
+
     override fun onCleared() {
         super.onCleared()
         examTimerJob?.cancel()

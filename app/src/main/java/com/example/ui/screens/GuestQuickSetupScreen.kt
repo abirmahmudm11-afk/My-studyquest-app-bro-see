@@ -49,8 +49,10 @@ import com.example.data.model.MascotMood
 import com.example.ui.components.MascotAvatar
 import com.example.ui.components.MascotTituCard
 import com.example.ui.components.StaggeredEntrance
+import com.example.ui.components.StudyQuestAmbientBackdrop
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
+import com.example.ui.theme.LocalStudyQuestSurfaceStyle
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -78,10 +80,12 @@ fun QuickGuestSetupScreen(
         mutableStateListOf("math", "english", "bangla", "ict")
     }
 
+    StudyQuestAmbientBackdrop(
+        modifier = Modifier.fillMaxSize()
+    ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding(),
         contentAlignment = Alignment.TopCenter
     ) {
@@ -235,5 +239,6 @@ fun QuickGuestSetupScreen(
                 )
             }
         }
+    }
     }
 }

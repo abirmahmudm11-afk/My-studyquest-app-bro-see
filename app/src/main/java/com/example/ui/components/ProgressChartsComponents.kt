@@ -51,10 +51,15 @@ import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.curriculum.GamificationCatalog
 import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.SubjectAnalyticsSummary
+import com.example.ui.theme.BerryViolet
 import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.ElectricIndigo
 import com.example.ui.theme.LocalStudyQuestColors
+import com.example.ui.theme.SkyCyan
+import com.example.ui.theme.SunsetCoral
 import com.example.ui.theme.TealSecondary
 import com.example.ui.theme.VioletTertiary
+import com.example.ui.theme.VividEmerald
 
 @Composable
 fun CompactWeeklyStreakStrip(
@@ -229,8 +234,8 @@ fun StudyTimeAndXpBarChart(
         }
 
         val maxVal = dailySeries.maxOf { maxOf(it.xpEarned.toInt(), it.studyMinutes) }.coerceAtLeast(20)
-        val barPrimary = MaterialTheme.colorScheme.primary
-        val barSelected = semantic.success
+        val barPrimary = ElectricIndigo
+        val barSelected = VividEmerald
         val gridLineColor = MaterialTheme.colorScheme.outlineVariant
 
         Spacer(Modifier.height(10.dp))
@@ -261,10 +266,10 @@ fun StudyTimeAndXpBarChart(
                 val barH = ((value.toFloat() / maxVal.toFloat()) * (h * 0.88f)).coerceAtLeast(6.dp.toPx())
                 val left = idx * slotW + (slotW - barW) / 2f
                 drawRoundRect(
-                    color = if (idx == selectedIdx) barSelected else barPrimary.copy(alpha = 0.75f),
+                    color = if (idx == selectedIdx) barSelected else barPrimary.copy(alpha = 0.78f),
                     topLeft = Offset(left, h - barH),
                     size = Size(barW, barH),
-                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                    cornerRadius = CornerRadius(7.dp.toPx(), 7.dp.toPx())
                 )
             }
         }
@@ -381,7 +386,7 @@ fun ExamAccuracyTrendChart(
             return@StudyQuestCard
         }
 
-        val lineColor = TealSecondary
+        val lineColor = SkyCyan
         val pointBg = MaterialTheme.colorScheme.surface
         val gridColor = MaterialTheme.colorScheme.outlineVariant
 
@@ -409,11 +414,11 @@ fun ExamAccuracyTrendChart(
                         lineTo(pts[i].x, pts[i].y)
                     }
                 }
-                drawPath(path, color = lineColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
+                drawPath(path, color = lineColor, style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round))
             }
             pts.forEach { p ->
-                drawCircle(color = pointBg, radius = 6.dp.toPx(), center = p)
-                drawCircle(color = lineColor, radius = 4.dp.toPx(), center = p)
+                drawCircle(color = pointBg, radius = 6.5.dp.toPx(), center = p)
+                drawCircle(color = BerryViolet, radius = 4.5.dp.toPx(), center = p)
             }
         }
         Spacer(Modifier.height(4.dp))
@@ -428,3 +433,140 @@ fun ExamAccuracyTrendChart(
         }
     }
 }
+
+@Composable
+fun DailyLessonsBarChart(
+    dailySeries: List<DailyStudyMetric>,
+    language: AppLanguage,
+    modifier: Modifier = Modifier
+) {
+    var selectedIdx by remember(dailySeries) {
+        mutableIntStateOf((dailySeries.size - 1).coerceAtLeast(0))
+    }
+
+    StudyQuestCard(modifier = modifier.testTag("daily_lessons_bar_chart")) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = StudyQuestStrings.t(language, "Daily Lessons & Exams Completed", "দৈনিক পাঠ ও পরীক্ষা সম্পন্ন"),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = StudyQuestStrings.t(language, "7 days", "৭ দিন"),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        if (dailySeries.isEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = StudyQuestStrings.t(
+                    language,
+                    "Complete lessons and mock exams to see your daily completion bars.",
+                    "দৈনিক পাঠ ও মক পরীক্ষার গ্রাফ দেখতে লেসন বা পরীক্ষা সম্পন্ন করো।"
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            return@StudyQuestCard
+        }
+
+        val maxCount = dailySeries.maxOf { it.lessonsCompleted + it.examsCompleted }.coerceAtLeast(3)
+        val gridLineColor = MaterialTheme.colorScheme.outlineVariant
+
+        Spacer(Modifier.height(10.dp))
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(126.dp)
+                .pointerInput(dailySeries) {
+                    detectTapGestures { offset ->
+                        val count = dailySeries.size.coerceAtLeast(1)
+                        val step = size.width.toFloat() / count
+                        selectedIdx = (offset.x / step).toInt().coerceIn(0, count - 1)
+                    }
+                }
+        ) {
+            val h = size.height
+            val w = size.width
+            listOf(0.33f, 0.66f, 1f).forEach { frac ->
+                val y = h * (1f - frac)
+                drawLine(gridLineColor, Offset(0f, y), Offset(w, y), strokeWidth = 1.dp.toPx())
+            }
+            val count = dailySeries.size.coerceAtLeast(1)
+            val slotW = w / count
+            val barW = (slotW * 0.28f).coerceAtLeast(8.dp.toPx())
+            dailySeries.forEachIndexed { idx, item ->
+                val centerX = idx * slotW + slotW / 2f
+                val lessonH = ((item.lessonsCompleted.toFloat() / maxCount.toFloat()) * (h * 0.85f))
+                    .coerceAtLeast(if (item.lessonsCompleted > 0) 10.dp.toPx() else 4.dp.toPx())
+                val examH = ((item.examsCompleted.toFloat() / maxCount.toFloat()) * (h * 0.85f))
+                    .coerceAtLeast(if (item.examsCompleted > 0) 10.dp.toPx() else 4.dp.toPx())
+
+                drawRoundRect(
+                    color = if (idx == selectedIdx) VividEmerald else VividEmerald.copy(alpha = 0.72f),
+                    topLeft = Offset(centerX - barW - 2.dp.toPx(), h - lessonH),
+                    size = Size(barW, lessonH),
+                    cornerRadius = CornerRadius(5.dp.toPx(), 5.dp.toPx())
+                )
+                drawRoundRect(
+                    color = if (idx == selectedIdx) SunsetCoral else SunsetCoral.copy(alpha = 0.72f),
+                    topLeft = Offset(centerX + 2.dp.toPx(), h - examH),
+                    size = Size(barW, examH),
+                    cornerRadius = CornerRadius(5.dp.toPx(), 5.dp.toPx())
+                )
+            }
+        }
+
+        Spacer(Modifier.height(6.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            dailySeries.forEachIndexed { idx, item ->
+                Text(
+                    text = item.shortLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (idx == selectedIdx) FontWeight.Bold else FontWeight.Normal,
+                    color = if (idx == selectedIdx) ElectricIndigo else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Box(modifier = Modifier.size(10.dp).background(VividEmerald, CircleShape))
+                Text(StudyQuestStrings.t(language, "Lessons", "পাঠ"), style = MaterialTheme.typography.labelSmall)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Box(modifier = Modifier.size(10.dp).background(SunsetCoral, CircleShape))
+                Text(StudyQuestStrings.t(language, "Mock Exams", "মক পরীক্ষা"), style = MaterialTheme.typography.labelSmall)
+            }
+        }
+
+        val inspected = dailySeries.getOrNull(selectedIdx)
+        if (inspected != null) {
+            Spacer(Modifier.height(8.dp))
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = StudyQuestStrings.t(
+                        language,
+                        "${inspected.dayKey}: ${inspected.lessonsCompleted} lessons • ${inspected.examsCompleted} mock exams",
+                        "${inspected.dayKey}: ${StudyQuestStrings.formatDigits(inspected.lessonsCompleted, language)}টি পাঠ • ${StudyQuestStrings.formatDigits(inspected.examsCompleted, language)}টি পরীক্ষা"
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                )
+            }
+        }
+    }
+}
+

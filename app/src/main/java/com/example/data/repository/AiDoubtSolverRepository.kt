@@ -399,7 +399,67 @@ class AiDoubtSolverRepository(
     }
 
     /**
-     * Backwards-compatible wrapper used by QuestionBank / Practice Sessions / Today quick sheet.
+     * Built-in Firebase AI Logic Gemini streaming doubt solver (works immediately without OpenRouter keys).
+     */
+    fun streamDirectGeminiDoubt(
+        questionPrompt: String,
+        studentQuestion: String,
+        classId: String,
+        subjectName: String,
+        language: AppLanguage
+    ): Flow<String> = flow {
+        val cleanQuestion = studentQuestion.trim()
+        if (cleanQuestion.isBlank()) {
+            throw IllegalArgumentException("Please enter your academic question first.")
+        }
+        val langInstruction = if (language == AppLanguage.BANGLA) {
+            "Answer in clear, natural academic Bangla tailored for Bangladesh NCTB curriculum."
+        } else {
+            "Answer in clear academic English tailored for Bangladesh NCTB curriculum."
+        }
+        val composedPrompt = buildString {
+            appendLine("Class: $classId | Subject: $subjectName")
+            appendLine(langInstruction)
+            if (questionPrompt.isNotBlank()) {
+                appendLine("Reference Problem / Context:")
+                appendLine(questionPrompt.trim())
+            }
+            appendLine()
+            appendLine("Student Doubt / Question:")
+            appendLine(cleanQuestion)
+            appendLine()
+            appendLine("Provide a step-by-step explanation, key formulas or concepts, and a quick exam tip.")
+        }
+        val accumulated = StringBuilder()
+        try {
+            withTimeout(60_000L) {
+                fallbackFirebaseModel.generateContentStream(composedPrompt).collect { chunk ->
+                    val piece = chunk.text.orEmpty()
+                    if (piece.isNotEmpty()) {
+                        accumulated.append(piece)
+                        emit(accumulated.toString())
+                    }
+                }
+            }
+            if (accumulated.isBlank()) {
+                val fallbackResponse = withTimeout(45_000L) {
+                    fallbackFirebaseModel.generateContent(composedPrompt).text.orEmpty()
+                }
+                if (fallbackResponse.isNotBlank()) {
+                    emit(fallbackResponse)
+                } else {
+                    throw IllegalStateException("Gemini returned an empty explanation. Please rephrase and try again.")
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: TimeoutCancellationException) {
+            throw IllegalStateException("AI Doubt Solver timed out. Please check your connection and try again.")
+        }
+    }
+
+    /**
+     * Backwards-compatible wrapper used by QuestionBank / Practice Sessions / Today quick sheet / Doubt Solver screen.
      */
     fun streamDoubtExplanation(
         questionPrompt: String,
@@ -407,26 +467,14 @@ class AiDoubtSolverRepository(
         classId: String,
         subjectName: String,
         language: AppLanguage,
-        subscription: UserSubscriptionDoc = UserSubscriptionDoc()
-    ): Flow<String> = flow {
-        val currentUid = runCatching { FirebaseAuth.getInstance().currentUser?.uid }.getOrNull().orEmpty()
-        val combinedPrompt = buildString {
-            if (questionPrompt.isNotBlank()) appendLine("Context: $questionPrompt")
-            appendLine(studentQuestion)
-        }.trim()
-        sendStudyQuestMessage(
-            userId = currentUid,
-            conversationId = "",
-            toolId = "QuestionExplainer",
-            userText = combinedPrompt,
-            classId = classId,
-            subjectName = subjectName,
-            language = language,
-            subscription = subscription
-        ).collect { update ->
-            emit(update.text)
-        }
-    }
+        @Suppress("UNUSED_PARAMETER") subscription: UserSubscriptionDoc = UserSubscriptionDoc()
+    ): Flow<String> = streamDirectGeminiDoubt(
+        questionPrompt = questionPrompt,
+        studentQuestion = studentQuestion,
+        classId = classId,
+        subjectName = subjectName,
+        language = language
+    )
 
     companion object {
         private const val TAG = "AiDoubtSolverRepo"

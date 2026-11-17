@@ -27,8 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
@@ -64,8 +62,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -81,19 +84,98 @@ import com.example.data.model.AcademicSubject
 import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
 import com.example.data.model.UserQuestDoc
+import com.example.ui.theme.AmberGold
+import com.example.ui.theme.BerryViolet
 import com.example.ui.theme.CobaltPrimary
+import com.example.ui.theme.ElectricIndigo
+import com.example.ui.theme.LocalStudyQuestSurfaceStyle
 import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SkyCyan
+import com.example.ui.theme.SunsetCoral
 import com.example.ui.theme.TealSecondary
 import com.example.ui.theme.VioletTertiary
+import com.example.ui.theme.VividEmerald
+import com.example.ui.theme.studyQuestGlassAwareBorder
+import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
+
+/**
+ * Authentic 4-color Google "G" emblem rendered crisply in Compose Canvas.
+ */
+@Composable
+fun GoogleLogoMark(
+    modifier: Modifier = Modifier,
+    size: Dp = 20.dp
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val strokeWidth = this.size.minDimension * 0.21f
+        val pad = strokeWidth / 2f
+        val arcSize = Size(this.size.width - strokeWidth, this.size.height - strokeWidth)
+        val topLeft = Offset(pad, pad)
+
+        // Red top-left to top-right arc
+        drawArc(
+            color = Color(0xFFEA4335),
+            startAngle = -148f,
+            sweepAngle = 104f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+        )
+        // Yellow left arc
+        drawArc(
+            color = Color(0xFFFBBC05),
+            startAngle = 152f,
+            sweepAngle = 64f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+        )
+        // Green bottom arc
+        drawArc(
+            color = Color(0xFF34A853),
+            startAngle = 44f,
+            sweepAngle = 112f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+        )
+        // Blue right-to-bottom-right arc
+        drawArc(
+            color = Color(0xFF4285F4),
+            startAngle = -10f,
+            sweepAngle = 58f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+        )
+        // Google Blue horizontal crossbar
+        val cy = this.size.height / 2f
+        drawLine(
+            color = Color(0xFF4285F4),
+            start = Offset(this.size.width * 0.50f, cy),
+            end = Offset(this.size.width - pad * 0.5f, cy),
+            strokeWidth = strokeWidth * 0.92f,
+            cap = StrokeCap.Round
+        )
+    }
+}
 
 @Composable
 fun StudyQuestCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     border: BorderStroke? = null,
+    accentColor: Color? = null,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val visualConfig = LocalStudyQuestSurfaceStyle.current
+    val resolvedColor = studyQuestGlassAwareSurfaceColor(containerColor)
+    val resolvedBorder = border ?: studyQuestGlassAwareBorder(accentColor)
     val cardModifier = if (onClick != null) {
         modifier
             .fillMaxWidth()
@@ -103,10 +185,10 @@ fun StudyQuestCard(
     }
     Card(
         modifier = cardModifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = border ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = resolvedColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (visualConfig.isGlass) 0.dp else 1.5.dp),
+        border = resolvedBorder
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -135,7 +217,8 @@ fun SyncStatusPill(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(999.dp),
-        color = bgColor
+        color = studyQuestGlassAwareSurfaceColor(bgColor),
+        border = studyQuestGlassAwareBorder(if (isOnline) VividEmerald else null)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -176,7 +259,8 @@ fun StatBadgePill(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(999.dp),
-        color = containerColor
+        color = studyQuestGlassAwareSurfaceColor(containerColor),
+        border = studyQuestGlassAwareBorder(tint)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -218,10 +302,10 @@ fun SubjectCard(
             .minimumInteractiveComponentSize()
             .clickable(interactionSource = interactionSource, indication = androidx.compose.material3.ripple(), onClick = onClick)
             .testTag("subject_card_${subject.id}"),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(20.dp),
+        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
         tonalElevation = 0.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = studyQuestGlassAwareBorder(accent)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -230,14 +314,14 @@ fun SubjectCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                    shape = RoundedCornerShape(10.dp),
+                    color = accent.copy(alpha = 0.16f)
                 ) {
                     Text(
                         text = subject.code,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = accent,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -265,9 +349,9 @@ fun SubjectCard(
                     progress = { masteryProgress.coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(5.dp)
+                        .height(6.dp)
                         .clip(RoundedCornerShape(999.dp)),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = accent,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             } else {
@@ -293,7 +377,10 @@ fun QuestCard(
         animationSpec = spring(),
         label = "quest_progress"
     )
-    StudyQuestCard(modifier = modifier.testTag("quest_card_${quest.questId}")) {
+    StudyQuestCard(
+        modifier = modifier.testTag("quest_card_${quest.questId}"),
+        accentColor = if (quest.completed) VividEmerald else BerryViolet
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -315,7 +402,7 @@ fun QuestCard(
             StatBadgePill(
                 icon = Icons.Filled.Star,
                 label = "+${StudyQuestStrings.formatDigits(quest.xpReward, language)} XP",
-                tint = VioletTertiary,
+                tint = AmberGold,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer
             )
         }
@@ -326,7 +413,7 @@ fun QuestCard(
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(999.dp)),
-            color = if (quest.completed) CobaltPrimary else TealSecondary
+            color = if (quest.completed) VividEmerald else ElectricIndigo
         )
         Spacer(Modifier.height(8.dp))
         Row(
@@ -342,12 +429,12 @@ fun QuestCard(
             when {
                 quest.claimed -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = TealSecondary, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = VividEmerald, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = StudyQuestStrings.t(language, "Claimed", "সংগৃহীত"),
                             style = MaterialTheme.typography.labelMedium,
-                            color = TealSecondary,
+                            color = VividEmerald,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -358,14 +445,14 @@ fun QuestCard(
                         modifier = Modifier
                             .minimumInteractiveComponentSize()
                             .testTag("claim_quest_${quest.questId}"),
-                        colors = ButtonDefaults.buttonColors(containerColor = VioletTertiary, contentColor = PureWhite)
+                        colors = ButtonDefaults.buttonColors(containerColor = BerryViolet, contentColor = PureWhite)
                     ) {
                         Text(StudyQuestStrings.t(language, "Claim +${quest.coinReward} Coins", "সংগ্রহ করুন"))
                     }
                 }
                 else -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.MonetizationOn, contentDescription = null, tint = VioletTertiary, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.MonetizationOn, contentDescription = null, tint = AmberGold, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = "+${StudyQuestStrings.formatDigits(quest.coinReward, language)}",
@@ -401,7 +488,10 @@ fun QuestionPracticeCard(
 ) {
     var flashcardFlipped by remember(question.id) { mutableStateOf(false) }
 
-    StudyQuestCard(modifier = modifier.testTag("question_card_${question.id}")) {
+    StudyQuestCard(
+        modifier = modifier.testTag("question_card_${question.id}"),
+        accentColor = ElectricIndigo
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -416,6 +506,7 @@ fun QuestionPracticeCard(
                         text = StudyQuestStrings.t(uiLanguage, question.type.labelEn, question.type.labelBn),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -438,7 +529,7 @@ fun QuestionPracticeCard(
                     Icon(
                         imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                         contentDescription = StudyQuestStrings.t(uiLanguage, "Bookmark question", "প্রশ্ন বুকমার্ক"),
-                        tint = if (isBookmarked) CobaltPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (isBookmarked) ElectricIndigo else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 IconButton(
@@ -657,7 +748,7 @@ fun QuestionPracticeCard(
                     text = StudyQuestStrings.t(uiLanguage, "Explanation", "ব্যাখ্যা"),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = CobaltPrimary
+                    color = ElectricIndigo
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -686,6 +777,10 @@ fun QuestionPracticeCard(
             }
             Button(
                 onClick = onAskAi,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BerryViolet,
+                    contentColor = Color.White
+                ),
                 modifier = Modifier
                     .weight(1f)
                     .minimumInteractiveComponentSize()
@@ -715,7 +810,7 @@ fun EmptyStateView(
     onAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    StudyQuestCard(modifier = modifier) {
+    StudyQuestCard(modifier = modifier, accentColor = SkyCyan) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -728,7 +823,7 @@ fun EmptyStateView(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(120.dp)
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(20.dp))
             )
             Spacer(Modifier.height(12.dp))
             Text(
@@ -759,18 +854,18 @@ fun RankTierBadge(
     modifier: Modifier = Modifier
 ) {
     val tierColor = when (tier) {
-        "Master" -> Color(0xFF9333EA)
-        "Diamond" -> Color(0xFF0284C7)
-        "Platinum" -> Color(0xFF0D9488)
-        "Gold" -> Color(0xFFD97706)
+        "Master" -> BerryViolet
+        "Diamond" -> SkyCyan
+        "Platinum" -> VividEmerald
+        "Gold" -> AmberGold
         "Silver" -> Color(0xFF64748B)
-        else -> Color(0xFF475569)
+        else -> SunsetCoral
     }
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-        border = BorderStroke(1.dp, tierColor.copy(alpha = 0.35f))
+        color = studyQuestGlassAwareSurfaceColor(tierColor.copy(alpha = 0.14f)),
+        border = BorderStroke(1.dp, tierColor.copy(alpha = 0.45f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -796,16 +891,16 @@ fun AvatarBadgeView(
     size: Dp = 48.dp,
     modifier: Modifier = Modifier
 ) {
-    val frameColor = when (frameId) {
-        "frame_mango" -> VioletTertiary
-        "frame_emerald" -> TealSecondary
-        else -> CobaltPrimary.copy(alpha = 0.45f)
+    val frameBrush = when (frameId) {
+        "frame_mango" -> Brush.linearGradient(listOf(AmberGold, SunsetCoral))
+        "frame_emerald" -> Brush.linearGradient(listOf(VividEmerald, SkyCyan))
+        else -> Brush.linearGradient(listOf(ElectricIndigo, BerryViolet))
     }
     val initial = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "S"
     Surface(
         modifier = modifier.size(size),
         shape = CircleShape,
-        border = BorderStroke(2.dp, frameColor),
+        border = BorderStroke(2.5.dp, frameBrush),
         color = MaterialTheme.colorScheme.primaryContainer
     ) {
         if (avatarId == "owl_classic") {
@@ -817,9 +912,9 @@ fun AvatarBadgeView(
             )
         } else {
             val bg = when (avatarId) {
-                "tiger_bengal" -> VioletTertiary.copy(alpha = 0.20f)
-                "kingfisher_bd" -> Color(0xFF0284C7).copy(alpha = 0.20f)
-                else -> CobaltPrimary.copy(alpha = 0.20f)
+                "tiger_bengal" -> SunsetCoral.copy(alpha = 0.22f)
+                "kingfisher_bd" -> SkyCyan.copy(alpha = 0.22f)
+                else -> ElectricIndigo.copy(alpha = 0.22f)
             }
             Box(
                 modifier = Modifier.background(bg),

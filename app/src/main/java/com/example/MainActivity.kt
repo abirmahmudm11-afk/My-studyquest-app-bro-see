@@ -6,19 +6,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,11 +44,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -62,9 +62,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -87,20 +89,27 @@ import com.example.data.model.QuestPlanCatalog
 import com.example.ui.components.AudioFeedbackHelper
 import com.example.ui.components.GamificationCelebrationHost
 import com.example.ui.components.LottieCelebrationOverlay
+import com.example.ui.components.StudyQuestAmbientBackdrop
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.screens.AcademicSetupWizardScreen
+import com.example.ui.screens.AiDoubtSolverScreen
 import com.example.ui.screens.AiDoubtSolverSheet
 import com.example.ui.screens.CompeteTabScreen
 import com.example.ui.screens.FriendsTabScreen
 import com.example.ui.screens.LanguagePickerLaunchScreen
+import com.example.ui.screens.LeaderboardScopeFilter
+import com.example.ui.screens.LeaderboardScreen
 import com.example.ui.screens.LearnDestination
 import com.example.ui.screens.LearnTabScreen
 import com.example.ui.screens.ProfileTabScreen
+import com.example.ui.screens.StudyProgressDashboardScreen
 import com.example.ui.screens.SubscriptionSelectionScreen
+import com.example.ui.screens.TodayOverlayDestination
 import com.example.ui.screens.TodayTabScreen
 import com.example.ui.screens.WelcomeAndGoogleSignInScreen
 import com.example.ui.screens.WelcomePlanSelectionScreen
 import com.example.ui.theme.StudyQuestTheme
+import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 import com.example.ui.viewmodel.AdminStudioViewModel
 import com.example.ui.viewmodel.AiVideoViewModel
 import com.example.ui.viewmodel.BootstrapState
@@ -118,9 +127,9 @@ import com.google.firebase.auth.auth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         // Phase 1 AI Logic Contract: Initialize App Check BEFORE setContent / ViewModels / Firebase calls
         configureAppCheck(this, intent)
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             StudyQuestRootApp()
@@ -145,9 +154,12 @@ private fun StudyQuestRootApp() {
 
     val preAuthVm: PreAuthViewModel = viewModel(factory = StudyQuestViewModelFactories.preAuthFactory())
     val preAuthPrefs by preAuthVm.localPreferences.collectAsStateWithLifecycle()
+    val shouldShowLanguagePicker by preAuthVm.shouldShowLanguagePicker.collectAsStateWithLifecycle()
     val isSigningIn by preAuthVm.isSigningIn.collectAsStateWithLifecycle()
     val canCancelSignIn by preAuthVm.canCancelSignIn.collectAsStateWithLifecycle()
     val authMessage by preAuthVm.authMessage.collectAsStateWithLifecycle()
+    val authStatusMessage by preAuthVm.authStatusMessage.collectAsStateWithLifecycle()
+    val passwordResetStatus by preAuthVm.passwordResetStatus.collectAsStateWithLifecycle()
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val systemDark = isSystemInDarkTheme()
@@ -169,36 +181,56 @@ private fun StudyQuestRootApp() {
 
     StudyQuestTheme(
         darkTheme = useDarkTheme,
-        isBangla = preAuthPrefs.uiLanguage == AppLanguage.BANGLA
+        isBangla = preAuthPrefs.uiLanguage == AppLanguage.BANGLA,
+        surfaceStyle = preAuthPrefs.surfaceStyle
     ) {
-        val user = currentUser
-        if (user != null) {
-            // Feature ViewModels & Firestore listeners are gated behind authenticated session and keyed by UID
-            key(user.uid) {
-                AuthenticatedStudyQuestHost(user = user)
+        StudyQuestAmbientBackdrop {
+            val user = currentUser
+            if (user != null) {
+                // Feature ViewModels & Firestore listeners are gated behind authenticated session and keyed by UID
+                key(user.uid) {
+                    AuthenticatedStudyQuestHost(user = user)
+                }
+            } else if (shouldShowLanguagePicker) {
+                LanguagePickerLaunchScreen(
+                    onSelectLanguage = { lang -> preAuthVm.selectInitialLanguage(lang) }
+                )
+            } else {
+                WelcomeAndGoogleSignInScreen(
+                    language = preAuthPrefs.uiLanguage,
+                    reducedMotion = preAuthPrefs.reducedMotion,
+                    isSigningIn = isSigningIn,
+                    authError = authMessage,
+                    onSetLanguage = { preAuthVm.setUiLanguage(it) },
+                    onSigningInChanged = { preAuthVm.setSigningIn(it) },
+                    onIdTokenReceived = { token ->
+                        preAuthVm.signInWithGoogleIdToken(token, preAuthPrefs.uiLanguage) {
+                            currentUser = auth.currentUser
+                        }
+                    },
+                    onAuthError = { preAuthVm.setAuthError(it) },
+                    canCancelSignIn = canCancelSignIn,
+                    onCancelSignIn = { preAuthVm.cancelSignIn() },
+                    onBackToLanguagePicker = { preAuthVm.returnToLanguagePicker() },
+                    authStatusMessage = authStatusMessage,
+                    passwordResetStatus = passwordResetStatus,
+                    onEmailSignIn = { email, password ->
+                        preAuthVm.signInWithEmail(email, password, preAuthPrefs.uiLanguage) {
+                            currentUser = auth.currentUser
+                        }
+                    },
+                    onEmailSignUp = { name, email, password, confirmPassword ->
+                        preAuthVm.signUpWithEmail(name, email, password, confirmPassword, preAuthPrefs.uiLanguage) {
+                            currentUser = auth.currentUser
+                        }
+                    },
+                    onSendPasswordReset = { email ->
+                        preAuthVm.sendPasswordReset(email, preAuthPrefs.uiLanguage)
+                    },
+                    onClearAuthMessages = { preAuthVm.clearAuthMessages() },
+                    onClearPasswordResetStatus = { preAuthVm.clearPasswordResetStatus() }
+                )
             }
-        } else if (!preAuthPrefs.hasChosenInitialLanguage) {
-            LanguagePickerLaunchScreen(
-                onSelectLanguage = { lang -> preAuthVm.selectInitialLanguage(lang) }
-            )
-        } else {
-            WelcomeAndGoogleSignInScreen(
-                language = preAuthPrefs.uiLanguage,
-                reducedMotion = preAuthPrefs.reducedMotion,
-                isSigningIn = isSigningIn,
-                authError = authMessage,
-                onSetLanguage = { preAuthVm.setUiLanguage(it) },
-                onSigningInChanged = { preAuthVm.setSigningIn(it) },
-                onIdTokenReceived = { token ->
-                    preAuthVm.signInWithGoogleIdToken(token) {
-                        currentUser = auth.currentUser
-                    }
-                },
-                onAuthError = { preAuthVm.setAuthError(it) },
-                canCancelSignIn = canCancelSignIn,
-                onCancelSignIn = { preAuthVm.cancelSignIn() },
-                onBackToLanguagePicker = { preAuthVm.returnToLanguagePicker() }
-            )
         }
     }
 }
@@ -233,6 +265,7 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
 
     when (val state = bootstrapState) {
         BootstrapState.Loading -> {
+            BackHandler { sessionVm.signOut() }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -277,6 +310,7 @@ private fun AuthenticatedStudyQuestHost(user: FirebaseUser) {
         }
 
         is BootstrapState.Error -> {
+            BackHandler { sessionVm.signOut() }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -483,6 +517,7 @@ private fun AuthenticatedReadyHost(
     val searchResults by socialVm.searchResults.collectAsStateWithLifecycle()
     val activeConversation by socialVm.activeConversation.collectAsStateWithLifecycle()
     val activeMessages by socialVm.activeMessages.collectAsStateWithLifecycle()
+    val activeGroupParticipants by socialVm.activeGroupParticipants.collectAsStateWithLifecycle()
     val communityPosts by socialVm.communityPosts.collectAsStateWithLifecycle()
     val selectedCommunityPost by socialVm.selectedPost.collectAsStateWithLifecycle()
     val selectedPostComments by socialVm.selectedPostComments.collectAsStateWithLifecycle()
@@ -490,8 +525,20 @@ private fun AuthenticatedReadyHost(
 
     val tabBackStack = remember { mutableStateListOf(0) } // 0=Today, 1=Learn, 2=Compete, 3=Friends, 4=Profile
     val selectedTab = tabBackStack.lastOrNull() ?: 0
+    val saveableStateHolder = rememberSaveableStateHolder()
+    var todayOverlay by remember { mutableStateOf(TodayOverlayDestination.None) }
+    var aiDoubtPrefillPrompt by remember { mutableStateOf("") }
+    var leaderboardScope by remember { mutableStateOf(LeaderboardScopeFilter.CLASS_ONLY) }
+    var leaderboardSubjectFilter by remember { mutableStateOf("all") }
+    var pendingFriendsSubTab by remember { mutableStateOf<Int?>(null) }
+
     fun navigateToTab(idx: Int) {
-        if (tabBackStack.lastOrNull() != idx) {
+        todayOverlay = TodayOverlayDestination.None
+        if (idx == 0) {
+            tabBackStack.clear()
+            tabBackStack.add(0)
+        } else if (tabBackStack.lastOrNull() != idx) {
+            tabBackStack.remove(idx)
             tabBackStack.add(idx)
         }
     }
@@ -505,7 +552,12 @@ private fun AuthenticatedReadyHost(
         showGlobalAiSheet = false
     }
 
-    BackHandler(enabled = !showPlanStoreOverlay && !showGlobalAiSheet && tabBackStack.size > 1) {
+    BackHandler(enabled = !showPlanStoreOverlay && !showGlobalAiSheet && selectedTab == 0 && todayOverlay != TodayOverlayDestination.None) {
+        todayOverlay = TodayOverlayDestination.None
+        aiDoubtPrefillPrompt = ""
+    }
+
+    BackHandler(enabled = !showPlanStoreOverlay && !showGlobalAiSheet && (selectedTab != 0 || todayOverlay == TodayOverlayDestination.None) && tabBackStack.size > 1) {
         tabBackStack.removeAt(tabBackStack.lastIndex)
     }
 
@@ -540,44 +592,26 @@ private fun AuthenticatedReadyHost(
         navigateToTab(1)
     }
 
-    Scaffold(
-        bottomBar = {
-            Column {
-                if (adPlacementState.shouldDisplayAdSlot) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("admob_banner_slot")
-                    ) {
-                        Text(
-                            text = StudyQuestStrings.t(
-                                lang,
-                                "Ad Slot Ready (Paused automatically during Focus, Quizzes & Exams)",
-                                "বিজ্ঞাপন স্লট প্রস্তুত (ফোকাস, কুইজ ও পরীক্ষায় স্বয়ংক্রিয়ভাবে বন্ধ)"
-                            ),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
-                    }
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp,
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+    val navTabs = listOf(
+        Triple(0, StudyQuestStrings.tabToday(lang), Icons.Filled.Home to Icons.Outlined.Home),
+        Triple(1, StudyQuestStrings.tabLearn(lang), Icons.AutoMirrored.Filled.MenuBook to Icons.AutoMirrored.Outlined.MenuBook),
+        Triple(2, StudyQuestStrings.tabCompete(lang), Icons.Filled.EmojiEvents to Icons.Outlined.EmojiEvents),
+        Triple(3, StudyQuestStrings.tabFriends(lang), Icons.Filled.Groups to Icons.Outlined.Groups),
+        Triple(4, StudyQuestStrings.tabProfile(lang), Icons.Filled.Person to Icons.Outlined.Person)
+    )
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val useNavigationRail = maxWidth >= 600.dp
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (useNavigationRail) {
+                NavigationRail(
+                    containerColor = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxHeight()
                 ) {
-                    val tabs = listOf(
-                        Triple(0, StudyQuestStrings.tabToday(lang), Icons.Filled.Home to Icons.Outlined.Home),
-                        Triple(1, StudyQuestStrings.tabLearn(lang), Icons.AutoMirrored.Filled.MenuBook to Icons.AutoMirrored.Outlined.MenuBook),
-                        Triple(2, StudyQuestStrings.tabCompete(lang), Icons.Filled.EmojiEvents to Icons.Outlined.EmojiEvents),
-                        Triple(3, StudyQuestStrings.tabFriends(lang), Icons.Filled.Groups to Icons.Outlined.Groups),
-                        Triple(4, StudyQuestStrings.tabProfile(lang), Icons.Filled.Person to Icons.Outlined.Person)
-                    )
-                    tabs.forEach { (idx, label, icons) ->
-                        NavigationBarItem(
+                    Spacer(Modifier.height(16.dp))
+                    navTabs.forEach { (idx, label, icons) ->
+                        NavigationRailItem(
                             selected = selectedTab == idx,
                             onClick = {
                                 AudioFeedbackHelper.triggerClick(view, prefs.soundEnabled, prefs.reducedMotion)
@@ -589,14 +623,63 @@ private fun AuthenticatedReadyHost(
                         )
                     }
                 }
+                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
+
+            Scaffold(
+                modifier = Modifier.weight(1f),
+                containerColor = Color.Transparent,
+                bottomBar = {
+                    Column {
+                        if (adPlacementState.shouldDisplayAdSlot) {
+                            Surface(
+                                color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surfaceVariant),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("admob_banner_slot")
+                            ) {
+                                Text(
+                                    text = StudyQuestStrings.t(
+                                        lang,
+                                        "Ad Slot Ready (Paused automatically during Focus, Quizzes & Exams)",
+                                        "বিজ্ঞাপন স্লট প্রস্তুত (ফোকাস, কুইজ ও পরীক্ষায় স্বয়ংক্রিয়ভাবে বন্ধ)"
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                        if (!useNavigationRail) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            NavigationBar(
+                                containerColor = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
+                                tonalElevation = 0.dp,
+                                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                            ) {
+                                navTabs.forEach { (idx, label, icons) ->
+                                    NavigationBarItem(
+                                        selected = selectedTab == idx,
+                                        onClick = {
+                                            AudioFeedbackHelper.triggerClick(view, prefs.soundEnabled, prefs.reducedMotion)
+                                            navigateToTab(idx)
+                                        },
+                                        icon = { Icon(if (selectedTab == idx) icons.first else icons.second, contentDescription = label) },
+                                        label = { Text(label, maxLines = 1) },
+                                        modifier = Modifier.testTag("nav_tab_$idx")
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -628,7 +711,6 @@ private fun AuthenticatedReadyHost(
 
             Box(modifier = Modifier.weight(1f)) {
                 if (showPlanStoreOverlay) {
-                    BackHandler { showPlanStoreOverlay = false }
                     SubscriptionSelectionScreen(
                         language = lang,
                         subscription = subscription,
@@ -647,99 +729,159 @@ private fun AuthenticatedReadyHost(
                         onBack = { showPlanStoreOverlay = false }
                     )
                 } else {
-                AnimatedContent(
-                    targetState = selectedTab,
-                    transitionSpec = {
-                        if (prefs.reducedMotion) {
-                            fadeIn(tween(10)) togetherWith fadeOut(tween(10))
-                        } else {
-                            fadeIn(tween(220)) togetherWith fadeOut(tween(160))
-                        }
-                    },
-                    label = "auth_tab_transition"
-                ) { tabIndex ->
-                when (tabIndex) {
-                    0 -> TodayTabScreen(
-                        profile = activeProfile,
-                        language = lang,
-                        reducedMotion = prefs.reducedMotion,
-                        isOnline = isOnline,
-                        pendingSyncCount = pendingSyncCount,
-                        quests = quests,
-                        notifications = notifications,
-                        unreadNotificationCount = unreadNotifs,
-                        weakTopics = weakTopics,
-                        revisions = revisions,
-                        studyPlans = studyPlans,
-                        recentRecords = learningRecords,
-                        onClaimQuest = { q ->
-                            sessionVm.claimQuest(q) { _, _ ->
-                                celebrationPulse += 1
-                                AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
+                    saveableStateHolder.SaveableStateProvider(key = selectedTab) {
+                        when (selectedTab) {
+                    0 -> when (todayOverlay) {
+                        TodayOverlayDestination.StudyProgress -> StudyProgressDashboardScreen(
+                            profile = activeProfile,
+                            language = lang,
+                            reducedMotion = prefs.reducedMotion,
+                            learningRecords = learningRecords,
+                            dailyStudySeries = dailyStudySeries,
+                            subjectAnalytics = subjectAnalytics,
+                            weakTopics = weakTopics,
+                            onOpenQuickPractice = {
+                                todayOverlay = TodayOverlayDestination.None
+                                val qs = mergedQuestions.filter { it.classId == activeProfile.classId }.ifEmpty { mergedQuestions }.take(6)
+                                pendingLearnDest = LearnDestination.PracticeSession(
+                                    StudyQuestStrings.t(lang, "Quick Practice", "কুইক প্র্যাকটিস"),
+                                    qs
+                                )
+                                navigateToTab(1)
+                            },
+                            onBack = { todayOverlay = TodayOverlayDestination.None }
+                        )
+
+                        TodayOverlayDestination.Leaderboard -> LeaderboardScreen(
+                            myProfile = activeProfile,
+                            language = lang,
+                            reducedMotion = prefs.reducedMotion,
+                            leaderboard = leaderboard,
+                            selectedScope = leaderboardScope,
+                            selectedPeriod = selectedPeriod,
+                            selectedCategory = selectedCategory,
+                            selectedSubjectId = leaderboardSubjectFilter,
+                            friendUids = friendProfiles.keys,
+                            isGuestMode = false,
+                            onSelectScope = { leaderboardScope = it },
+                            onSelectPeriod = { competeVm.selectPeriod(it) },
+                            onSelectCategory = { competeVm.selectCategory(it) },
+                            onSelectSubject = { leaderboardSubjectFilter = it },
+                            onRefresh = {},
+                            onBack = { todayOverlay = TodayOverlayDestination.None }
+                        )
+
+                        TodayOverlayDestination.AiDoubtSolver -> AiDoubtSolverScreen(
+                            profile = activeProfile,
+                            language = lang,
+                            reducedMotion = prefs.reducedMotion,
+                            initialQuestionPrompt = aiDoubtPrefillPrompt,
+                            onAskGeminiDoubt = { prompt, studentQ, subjName ->
+                                learnVm.streamDirectGeminiDoubt(
+                                    questionPrompt = prompt,
+                                    studentQuestion = studentQ,
+                                    classId = activeProfile.classId,
+                                    subjectName = subjName,
+                                    language = lang
+                                )
+                            },
+                            onBack = {
+                                todayOverlay = TodayOverlayDestination.None
+                                aiDoubtPrefillPrompt = ""
                             }
-                        },
-                        onMarkNotificationRead = { sessionVm.markNotificationRead(it) },
-                        onOpenQuickPractice = {
-                            val qs = mergedQuestions.filter { it.classId == activeProfile.classId }.ifEmpty { mergedQuestions }.take(6)
-                            pendingLearnDest = LearnDestination.PracticeSession(
-                                StudyQuestStrings.t(lang, "Quick Practice", "কুইক প্র্যাকটিস"),
-                                qs
-                            )
-                            navigateToTab(1)
-                        },
-                        onOpenMockExam = {
-                            navigateToTab(1)
-                        },
-                        onOpenRevision = {
-                            pendingLearnDest = LearnDestination.RevisionAndPlanner
-                            navigateToTab(1)
-                        },
-                        onOpenAiDoubtSolver = { showGlobalAiSheet = true },
-                        onOpenMessages = { navigateToTab(3) },
-                        subjectAnalytics = subjectAnalytics,
-                        dailyStudySeries = dailyStudySeries,
-                        dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(activeProfile),
-                        onOpenSubjectCategory = { subj ->
-                            pendingLearnDest = LearnDestination.SubjectDetail(subj)
-                            navigateToTab(1)
-                        },
-                        onOpenFlashcardsVault = {
-                            pendingLearnDest = LearnDestination.FlashcardsAndVault
-                            navigateToTab(1)
-                        },
-                        onOpenPomodoro = {
-                            pendingLearnDest = LearnDestination.PomodoroFocus
-                            navigateToTab(1)
-                        },
-                        onOpenDailyChallenge = {
-                            pendingLearnDest = LearnDestination.DailyChallenge
-                            navigateToTab(1)
-                        },
-                        onOpenMasteryAnalytics = {
-                            pendingLearnDest = LearnDestination.MasteryAnalytics
-                            navigateToTab(1)
-                        },
-                        onOpenAssignmentsAndGoals = {
-                            pendingLearnDest = LearnDestination.AssignmentsAndGoals
-                            navigateToTab(1)
-                        },
-                        onOpenAiVideoStudio = {
-                            pendingLearnDest = LearnDestination.AiVideoStudio
-                            navigateToTab(1)
-                        },
-                        onOpenBadgesAndXp = {
-                            pendingLearnDest = LearnDestination.BadgesAndXp
-                            navigateToTab(1)
-                        },
-                        onBuyStreakFreeze = { sessionVm.purchaseStreakFreeze() },
-                        onRetakePromotionExam = { openPromotionExam() },
-                        subscription = subscription,
-                        onOpenAiLab = {
-                            pendingLearnDest = LearnDestination.AiLab
-                            navigateToTab(1)
-                        },
-                        onOpenPlanStore = { showPlanStoreOverlay = true }
-                    )
+                        )
+
+                        TodayOverlayDestination.None -> TodayTabScreen(
+                            profile = activeProfile,
+                            language = lang,
+                            reducedMotion = prefs.reducedMotion,
+                            isOnline = isOnline,
+                            pendingSyncCount = pendingSyncCount,
+                            quests = quests,
+                            notifications = notifications,
+                            unreadNotificationCount = unreadNotifs,
+                            weakTopics = weakTopics,
+                            revisions = revisions,
+                            studyPlans = studyPlans,
+                            recentRecords = learningRecords,
+                            onClaimQuest = { q ->
+                                sessionVm.claimQuest(q) { _, _ ->
+                                    celebrationPulse += 1
+                                    AudioFeedbackHelper.triggerCelebration(view, prefs.soundEnabled, prefs.reducedMotion)
+                                }
+                            },
+                            onMarkNotificationRead = { sessionVm.markNotificationRead(it) },
+                            onOpenQuickPractice = {
+                                val qs = mergedQuestions.filter { it.classId == activeProfile.classId }.ifEmpty { mergedQuestions }.take(6)
+                                pendingLearnDest = LearnDestination.PracticeSession(
+                                    StudyQuestStrings.t(lang, "Quick Practice", "কুইক প্র্যাকটিস"),
+                                    qs
+                                )
+                                navigateToTab(1)
+                            },
+                            onOpenMockExam = {
+                                navigateToTab(1)
+                            },
+                            onOpenRevision = {
+                                pendingLearnDest = LearnDestination.RevisionAndPlanner
+                                navigateToTab(1)
+                            },
+                            onOpenAiDoubtSolver = {
+                                aiDoubtPrefillPrompt = ""
+                                todayOverlay = TodayOverlayDestination.AiDoubtSolver
+                            },
+                            onOpenMessages = { navigateToTab(3) },
+                            subjectAnalytics = subjectAnalytics,
+                            dailyStudySeries = dailyStudySeries,
+                            dailyChallengeDoneToday = learnVm.isDailyChallengeDoneToday(activeProfile),
+                            onOpenSubjectCategory = { subj ->
+                                pendingLearnDest = LearnDestination.SubjectDetail(subj)
+                                navigateToTab(1)
+                            },
+                            onOpenFlashcardsVault = {
+                                pendingLearnDest = LearnDestination.FlashcardsAndVault
+                                navigateToTab(1)
+                            },
+                            onOpenPomodoro = {
+                                pendingLearnDest = LearnDestination.PomodoroFocus
+                                navigateToTab(1)
+                            },
+                            onOpenDailyChallenge = {
+                                pendingLearnDest = LearnDestination.DailyChallenge
+                                navigateToTab(1)
+                            },
+                            onOpenMasteryAnalytics = {
+                                pendingLearnDest = LearnDestination.MasteryAnalytics
+                                navigateToTab(1)
+                            },
+                            onOpenAssignmentsAndGoals = {
+                                pendingLearnDest = LearnDestination.AssignmentsAndGoals
+                                navigateToTab(1)
+                            },
+                            onOpenAiVideoStudio = {
+                                pendingLearnDest = LearnDestination.AiVideoStudio
+                                navigateToTab(1)
+                            },
+                            onOpenBadgesAndXp = {
+                                pendingLearnDest = LearnDestination.BadgesAndXp
+                                navigateToTab(1)
+                            },
+                            onBuyStreakFreeze = { sessionVm.purchaseStreakFreeze() },
+                            onRetakePromotionExam = { openPromotionExam() },
+                            subscription = subscription,
+                            onOpenAiLab = {
+                                pendingLearnDest = LearnDestination.AiLab
+                                navigateToTab(1)
+                            },
+                            onOpenPlanStore = { showPlanStoreOverlay = true },
+                            onOpenStudyProgress = { todayOverlay = TodayOverlayDestination.StudyProgress },
+                            onOpenStudyGroups = {
+                                pendingFriendsSubTab = 3
+                                navigateToTab(3)
+                            },
+                            onOpenLeaderboard = { todayOverlay = TodayOverlayDestination.Leaderboard }
+                        )
+                    }
 
                     1 -> LearnTabScreen(
                         uiLanguage = lang,
@@ -933,7 +1075,20 @@ private fun AuthenticatedReadyHost(
                         onToggleCommunityUpvote = { socialVm.toggleCommunityUpvote(it) },
                         onMarkCommentHelpful = { post, c -> socialVm.markCommentHelpful(post, c) },
                         onReportCommunityPost = { post, reason -> socialVm.reportCommunityPost(post, reason) },
-                        onDeleteOwnCommunityPost = { socialVm.deleteOwnCommunityPost(it) }
+                        onDeleteOwnCommunityPost = { socialVm.deleteOwnCommunityPost(it) },
+                        externalSubTab = pendingFriendsSubTab,
+                        onConsumeExternalSubTab = { pendingFriendsSubTab = null },
+                        activeGroupParticipants = activeGroupParticipants,
+                        onUpdateGroupStatus = { conv, status -> socialVm.updateGroupParticipantStatus(conv, activeProfile, status) },
+                        onUpdateGroupSharedProblem = { conv, title, prompt ->
+                            socialVm.updateGroupSharedProblem(conv, activeProfile.displayName, title, prompt)
+                        },
+                        onAskAiAboutProblem = { problem ->
+                            aiDoubtPrefillPrompt = problem
+                            navigateToTab(0)
+                            todayOverlay = TodayOverlayDestination.AiDoubtSolver
+                        },
+                        onCreateStudyGroupWithSubject = { name, uids, subj -> socialVm.createStudyGroup(name, uids, subj) }
                     )
 
                     4 -> ProfileTabScreen(
@@ -979,6 +1134,7 @@ private fun AuthenticatedReadyHost(
                         subscription = subscription,
                         billingConfigured = systemSettings.billingConfigured,
                         onUpdateThemeMode = { sessionVm.updateThemeMode(it) },
+                        onUpdateSurfaceStyle = { sessionVm.updateSurfaceStyle(it) },
                         onUpdateNotificationCategory = { c, e -> sessionVm.updateNotificationCategory(c, e) },
                         onToggleBadgeFavorite = { sessionVm.toggleBadgeFavorite(it) },
                         onToggleBadgePin = { sessionVm.toggleBadgePin(it) },
@@ -995,8 +1151,8 @@ private fun AuthenticatedReadyHost(
                             navigateToTab(1)
                         }
                     )
-                }
-                }
+                        }
+                    }
                 }
             }
         }
@@ -1010,6 +1166,8 @@ private fun AuthenticatedReadyHost(
                 language = lang,
                 reducedMotion = prefs.reducedMotion
             )
+        }
+            }
         }
     }
 
