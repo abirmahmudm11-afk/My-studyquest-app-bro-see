@@ -8,13 +8,19 @@ import com.example.core.AppLanguage
 import com.example.core.StudyActivityMonitor
 import com.example.core.unwrapFirestoreMessage
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.FormulaEntry
 import com.example.data.curriculum.TextbookCatalog
 import com.example.data.local.BookChapterEntity
 import com.example.data.local.BookPageNoteEntity
 import com.example.data.local.CachedBookEntity
 import com.example.data.local.CachedLessonEntity
+import com.example.data.local.DownloadPackEntity
+import com.example.data.local.ExamCountdownEntity
+import com.example.data.local.FormulaBookmarkEntity
 import com.example.data.local.LocalBookmarkEntity
 import com.example.data.local.LocalRevisionEntity
+import com.example.data.local.MistakeNoteEntity
+import com.example.data.local.StudyQuestDao
 import com.example.data.model.ExamTemplate
 import com.example.data.model.LearningRecordDoc
 import com.example.data.model.PublicProfile
@@ -28,6 +34,7 @@ import com.example.data.repository.AiDoubtSolverRepository
 import com.example.data.repository.AuthAndProfileRepository
 import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.GuestDataRepository
+import com.example.data.repository.OfflineDownloadsRepository
 import com.example.data.repository.SocialRepository
 import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.TextbookDownloadRepository
@@ -80,7 +87,9 @@ class LearnAndExamViewModel(
     private val academicRepo: AcademicProgressRepository,
     private val aiRepo: AiDoubtSolverRepository,
     private val textbookRepo: TextbookDownloadRepository? = null,
-    private val socialRepo: SocialRepository? = null
+    private val socialRepo: SocialRepository? = null,
+    private val dao: StudyQuestDao? = null,
+    private val downloadsRepo: OfflineDownloadsRepository? = null
 ) : ViewModel() {
 
     val learningRecords: StateFlow<List<LearningRecordDoc>> = academicRepo.observeLearningRecords(currentUserId)
@@ -136,6 +145,26 @@ class LearnAndExamViewModel(
 
     val pendingSyncCount: StateFlow<Int> = academicRepo.observePendingSyncCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), 0)
+
+    val downloadPacks: StateFlow<List<DownloadPackEntity>> = (downloadsRepo?.observeDownloadPacks()
+        ?: flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val unresolvedMistakes: StateFlow<List<MistakeNoteEntity>> = (dao?.observeUnresolvedMistakes()
+        ?: flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val examCountdowns: StateFlow<List<ExamCountdownEntity>> = (dao?.observeExamCountdowns()
+        ?: flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val formulaBookmarks: StateFlow<List<FormulaBookmarkEntity>> = (dao?.observeFormulaBookmarks()
+        ?: flowOf(emptyList()))
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
     val weakTopics: StateFlow<List<WeakTopicStat>> = learningRecords
         .map { academicRepo.computeWeakTopics(it) }
@@ -447,10 +476,27 @@ class LearnAndExamViewModel(
                         } else if (picked == q.correctOptionIndices.toSet()) {
                             correctCount++
                             earnedMarks += q.marks.toDouble()
+                            dao?.markMistakeResolved(q.id)
                         } else {
                             wrongCount++
                             academicRepo.addToRevisionQueue(q, markWrong = true)
                             academicRepo.toggleBookmark(q, isMistake = true)
+                            dao?.let { d ->
+                                val prev = d.getMistakeNote(q.id)
+                                d.upsertMistakeNote(
+                                    MistakeNoteEntity(
+                                        questionId = q.id,
+                                        subjectId = q.subjectId,
+                                        classId = q.classId,
+                                        promptEn = q.promptEn,
+                                        promptBn = q.promptBn,
+                                        wrongCount = (prev?.wrongCount ?: 0) + 1,
+                                        lastMissedAtMs = System.currentTimeMillis(),
+                                        resolved = false,
+                                        reflectionNote = prev?.reflectionNote.orEmpty()
+                                    )
+                                )
+                            }
                         }
                     }
                     QuestionType.CREATIVE_CQ -> {
@@ -479,9 +525,26 @@ class LearnAndExamViewModel(
                         ) {
                             correctCount++
                             earnedMarks += q.marks.toDouble()
+                            dao?.markMistakeResolved(q.id)
                         } else {
                             wrongCount++
                             academicRepo.addToRevisionQueue(q, markWrong = true)
+                            dao?.let { d ->
+                                val prev = d.getMistakeNote(q.id)
+                                d.upsertMistakeNote(
+                                    MistakeNoteEntity(
+                                        questionId = q.id,
+                                        subjectId = q.subjectId,
+                                        classId = q.classId,
+                                        promptEn = q.promptEn,
+                                        promptBn = q.promptBn,
+                                        wrongCount = (prev?.wrongCount ?: 0) + 1,
+                                        lastMissedAtMs = System.currentTimeMillis(),
+                                        resolved = false,
+                                        reflectionNote = prev?.reflectionNote.orEmpty()
+                                    )
+                                )
+                            }
                         }
                     }
                 }
@@ -560,7 +623,7 @@ class LearnAndExamViewModel(
             val res = academicRepo.recordPomodoroSession(currentUserId, subjectId, focusedMinutes, isOnline, bookId = bookId)
             res.onSuccess { xp ->
                 if (xp > 0) {
-                    _statusBanner.value = "Focus session saved! +$xp XP earned"
+                    _statusBanner.value = "Focus session saved! Badge & streak progress updated."
                     onXpEarned(xp)
                 }
             }
@@ -589,7 +652,7 @@ class LearnAndExamViewModel(
             )
             res.onSuccess { xp ->
                 if (xp > 0) {
-                    _statusBanner.value = "Flashcards completed! +$xp XP earned"
+                    _statusBanner.value = "Flashcards completed! Deck mastery saved."
                     onXpEarned(xp)
                 }
             }
@@ -660,7 +723,7 @@ class LearnAndExamViewModel(
             )
             val xpEarned = res.getOrNull() ?: 0
             if (xpEarned > 0) {
-                _statusBanner.value = "Daily Streak updated! +$xpEarned XP"
+                _statusBanner.value = "Daily Streak updated & verified!"
                 onXpEarned(xpEarned)
             }
             _lastAssessmentResult.value = AssessmentResultSummary(
@@ -858,6 +921,114 @@ class LearnAndExamViewModel(
         language = language,
         activeBookTitle = activeBookTitle
     )
+
+    fun seedDownloadCatalog(classId: String, curriculumVersion: String, academicGroup: String) {
+        viewModelScope.launch {
+            downloadsRepo?.seedCatalogIfNeeded(classId, curriculumVersion, academicGroup)
+        }
+    }
+
+    fun downloadPack(pack: DownloadPackEntity, isOnline: Boolean, language: AppLanguage) {
+        viewModelScope.launch {
+            val res = downloadsRepo?.downloadOrInstallPack(pack, isOnline, language)
+            res?.onSuccess {
+                _statusBanner.value = if (language == AppLanguage.BANGLA) {
+                    "${pack.titleBn} অফলাইনে সংরক্ষিত হয়েছে"
+                } else {
+                    "Installed offline: ${pack.titleEn}"
+                }
+            }?.onFailure { err ->
+                _statusBanner.value = err.localizedMessage ?: "Download failed"
+            }
+        }
+    }
+
+    fun downloadClassBundle(
+        classId: String,
+        curriculumVersion: String,
+        academicGroup: String,
+        isOnline: Boolean,
+        language: AppLanguage
+    ) {
+        viewModelScope.launch {
+            val installed = downloadsRepo?.downloadClassBundle(
+                classId = classId,
+                curriculumVersion = curriculumVersion,
+                academicGroup = academicGroup,
+                isOnline = isOnline,
+                language = language
+            ) ?: 0
+            _statusBanner.value = if (language == AppLanguage.BANGLA) {
+                "${installed}টি অফলাইন প্যাক ইনস্টল সম্পন্ন হয়েছে"
+            } else {
+                "Installed $installed offline packs for your class"
+            }
+        }
+    }
+
+    fun removeDownloadedPack(packId: String) {
+        viewModelScope.launch {
+            downloadsRepo?.removeDownloadedPack(packId)
+            _statusBanner.value = "Removed downloaded offline pack"
+        }
+    }
+
+    fun toggleFormulaBookmark(entry: FormulaEntry) {
+        viewModelScope.launch {
+            val d = dao ?: return@launch
+            val existing = d.getFormulaBookmark(entry.id)
+            if (existing != null) {
+                d.deleteFormulaBookmark(entry.id)
+            } else {
+                d.upsertFormulaBookmark(
+                    FormulaBookmarkEntity(
+                        formulaId = entry.id,
+                        subjectId = entry.subjectId,
+                        titleEn = entry.titleEn
+                    )
+                )
+            }
+        }
+    }
+
+    fun resolveMistake(questionId: String) {
+        viewModelScope.launch {
+            dao?.markMistakeResolved(questionId)
+            _statusBanner.value = "Marked mistake as mastered"
+        }
+    }
+
+    fun addExamCountdown(title: String, subjectId: String, daysFromNow: Int, dailyGoal: Int) {
+        val cleanTitle = title.trim()
+        if (cleanTitle.isBlank()) return
+        viewModelScope.launch {
+            val d = dao ?: return@launch
+            val targetMs = System.currentTimeMillis() + daysFromNow.coerceIn(1, 365).toLong() * 86_400_000L
+            d.upsertExamCountdown(
+                ExamCountdownEntity(
+                    id = "exam_${System.currentTimeMillis()}",
+                    title = cleanTitle,
+                    subjectId = subjectId,
+                    targetDateEpochMs = targetMs,
+                    dailyTopicGoal = dailyGoal.coerceIn(1, 20),
+                    completedTopics = 0
+                )
+            )
+            _statusBanner.value = "Exam target added"
+        }
+    }
+
+    fun incrementExamTopic(examId: String) {
+        viewModelScope.launch {
+            dao?.incrementExamCompletedTopics(examId)
+        }
+    }
+
+    fun deleteExamCountdown(examId: String) {
+        viewModelScope.launch {
+            dao?.deleteExamCountdown(examId)
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()

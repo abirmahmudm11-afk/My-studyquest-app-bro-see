@@ -188,7 +188,7 @@ fun CompactWeeklyStreakStrip(
                         .minimumInteractiveComponentSize()
                         .testTag("buy_streak_freeze_btn")
                 ) {
-                    Text(StudyQuestStrings.t(language, "Buy Freeze (40 Coins)", "ফ্রিজ কিনুন (৪০ কয়েন)"))
+                    Text(StudyQuestStrings.t(language, "Add Streak Shield", "স্ট্রিক শিল্ড যোগ করুন"))
                 }
             }
         }
@@ -234,9 +234,9 @@ fun StudyTimeAndXpBarChart(
             return@StudyQuestCard
         }
 
-        val maxVal = dailySeries.maxOf { maxOf(it.xpEarned.toInt(), it.studyMinutes) }.coerceAtLeast(20)
-        val barPrimary = MaterialTheme.colorScheme.primary
-        val barSelected = QuestGold
+        val maxVal = dailySeries.maxOf { maxOf(it.studyMinutes, (it.lessonsCompleted + it.examsCompleted) * 15) }.coerceAtLeast(20)
+        val barPrimary = MaterialTheme.colorScheme.outline
+        val barSelected = MaterialTheme.colorScheme.primary
         val gridLineColor = MaterialTheme.colorScheme.outlineVariant
 
         Spacer(Modifier.height(10.dp))
@@ -263,7 +263,7 @@ fun StudyTimeAndXpBarChart(
             val slotW = w / count
             val barW = (slotW * 0.44f).coerceAtLeast(12.dp.toPx())
             dailySeries.forEachIndexed { idx, item ->
-                val value = maxOf(item.xpEarned.toInt(), item.studyMinutes)
+                val value = maxOf(item.studyMinutes, (item.lessonsCompleted + item.examsCompleted) * 15)
                 val barH = ((value.toFloat() / maxVal.toFloat()) * (h * 0.88f)).coerceAtLeast(6.dp.toPx())
                 val left = idx * slotW + (slotW - barW) / 2f
                 drawRoundRect(
@@ -298,8 +298,8 @@ fun StudyTimeAndXpBarChart(
                 Text(
                     text = StudyQuestStrings.t(
                         language,
-                        "${inspected.dayKey}: ${inspected.xpEarned} XP • ${inspected.studyMinutes} focus min • ${inspected.sessionsCount} activities",
-                        "${inspected.dayKey}: ${StudyQuestStrings.formatDigits(inspected.xpEarned, language)} XP • ${StudyQuestStrings.formatDigits(inspected.studyMinutes, language)} মিনিট • ${StudyQuestStrings.formatDigits(inspected.sessionsCount, language)} সেশন"
+                        "${inspected.dayKey}: ${inspected.studyMinutes} focus min • ${inspected.lessonsCompleted} lessons • ${inspected.sessionsCount} activities",
+                        "${inspected.dayKey}: ${StudyQuestStrings.formatDigits(inspected.studyMinutes, language)} মিনিট • ${StudyQuestStrings.formatDigits(inspected.lessonsCompleted, language)} পাঠ • ${StudyQuestStrings.formatDigits(inspected.sessionsCount, language)} সেশন"
                     ),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
@@ -332,23 +332,28 @@ fun SubjectXpDistributionChart(
             return@StudyQuestCard
         }
 
-        val maxXp = subjectAnalytics.maxOf { it.totalXp }.coerceAtLeast(1L)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             subjectAnalytics.take(6).forEach { summary ->
                 val subj = BangladeshCurriculumCatalog.subjects.find { it.id == summary.subjectId }
                 val label = StudyQuestStrings.t(language, subj?.titleEn ?: summary.subjectId, subj?.titleBn ?: summary.subjectId)
-                val barColor = subj?.accentHex?.let { Color(it) } ?: CobaltPrimary
+                val barColor = MaterialTheme.colorScheme.primary
+                val accPct = (summary.averageAccuracy * 100).toInt().coerceIn(0, 100)
+                val totalSessions = summary.lessonsCompleted + summary.practiceSessions + summary.examSessions
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         Text(
-                            "${StudyQuestStrings.formatDigits(summary.totalXp, language)} XP • ${(summary.averageAccuracy * 100).toInt()}%",
+                            StudyQuestStrings.t(
+                                language,
+                                "$totalSessions sessions • $accPct%",
+                                "${StudyQuestStrings.formatDigits(totalSessions, language)} সেশন • ${StudyQuestStrings.formatDigits(accPct, language)}%"
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     LinearProgressIndicator(
-                        progress = { (summary.totalXp.toFloat() / maxXp.toFloat()).coerceIn(0.05f, 1f) },
+                        progress = { (summary.averageAccuracy.toFloat()).coerceIn(0.08f, 1f) },
                         color = barColor,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         modifier = Modifier
@@ -531,7 +536,7 @@ fun DailyLessonsBarChart(
                     text = item.shortLabel,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (idx == selectedIdx) FontWeight.Bold else FontWeight.Normal,
-                    color = if (idx == selectedIdx) ElectricIndigo else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (idx == selectedIdx) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

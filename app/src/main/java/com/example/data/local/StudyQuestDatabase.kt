@@ -22,9 +22,13 @@ import androidx.room.RoomDatabase
         LocalStudySessionEntity::class,
         LocalStudyGoalEntity::class,
         LocalBadgeProgressEntity::class,
-        LocalXpLedgerEntity::class
+        LocalXpLedgerEntity::class,
+        DownloadPackEntity::class,
+        MistakeNoteEntity::class,
+        ExamCountdownEntity::class,
+        FormulaBookmarkEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class StudyQuestDatabase : RoomDatabase() {

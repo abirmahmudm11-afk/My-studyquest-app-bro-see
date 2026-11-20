@@ -260,3 +260,55 @@ data class LocalXpLedgerEntity(
     val description: String,
     val createdAtMs: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "download_packs")
+data class DownloadPackEntity(
+    @PrimaryKey val packId: String,
+    val category: String, // "textbook", "audio_briefing", "focus_soundscape", "stem_lab_pack"
+    val classId: String,
+    val subjectId: String,
+    val titleEn: String,
+    val titleBn: String,
+    val subtitleEn: String,
+    val subtitleBn: String,
+    val sizeMb: Double,
+    val assetFileName: String,
+    val remoteUrl: String? = null,
+    val status: String = "not_downloaded", // "not_downloaded", "downloading", "installed", "failed"
+    val progressPct: Int = 0,
+    val localPath: String? = null,
+    val installedAtMs: Long = 0L
+)
+
+@Entity(tableName = "mistake_notes")
+data class MistakeNoteEntity(
+    @PrimaryKey val questionId: String,
+    val subjectId: String,
+    val classId: String,
+    val promptEn: String,
+    val promptBn: String,
+    val wrongCount: Int = 1,
+    val lastMissedAtMs: Long = System.currentTimeMillis(),
+    val resolved: Boolean = false,
+    val reflectionNote: String = ""
+)
+
+@Entity(tableName = "exam_countdowns")
+data class ExamCountdownEntity(
+    @PrimaryKey val id: String,
+    val title: String,
+    val subjectId: String,
+    val targetDateEpochMs: Long,
+    val dailyTopicGoal: Int = 2,
+    val completedTopics: Int = 0,
+    val createdAtMs: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "formula_bookmarks")
+data class FormulaBookmarkEntity(
+    @PrimaryKey val formulaId: String,
+    val subjectId: String,
+    val titleEn: String,
+    val savedAtMs: Long = System.currentTimeMillis()
+)
+

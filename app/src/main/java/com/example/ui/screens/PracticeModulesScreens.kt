@@ -3,7 +3,10 @@ package com.example.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,9 +23,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Flip
 import androidx.compose.material.icons.filled.Functions
@@ -34,6 +40,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -57,6 +64,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -70,10 +78,13 @@ import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.model.QuestionItem
 import com.example.data.model.QuestionType
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.GeometricStudyArtwork
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.LocalStudyQuestColors
+import com.example.ui.theme.LocalStudyQuestSurfaceStyle
 import com.example.ui.theme.TealSecondary
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -188,17 +199,18 @@ fun FlashcardsAndVaultScreen(
                     }
                 } else if (currentIndex >= flashcards.size) {
                     item {
-                        StudyQuestCard(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)) {
+                        StudyQuestCard {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = TealSecondary, modifier = Modifier.size(48.dp))
+                                GeometricStudyArtwork(modifier = Modifier.size(100.dp))
                                 Text(
                                     text = StudyQuestStrings.t(uiLanguage, "Deck Complete!", "ফ্ল্যাশকার্ড ডেক সম্পন্ন!"),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = StudyQuestStrings.t(
@@ -206,7 +218,8 @@ fun FlashcardsAndVaultScreen(
                                         "Mastered $masteredCount of $reviewedCount reviewed cards",
                                         "${StudyQuestStrings.formatDigits(reviewedCount, uiLanguage)}টি কার্ডের মধ্যে ${StudyQuestStrings.formatDigits(masteredCount, uiLanguage)}টি আয়ত্ত হয়েছে"
                                     ),
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Button(
                                     onClick = {
@@ -217,14 +230,19 @@ fun FlashcardsAndVaultScreen(
                                         }
                                     },
                                     enabled = !deckClaimed,
+                                    shape = RoundedCornerShape(999.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .minimumInteractiveComponentSize()
                                         .testTag("claim_flashcard_xp_btn")
                                 ) {
                                     Text(
-                                        if (deckClaimed) StudyQuestStrings.t(uiLanguage, "XP Claimed", "XP সংগৃহীত")
-                                        else StudyQuestStrings.t(uiLanguage, "Save Mastery & Claim XP", "XP সংগ্রহ করুন")
+                                        if (deckClaimed) StudyQuestStrings.t(uiLanguage, "Mastery Saved", "দক্ষতা সংরক্ষিত")
+                                        else StudyQuestStrings.t(uiLanguage, "Save Deck Mastery", "দক্ষতা সংরক্ষণ করুন")
                                     )
                                 }
                                 OutlinedButton(
@@ -234,6 +252,7 @@ fun FlashcardsAndVaultScreen(
                                         reviewedCount = 0
                                         deckClaimed = false
                                     },
+                                    shape = RoundedCornerShape(999.dp),
                                     modifier = Modifier.fillMaxWidth().minimumInteractiveComponentSize()
                                 ) {
                                     Icon(Icons.Filled.Replay, contentDescription = null)
@@ -279,11 +298,19 @@ fun FlashcardsAndVaultScreen(
 
                     item {
                         val showingBack = rotation > 90f
-                        StudyQuestCard(
+                        val cardBg = if (showingBack) {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        }
+                        Surface(
                             onClick = { isFlipped = !isFlipped },
-                            containerColor = if (showingBack) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
-                            else MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(20.dp),
+                            color = cardBg,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            shadowElevation = 0.dp,
                             modifier = Modifier
+                                .fillMaxWidth()
                                 .graphicsLayer {
                                     rotationY = rotation
                                     cameraDistance = 12f * density
@@ -293,26 +320,26 @@ fun FlashcardsAndVaultScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 22.dp, horizontal = 8.dp)
+                                    .padding(vertical = 26.dp, horizontal = 20.dp)
                                     .graphicsLayer {
                                         if (showingBack) rotationY = 180f
                                     },
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(999.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
+                                    color = MaterialTheme.colorScheme.surfaceVariant
                                 ) {
                                     Text(
                                         text = if (showingBack) {
                                             StudyQuestStrings.t(uiLanguage, "ANSWER & FORMULA", "উত্তর ও সূত্র")
                                         } else {
-                                            "${card.subjectId.uppercase(Locale.ROOT)} • ${StudyQuestStrings.t(uiLanguage, "TAP TO FLIP", "উত্তর দেখতে ট্যাপ করো")}"
+                                            card.subjectId.uppercase(Locale.ROOT)
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                                     )
                                 }
@@ -322,52 +349,159 @@ fun FlashcardsAndVaultScreen(
                                     } else {
                                         StudyQuestStrings.t(questionLanguage, card.promptEn, card.promptBn)
                                     },
-                                    style = MaterialTheme.typography.titleMedium,
+                                    style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Surface(
+                                    onClick = { isFlipped = !isFlipped },
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .testTag("flip_flashcard_btn")
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Filled.Flip, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Text(
+                                            text = if (showingBack) {
+                                                StudyQuestStrings.t(uiLanguage, "Show question", "প্রশ্ন দেখো")
+                                            } else {
+                                                StudyQuestStrings.t(uiLanguage, "Show answer", "উত্তর দেখো")
+                                            },
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Photo 2 pagination indicator dots right below flashcard
+                    item {
+                        val dotTotal = flashcards.size.coerceAtMost(8)
+                        val activeDot = if (flashcards.size <= 8) currentIndex else ((currentIndex * dotTotal) / flashcards.size.coerceAtLeast(1)).coerceIn(0, dotTotal - 1)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            repeat(dotTotal) { idx ->
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 3.dp)
+                                        .size(if (idx == activeDot) 8.dp else 5.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (idx == activeDot) MaterialTheme.colorScheme.onSurface
+                                            else MaterialTheme.colorScheme.outline
+                                        )
                                 )
                             }
                         }
                     }
 
+                    // Photo 2 vibrant yellow/chartreuse stacked learning action bars
                     item {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
-                                onClick = { isFlipped = !isFlipped },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .minimumInteractiveComponentSize()
-                                    .testTag("flip_flashcard_btn")
-                            ) {
-                                Icon(Icons.Filled.Flip, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text(StudyQuestStrings.t(uiLanguage, "Flip", "উল্টাও"))
-                            }
-                            FilledTonalButton(
-                                onClick = {
-                                    onAddRevision(card)
-                                    reviewedCount += 1
-                                    currentIndex += 1
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .minimumInteractiveComponentSize()
-                                    .testTag("flashcard_still_learning_btn")
-                            ) {
-                                Text(StudyQuestStrings.t(uiLanguage, "Still Learning", "আবার পড়ব"))
-                            }
-                            Button(
+                        val semantic = LocalStudyQuestColors.current
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                text = StudyQuestStrings.t(uiLanguage, "Learning", "শেখার ধাপ"),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Surface(
                                 onClick = {
                                     masteredCount += 1
                                     reviewedCount += 1
                                     currentIndex += 1
                                 },
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .fillMaxWidth()
                                     .minimumInteractiveComponentSize()
                                     .testTag("flashcard_got_it_btn")
                             ) {
-                                Text(StudyQuestStrings.t(uiLanguage, "Got It", "পেরেছি"))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+                                        Column {
+                                            Text(
+                                                text = StudyQuestStrings.t(uiLanguage, "Got It", "পেরেছি"),
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                            Text(
+                                                text = StudyQuestStrings.t(uiLanguage, "Mark card as mastered and continue", "আয়ত্ত হিসেবে চিহ্নিত করে পরের কার্ডে যাও"),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
+                                            )
+                                        }
+                                    }
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                            Surface(
+                                onClick = {
+                                    onAddRevision(card)
+                                    reviewedCount += 1
+                                    currentIndex += 1
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("flashcard_still_learning_btn")
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Filled.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                                        Column {
+                                            Text(
+                                                text = StudyQuestStrings.t(uiLanguage, "Still Learning", "আবার পড়ব"),
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = semantic.onPastelPeach
+                                            )
+                                            Text(
+                                                text = StudyQuestStrings.t(uiLanguage, "Queue card for spaced repetition", "স্পেসড রিভিশনের জন্য সংরক্ষণ করো"),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = semantic.onPastelPeach.copy(alpha = 0.78f)
+                                            )
+                                        }
+                                    }
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = semantic.onPastelPeach, modifier = Modifier.size(18.dp))
+                                }
                             }
                         }
                     }
@@ -495,7 +629,7 @@ fun PomodoroFocusScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = StudyQuestStrings.t(uiLanguage, "Stay focused & earn +2 XP per minute", "মনোযোগ দিয়ে পড়ো ও প্রতি মিনিটে +২ XP পাও"),
+                        text = StudyQuestStrings.t(uiLanguage, "Build focus streaks & earn Study Badges", "মনোযোগ দিয়ে পড়ো ও স্টাডি ব্যাজ অর্জন করো"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -647,16 +781,16 @@ fun PomodoroFocusScreen(
                         Spacer(Modifier.width(6.dp))
                         Text(
                             when {
-                                sessionClaimed -> StudyQuestStrings.t(uiLanguage, "Session XP Saved!", "XP সংরক্ষিত হয়েছে")
+                                sessionClaimed -> StudyQuestStrings.t(uiLanguage, "Focus Session Saved!", "ফোকাস সংরক্ষিত হয়েছে")
                                 canClaim -> StudyQuestStrings.t(
                                     uiLanguage,
-                                    "Complete & Claim +${(elapsedMinutes.coerceAtLeast(1) * 2).coerceIn(10, 80)} XP",
-                                    "সম্পন্ন ও XP সংগ্রহ করুন"
+                                    "Complete & Save Session (${StudyQuestStrings.formatDigits(elapsedMinutes.coerceAtLeast(1), uiLanguage)}m)",
+                                    "সম্পন্ন ও সংরক্ষণ করুন"
                                 )
                                 else -> StudyQuestStrings.t(
                                     uiLanguage,
-                                    "Focus at least 1 minute to claim XP",
-                                    "XP পেতে অন্তত ১ মিনিট ফোকাস করো"
+                                    "Focus at least 1 minute to save",
+                                    "সংরক্ষণ করতে অন্তত ১ মিনিট ফোকাস করো"
                                 )
                             }
                         )

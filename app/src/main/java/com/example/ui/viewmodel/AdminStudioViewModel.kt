@@ -165,8 +165,8 @@ class AdminStudioViewModel(
     fun saveXpRules(rules: XpRuleConfig) {
         viewModelScope.launch {
             val res = adminRepo.saveXpRuleConfig(currentUserId, systemSettings.value, rules)
-            res.onSuccess { _message.value = "XP rules & anti-farming caps updated" }
-            res.onFailure { _message.value = unwrapFirestoreMessage(it, "XP rules save failed") }
+            res.onSuccess { _message.value = "Scoring rules & anti-farming caps updated" }
+            res.onFailure { _message.value = unwrapFirestoreMessage(it, "Rules save failed") }
         }
     }
 

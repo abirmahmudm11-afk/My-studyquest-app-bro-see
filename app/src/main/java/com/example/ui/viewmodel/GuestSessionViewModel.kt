@@ -334,7 +334,7 @@ class GuestSessionViewModel(
                 _celebrationPulse.value += 1
                 "Unlocked!"
             } else {
-                "Not enough Coins yet — practice or claim quests!"
+                "Complete more study milestones & streaks to unlock this emblem!"
             }
         }
     }
@@ -436,7 +436,7 @@ class GuestSessionViewModel(
         viewModelScope.launch {
             val res = gamificationEngine?.claimGoalReward(GuestDataRepository.GUEST_UID, goal)
                 ?: Result.failure(IllegalStateException("Unavailable"))
-            res.onSuccess { xp -> if (xp > 0) _bannerMessage.value = "+$xp XP claimed!" }
+            res.onSuccess { xp -> if (xp > 0) _bannerMessage.value = "Study goal completed & verified!" }
         }
     }
 

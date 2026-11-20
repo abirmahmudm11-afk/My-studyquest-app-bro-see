@@ -424,14 +424,14 @@ class GamificationEngine(
                 )
             )
 
-            // Emit level-up celebration + notification
+            // Emit rank milestone celebration + notification
             if (newLevel > oldLevel) {
                 GamificationEventBus.emit(CelebrationEvent.LevelUp(newLevel, newLevelTitle, newXp))
                 notifications?.dispatch(
                     userId = userId,
                     category = NotificationCategory.XP,
-                    title = "Level Up! Level $newLevel ($newLevelTitle)",
-                    body = "You reached $newXp total XP through genuine study!",
+                    title = "Rank Milestone: $newLevelTitle!",
+                    body = "You reached a new scholar milestone through verified study!",
                     actionRoute = "profile",
                     idempotencyKey = "lvl_${userId}_$newLevel"
                 )
@@ -449,7 +449,7 @@ class GamificationEngine(
                     body = if (streakTransition.usedFreeze) {
                         "A Streak Freeze saved your streak! Keep studying daily."
                     } else {
-                        "You kept your flame alive today (+$streakBonusXp bonus XP)."
+                        "You kept your study flame alive today! Consistency milestone recorded."
                     },
                     actionRoute = "today",
                     idempotencyKey = "streak_${userId}_$todayKey"
@@ -891,7 +891,7 @@ class GamificationEngine(
                 userId = userId,
                 category = NotificationCategory.ASSIGNMENT,
                 title = "Assignment Completed!",
-                body = "${assignment.titleEn} (+${assignment.xpReward} XP)",
+                body = "${assignment.titleEn} (Verified & Saved)",
                 actionRoute = "assignments",
                 idempotencyKey = "assign_${assignment.id}"
             )
@@ -1139,7 +1139,7 @@ class GamificationEngine(
                             userId = userId,
                             category = NotificationCategory.BADGE,
                             title = "Badge Unlocked: ${def.titleEn}!",
-                            body = "${def.descriptionEn} (+${def.xpBonus} XP bonus)",
+                            body = "${def.descriptionEn} (${def.rarity.labelEn} Tier)",
                             actionRoute = "badges",
                             idempotencyKey = "badge_unlock_${userId}_${def.id}"
                         )

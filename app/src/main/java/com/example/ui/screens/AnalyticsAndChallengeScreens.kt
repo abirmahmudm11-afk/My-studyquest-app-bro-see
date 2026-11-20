@@ -122,9 +122,9 @@ fun DailyChallengeScreen(
                 subtitle = StudyQuestStrings.t(
                     uiLanguage,
                     if (alreadyDoneToday) "Completed today! Review answers below and come back tomorrow."
-                    else "Answer today's 5 board-style questions to extend your streak & earn bonus XP.",
+                    else "Answer today's 5 board-style questions to extend your streak & unlock Challenge Badges.",
                     if (alreadyDoneToday) "আজকের চ্যালেঞ্জ সম্পন্ন হয়েছে! নিচে উত্তরগুলো দেখে নিতে পারো।"
-                    else "স্ট্রিক বাড়াতে ও বোনাস XP পেতে আজকের ৫টি প্রশ্নের উত্তর দাও।"
+                    else "স্ট্রিক বাড়াতে ও চ্যালেঞ্জ ব্যাজ পেতে আজকের ৫টি প্রশ্নের উত্তর দাও।"
                 ),
                 reducedMotion = reducedMotion,
                 trailingSlot = {
@@ -147,8 +147,8 @@ fun DailyChallengeScreen(
                             Text(
                                 text = StudyQuestStrings.t(
                                     uiLanguage,
-                                    "Score: ${assessmentResult.correctCount}/${questions.size} • +${assessmentResult.xpEarned} XP",
-                                    "স্কোর: ${StudyQuestStrings.formatDigits(assessmentResult.correctCount, uiLanguage)}/${StudyQuestStrings.formatDigits(questions.size, uiLanguage)} • +${StudyQuestStrings.formatDigits(assessmentResult.xpEarned, uiLanguage)} XP"
+                                    "Score: ${assessmentResult.correctCount}/${questions.size} • Verified Streak",
+                                    "স্কোর: ${StudyQuestStrings.formatDigits(assessmentResult.correctCount, uiLanguage)}/${StudyQuestStrings.formatDigits(questions.size, uiLanguage)} • স্ট্রিক আপডেট হয়েছে"
                                 ),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
@@ -260,7 +260,11 @@ fun MasteryAnalyticsScreen(
         item {
             StudyQuestGradientHeroBanner(
                 eyebrow = StudyQuestStrings.t(uiLanguage, "PROGRESS OVERVIEW", "অগ্রগতি বিশ্লেষণ"),
-                title = "${StudyQuestStrings.formatDigits(profile.totalXp, uiLanguage)} XP • Lv.${StudyQuestStrings.formatDigits(profile.overallLevel, uiLanguage)}",
+                title = StudyQuestStrings.t(
+                    uiLanguage,
+                    "${profile.streakCount}-Day Streak • ${profile.rankTier}",
+                    "${StudyQuestStrings.formatDigits(profile.streakCount, uiLanguage)} দিনের স্ট্রিক • ${StudyQuestStrings.rankTierLabel(profile.rankTier, uiLanguage)}"
+                ),
                 subtitle = StudyQuestStrings.t(
                     uiLanguage,
                     "${subjectAnalytics.size} active subjects • ${profile.streakCount}-day streak",
@@ -386,7 +390,11 @@ fun MasteryAnalyticsScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Lv.${item.subjectLevel} • ${item.totalXp} XP",
+                            text = StudyQuestStrings.t(
+                                uiLanguage,
+                                "${(item.averageAccuracy * 100).toInt()}% • ${item.lessonsCompleted + item.practiceSessions + item.examSessions} sessions",
+                                "${StudyQuestStrings.formatDigits((item.averageAccuracy * 100).toInt(), uiLanguage)}% • ${StudyQuestStrings.formatDigits(item.lessonsCompleted + item.practiceSessions + item.examSessions, uiLanguage)} সেশন"
+                            ),
                             color = CobaltPrimary,
                             fontWeight = FontWeight.Bold
                         )

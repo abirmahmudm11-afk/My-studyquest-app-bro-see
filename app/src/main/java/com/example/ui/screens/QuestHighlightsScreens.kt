@@ -87,16 +87,9 @@ import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
 import com.example.ui.components.StudyTimeAndXpBarChart
 import com.example.ui.components.SubjectXpDistributionChart
-import com.example.ui.theme.AmberGold
-import com.example.ui.theme.BerryViolet
 import com.example.ui.theme.BronzeAccent
-import com.example.ui.theme.ElectricIndigo
 import com.example.ui.theme.LocalStudyQuestColors
-import com.example.ui.theme.RoseAlert
 import com.example.ui.theme.SilverAccent
-import com.example.ui.theme.SkyCyan
-import com.example.ui.theme.SunsetCoral
-import com.example.ui.theme.VividEmerald
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -178,8 +171,8 @@ fun StudyProgressDashboardScreen(
                     title = "${StudyQuestStrings.formatDigits(totalLessons, language)} ${StudyQuestStrings.t(language, "Lessons", "পাঠ")} • ${StudyQuestStrings.formatDigits(totalExams, language)} ${StudyQuestStrings.t(language, "Exams", "পরীক্ষা")}",
                     subtitle = StudyQuestStrings.t(
                         language,
-                        "Streak: ${profile.streakCount} days • Total XP: ${profile.totalXp}",
-                        "স্ট্রিক: ${StudyQuestStrings.formatDigits(profile.streakCount, language)} দিন • মোট XP: ${StudyQuestStrings.formatDigits(profile.totalXp, language)}"
+                        "${profile.streakCount}-day streak • ${profile.rankTier} Tier",
+                        "${StudyQuestStrings.formatDigits(profile.streakCount, language)} দিনের স্ট্রিক • ${StudyQuestStrings.rankTierLabel(profile.rankTier, language)}"
                     ),
                     reducedMotion = reducedMotion,
                     trailingSlot = {
@@ -259,7 +252,7 @@ fun StudyProgressDashboardScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = RoseAlert)
+                            Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                             Column {
                                 Text(
                                     text = StudyQuestStrings.t(language, wt.topicLabelEn, wt.topicLabelBn),
@@ -315,7 +308,7 @@ fun LeaderboardScreen(
 
     fun scoreUnitLabel(): String = when (selectedCategory) {
         LeaderboardCategory.STUDY_TIME -> StudyQuestStrings.t(language, "min", "মি.")
-        LeaderboardCategory.XP -> "XP"
+        LeaderboardCategory.XP -> StudyQuestStrings.t(language, "pts", "পয়েন্ট")
         LeaderboardCategory.EXAM -> StudyQuestStrings.t(language, "pts", "নম্বর")
         LeaderboardCategory.ASSIGNMENT -> StudyQuestStrings.t(language, "tasks", "টাস্ক")
         LeaderboardCategory.CHALLENGE -> "pts"
@@ -427,14 +420,15 @@ fun LeaderboardScreen(
                         ) {
                             topThree.forEachIndexed { idx, entry ->
                                 val medalColor = when (idx) {
-                                    0 -> AmberGold
+                                    0 -> Color(0xFFF8FAFC)
                                     1 -> SilverAccent
                                     else -> BronzeAccent
                                 }
+                                val medalTextColor = if (idx == 0) Color(0xFF0F172A) else Color.White
                                 Surface(
                                     shape = RoundedCornerShape(16.dp),
-                                    color = Color.White.copy(alpha = 0.16f),
-                                    border = BorderStroke(1.dp, medalColor.copy(alpha = 0.7f)),
+                                    color = Color.White.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, medalColor.copy(alpha = 0.55f)),
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Column(
@@ -444,7 +438,7 @@ fun LeaderboardScreen(
                                     ) {
                                         Surface(shape = CircleShape, color = medalColor, modifier = Modifier.size(24.dp)) {
                                             Box(contentAlignment = Alignment.Center) {
-                                                Text("#${idx + 1}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                                                Text("#${idx + 1}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = medalTextColor)
                                             }
                                         }
                                         AvatarBadgeView(
@@ -541,10 +535,10 @@ fun LeaderboardScreen(
             itemsIndexed(rankedEntries, key = { idx, item -> "${idx}_${item.userId}" }) { idx, entry ->
                 val isMe = entry.userId == myProfile.userId
                 val rankColor = when (idx) {
-                    0 -> AmberGold
+                    0 -> MaterialTheme.colorScheme.primary
                     1 -> SilverAccent
                     2 -> BronzeAccent
-                    else -> ElectricIndigo
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
                 StudyQuestCard(
                     containerColor = if (isMe) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f) else MaterialTheme.colorScheme.surface,
@@ -588,7 +582,7 @@ fun LeaderboardScreen(
                                     Text(
                                         text = StudyQuestStrings.t(language, "(You)", "(তুমি)"),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = ElectricIndigo,
+                                        color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -607,7 +601,7 @@ fun LeaderboardScreen(
                                 text = "${metricScore(entry)}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = ElectricIndigo
+                                color = MaterialTheme.colorScheme.primary
                             )
                             Text(
                                 text = scoreUnitLabel(),
@@ -638,7 +632,8 @@ fun AiDoubtSolverScreen(
     reducedMotion: Boolean,
     initialQuestionPrompt: String = "",
     onAskGeminiDoubt: (questionPrompt: String, studentQuestion: String, subjectName: String) -> Flow<String>,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    isOnline: Boolean = true
 ) {
     BackHandler(onBack = onBack)
     val scope = rememberCoroutineScope()
@@ -719,16 +714,36 @@ fun AiDoubtSolverScreen(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = StudyQuestStrings.t(language, "AI Doubt Solver", "এআই ডাউট সলভার"),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        text = StudyQuestStrings.t(language, "Powered by Firebase AI Logic Gemini", "Firebase AI Logic Gemini দ্বারা চালিত"),
+                        text = if (isOnline) {
+                            StudyQuestStrings.t(language, "Cloud Gemini Live + Offline Atlas", "ক্লাউড জেমিনি লাইভ + অফলাইন ভল্ট")
+                        } else {
+                            StudyQuestStrings.t(language, "Offline Knowledge Atlas (6,000 Guides)", "অফলাইন নলেজ অ্যাটলাস (৬,০০০ গাইড)")
+                        },
                         style = MaterialTheme.typography.labelMedium,
-                        color = ElectricIndigo
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.testTag("ai_mode_badge")
+                ) {
+                    Text(
+                        text = if (isOnline) {
+                            StudyQuestStrings.t(language, "Gemini Live", "জেমিনি লাইভ")
+                        } else {
+                            StudyQuestStrings.t(language, "Offline Atlas", "অফলাইন অ্যাটলাস")
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
                 }
             }
@@ -831,12 +846,12 @@ fun AiDoubtSolverScreen(
             item {
                 StudyQuestCard(modifier = Modifier.testTag("ai_doubt_streaming_card")) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = BerryViolet)
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Text(
                             text = StudyQuestStrings.t(language, "Gemini Explanation", "জেমিনির ব্যাখ্যা"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = ElectricIndigo
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                     Spacer(Modifier.height(8.dp))
@@ -853,7 +868,7 @@ fun AiDoubtSolverScreen(
                 Text(
                     text = item.subjectLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = ElectricIndigo,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(4.dp))

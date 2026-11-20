@@ -240,13 +240,9 @@ fun QuestNavigationScaffold(
                                                 )
                                             },
                                             colors = NavigationBarItemDefaults.colors(
-                                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                                indicatorColor = if (visualConfig.isDark) {
-                                                    MaterialTheme.colorScheme.primaryContainer
-                                                } else {
-                                                    SoftPowderBlue
-                                                },
+                                                selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                                indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
                                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                                             ),
@@ -408,9 +404,8 @@ private fun QuestAppHeader(
     onProfileClick: () -> Unit,
     onOpenQuestMap: () -> Unit
 ) {
-    val visualConfig = LocalStudyQuestSurfaceStyle.current
     Surface(
-        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.background),
         tonalElevation = 0.dp,
         modifier = Modifier
             .fillMaxWidth()
@@ -421,70 +416,36 @@ private fun QuestAppHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                Text(
+                    text = activeDest.label,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
-                ) {
-                    StudyQuestBrandMark(
-                        size = 32.dp,
-                        ringColor = MaterialTheme.colorScheme.primary
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "StudyQuest",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = activeDest.label,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Surface(
+                    IconButton(
                         onClick = onOpenQuestMap,
-                        shape = RoundedCornerShape(999.dp),
-                        color = if (visualConfig.isDark) MaterialTheme.colorScheme.surfaceVariant else SoftPowderBlue,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)),
                         modifier = Modifier
                             .minimumInteractiveComponentSize()
                             .testTag("open_quest_map_btn")
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Explore,
-                                contentDescription = StudyQuestStrings.t(language, "Sections", "বিভাগসমূহ"),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = StudyQuestStrings.t(language, "Browse", "মেনু"),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Filled.Explore,
+                            contentDescription = StudyQuestStrings.t(language, "Browse sections", "বিভাগসমূহ"),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
 
                     Box(
@@ -499,7 +460,7 @@ private fun QuestAppHeader(
                             avatarId = profileAvatarId,
                             frameId = profileFrameId,
                             displayName = profileDisplayName.ifBlank { "S" },
-                            size = 34.dp
+                            size = 32.dp
                         )
                     }
                 }

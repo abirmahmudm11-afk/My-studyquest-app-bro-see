@@ -219,9 +219,9 @@ class FocusTimerViewModel(
             val res = focusRepo.stopAndVerifySession(currentUserId, completedTarget = completedTarget)
             res.onSuccess { xp ->
                 _bannerMessage.value = if (xp > 0) {
-                    "Verified study session saved! +$xp XP earned"
+                    "Verified study session saved! Streak & badge progress updated."
                 } else {
-                    "Verified study session saved (daily focus XP cap reached)."
+                    "Verified study session saved."
                 }
             }.onFailure { err ->
                 _bannerMessage.value = unwrapFirestoreMessage(err, err.localizedMessage ?: "Focus session not recorded")
@@ -257,6 +257,12 @@ class FocusTimerViewModel(
             preferences.setMusicPreferences(musicPlayer.state.value.volume, enabled)
         }
     }
+
+    fun toggleAmbientRainLayer() = musicPlayer.toggleAmbientRainLayer()
+
+    fun playSubjectBriefing(subjectId: String) = musicPlayer.playSubjectBriefing(subjectId)
+
+    fun stopSubjectBriefing() = musicPlayer.stopSubjectBriefing()
 
     override fun onCleared() {
         super.onCleared()

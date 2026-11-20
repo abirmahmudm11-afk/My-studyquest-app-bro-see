@@ -588,6 +588,10 @@ private fun AuthenticatedReadyHost(
     val activeAiConversationId by learnVm.activeConversationId.collectAsStateWithLifecycle()
     val activeAiMessages by learnVm.activeAiMessages.collectAsStateWithLifecycle()
     val activeAiToolId by learnVm.activeToolId.collectAsStateWithLifecycle()
+    val downloadPacks by learnVm.downloadPacks.collectAsStateWithLifecycle()
+    val unresolvedMistakes by learnVm.unresolvedMistakes.collectAsStateWithLifecycle()
+    val examCountdowns by learnVm.examCountdowns.collectAsStateWithLifecycle()
+    val formulaBookmarks by learnVm.formulaBookmarks.collectAsStateWithLifecycle()
     val learnBanner by learnVm.statusBanner.collectAsStateWithLifecycle()
 
     val myMatches by competeVm.myMatches.collectAsStateWithLifecycle()
@@ -826,7 +830,8 @@ private fun AuthenticatedReadyHost(
                             onBack = {
                                 todayOverlay = TodayOverlayDestination.None
                                 aiDoubtPrefillPrompt = ""
-                            }
+                            },
+                            isOnline = isOnline
                         )
 
                         TodayOverlayDestination.None -> TodayTabScreen(
@@ -925,7 +930,39 @@ private fun AuthenticatedReadyHost(
                                 pendingLearnDest = LearnDestination.TextbookReader
                                 navigateToTab(1)
                             },
-                            onSwitchActiveBook = { book -> sessionVm.switchActiveBook(book) }
+                            onSwitchActiveBook = { book -> sessionVm.switchActiveBook(book) },
+                            userBadges = badges,
+                            onOpenStemLab = {
+                                val labId = when (activeLockedBook.subjectId) {
+                                    "physics" -> "physics"
+                                    "chemistry" -> "chem"
+                                    "biology", "gen_science" -> "bio"
+                                    else -> "trig"
+                                }
+                                pendingLearnDest = LearnDestination.InteractiveStemLab(labId)
+                                navigateToTab(1)
+                            },
+                            onOpenDownloadManager = {
+                                pendingLearnDest = LearnDestination.OfflineDownloads
+                                navigateToTab(1)
+                            },
+                            onOpenFormulaAtlas = {
+                                pendingLearnDest = LearnDestination.FormulaAtlas
+                                navigateToTab(1)
+                            },
+                            onOpenMistakeNotebook = {
+                                pendingLearnDest = LearnDestination.MistakeNotebook
+                                navigateToTab(1)
+                            },
+                            onOpenExamCountdown = {
+                                pendingLearnDest = LearnDestination.ExamCountdown
+                                navigateToTab(1)
+                            },
+                            onOpenPocketAudio = {
+                                pendingLearnDest = LearnDestination.PocketAudioRevision
+                                navigateToTab(1)
+                            },
+                            unresolvedMistakesCount = unresolvedMistakes.size
                         )
                     }
 
@@ -1060,7 +1097,35 @@ private fun AuthenticatedReadyHost(
                         onSwitchActiveBook = { book -> sessionVm.switchActiveBook(book) },
                         onReportBookIssue = { tType, tId, details ->
                             socialVm.reportIssue(tType, tId, "Textbook content review", details)
-                        }
+                        },
+                        downloadPacks = downloadPacks,
+                        unresolvedMistakes = unresolvedMistakes,
+                        examCountdowns = examCountdowns,
+                        formulaBookmarks = formulaBookmarks,
+                        learningRecords = learningRecords,
+                        onSeedDownloads = {
+                            learnVm.seedDownloadCatalog(
+                                activeProfile.classId,
+                                activeProfile.curriculumVersion,
+                                activeProfile.academicGroup
+                            )
+                        },
+                        onDownloadPack = { pack -> learnVm.downloadPack(pack, isOnline, lang) },
+                        onDownloadClassBundle = {
+                            learnVm.downloadClassBundle(
+                                activeProfile.classId,
+                                activeProfile.curriculumVersion,
+                                activeProfile.academicGroup,
+                                isOnline,
+                                lang
+                            )
+                        },
+                        onRemoveDownloadPack = { packId -> learnVm.removeDownloadedPack(packId) },
+                        onToggleFormulaBookmark = { entry -> learnVm.toggleFormulaBookmark(entry) },
+                        onResolveMistake = { qId -> learnVm.resolveMistake(qId) },
+                        onAddExamCountdown = { t, s, days, goal -> learnVm.addExamCountdown(t, s, days, goal) },
+                        onIncrementExamTopic = { id -> learnVm.incrementExamTopic(id) },
+                        onDeleteExamCountdown = { id -> learnVm.deleteExamCountdown(id) }
                     )
 
                     2 -> CompeteTabScreen(
@@ -1098,7 +1163,8 @@ private fun AuthenticatedReadyHost(
                         selectedPeriod = selectedPeriod,
                         competitionArchives = competitionArchives,
                         onSelectCategory = { competeVm.selectCategory(it) },
-                        onSelectPeriod = { competeVm.selectPeriod(it) }
+                        onSelectPeriod = { competeVm.selectPeriod(it) },
+                        isOnline = isOnline
                     )
 
                     3 -> FriendsTabScreen(
@@ -1158,7 +1224,8 @@ private fun AuthenticatedReadyHost(
                             navigateToTab(0)
                             todayOverlay = TodayOverlayDestination.AiDoubtSolver
                         },
-                        onCreateStudyGroupWithSubject = { name, uids, subj -> socialVm.createStudyGroup(name, uids, subj) }
+                        onCreateStudyGroupWithSubject = { name, uids, subj -> socialVm.createStudyGroup(name, uids, subj) },
+                        isOnline = isOnline
                     )
 
                     4 -> ProfileTabScreen(
@@ -1227,7 +1294,11 @@ private fun AuthenticatedReadyHost(
                             navigateToTab(1)
                         },
                         onReinstallBookOffline = { book -> learnVm.installBookOffline(book, lang, forceRedownload = true) },
-                        onDeleteCachedBook = { bookId -> learnVm.deleteOfflineBookCache(bookId) }
+                        onDeleteCachedBook = { bookId -> learnVm.deleteOfflineBookCache(bookId) },
+                        onOpenDownloadManager = {
+                            pendingLearnDest = LearnDestination.OfflineDownloads
+                            navigateToTab(1)
+                        }
                     )
                     }
                 }
@@ -1270,7 +1341,8 @@ private fun AuthenticatedReadyHost(
             onDismiss = {
                 learnVm.resetAiDoubtState()
                 showGlobalAiSheet = false
-            }
+            },
+            isOnline = isOnline
         )
     }
 }

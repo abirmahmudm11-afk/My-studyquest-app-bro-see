@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +31,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Tune
@@ -44,11 +44,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -59,14 +61,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.LocalUserPreferences
+import com.example.core.OfflineVaultManager
+import com.example.core.OfflineVaultStats
 import com.example.core.StudyQuestStrings
 import com.example.core.SurfaceStyle
 import com.example.core.ThemeMode
@@ -91,18 +105,15 @@ import com.example.core.BillingAndAdProvider
 import com.example.ui.components.AnimatedCircularMasteryRing
 import com.example.ui.components.AvatarBadgeView
 import com.example.ui.components.GuestUpgradeBannerCard
-import com.example.ui.components.RankTierBadge
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
 import com.example.ui.components.StudyTimeAndXpBarChart
-import com.example.ui.theme.AmberGold
-import com.example.ui.theme.ElectricIndigo
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.LocalStudyQuestColors
-import com.example.ui.theme.SkyCyan
-import com.example.ui.theme.VividEmerald
+import com.example.ui.theme.studyQuestGlassAwareBorder
+import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 import com.example.ui.viewmodel.AdminStudioViewModel
 import com.google.firebase.FirebaseApp
 
@@ -169,7 +180,8 @@ fun ProfileTabScreen(
     cachedBooks: List<CachedBookEntity> = emptyList(),
     onOpenTextbookReader: () -> Unit = {},
     onReinstallBookOffline: (TextbookCatalogItem) -> Unit = {},
-    onDeleteCachedBook: (String) -> Unit = {}
+    onDeleteCachedBook: (String) -> Unit = {},
+    onOpenDownloadManager: () -> Unit = {}
 ) {
     val destinationStack = remember { mutableStateListOf<ProfileDestination>(ProfileDestination.Home) }
     val destination = destinationStack.lastOrNull() ?: ProfileDestination.Home
@@ -229,55 +241,155 @@ fun ProfileTabScreen(
                 item {
                     StaggeredEntrance(index = 1, reducedMotion = reducedMotion) {
                         val cls = BangladeshCurriculumCatalog.classes.find { it.id == profile.classId }
-                        val (xpWithinLevel, xpRequired) = StudyQuestStrings.xpIntoCurrentLevel(profile.totalXp)
-                        val levelPct = ((xpWithinLevel.toFloat() / xpRequired.toFloat()) * 100f).toInt().coerceIn(0, 100)
-                        StudyQuestGradientHeroBanner(
-                            eyebrow = "${profile.studyQuestId} • @${profile.username}",
-                            title = profile.displayName,
-                            subtitle = StudyQuestStrings.t(
-                                lang,
-                                "${cls?.labelEn ?: profile.classId} • ${profile.curriculumVersion.uppercase()} Version",
-                                "${cls?.labelBn ?: profile.classId} • ${profile.curriculumVersion.uppercase()}"
-                            ),
-                            reducedMotion = reducedMotion,
-                            trailingSlot = {
-                                AvatarBadgeView(profile.avatarId, profile.frameId, profile.displayName, size = 64.dp)
-                            }
+                        val streakPct = (profile.streakCount.toFloat() / 7f).coerceIn(0.08f, 1f)
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
+                            border = studyQuestGlassAwareBorder(),
+                            shadowElevation = 0.dp,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    StatBadgePill(
-                                        icon = Icons.Filled.Analytics,
-                                        label = StudyQuestStrings.t(
-                                            lang,
-                                            "${learningRecords.size} Sessions Logged",
-                                            "${StudyQuestStrings.formatDigits(learningRecords.size, lang)} সেশন"
-                                        ),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        containerColor = MaterialTheme.colorScheme.surface
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(48.dp)
+                                            .align(Alignment.TopCenter)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
                                     )
-                                    StatBadgePill(
-                                        icon = Icons.Filled.CheckCircle,
-                                        label = StudyQuestStrings.t(
-                                            lang,
-                                            "${profile.streakCount}d Streak",
-                                            "${StudyQuestStrings.formatDigits(profile.streakCount, lang)} দিন"
-                                        ),
-                                        tint = semantic.success,
-                                        containerColor = MaterialTheme.colorScheme.surface
+                                    Box(modifier = Modifier.padding(top = 14.dp)) {
+                                        AvatarBadgeView(profile.avatarId, profile.frameId, profile.displayName, size = 76.dp)
+                                    }
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    border = studyQuestGlassAwareBorder()
+                                ) {
+                                    Text(
+                                        text = "${StudyQuestStrings.rankTierLabel(profile.rankTier, lang)} • ${profile.studyQuestId}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                                     )
                                 }
-                                AnimatedCircularMasteryRing(
-                                    progress = (xpWithinLevel.toFloat() / xpRequired.toFloat()).coerceIn(0f, 1f),
-                                    centerValueText = "${levelPct}%",
-                                    centerCaptionText = StudyQuestStrings.t(lang, "Mastery", "দক্ষতা"),
-                                    reducedMotion = reducedMotion,
-                                    size = 58.dp
-                                )
+
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text(
+                                        text = profile.displayName,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            lang,
+                                            "@${profile.username} • ${cls?.labelEn ?: profile.classId} • ${profile.curriculumVersion.uppercase()}",
+                                            "@${profile.username} • ${cls?.labelBn ?: profile.classId} • ${profile.curriculumVersion.uppercase()}"
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    ProfileMetricChip(
+                                        value = "${StudyQuestStrings.formatDigits(profile.streakCount, lang)}d",
+                                        label = StudyQuestStrings.t(lang, "Total Streak", "মোট স্ট্রিক"),
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    ProfileMetricChip(
+                                        value = StudyQuestStrings.formatDigits(unlockedBadgesCount, lang),
+                                        label = StudyQuestStrings.t(lang, "Badges", "অর্জিত ব্যাজ"),
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    ProfileMetricChip(
+                                        value = StudyQuestStrings.formatDigits(learningRecords.size, lang),
+                                        label = StudyQuestStrings.t(lang, "Sessions", "সেশন"),
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.LocalFireDepartment,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurface,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Text(
+                                                    text = StudyQuestStrings.t(
+                                                        lang,
+                                                        "You're on a ${profile.streakCount}-day streak!",
+                                                        "${StudyQuestStrings.formatDigits(profile.streakCount, lang)} দিনের স্ট্রিক চলছে!"
+                                                    ),
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                            Text(
+                                                text = "$unlockedBadgesCount/${GamificationCatalog.badgesCatalog.size}",
+                                                style = MaterialTheme.typography.labelMedium.copy(fontFamily = JetBrainsMonoFontFamily),
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        LinearProgressIndicator(
+                                            progress = { streakPct },
+                                            color = MaterialTheme.colorScheme.primary,
+                                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(4.dp)
+                                                .clip(RoundedCornerShape(999.dp))
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -330,7 +442,6 @@ fun ProfileTabScreen(
                         val activeCache = cachedBooks.firstOrNull { it.bookId == activeLockedBook.id }
                         val installedCount = cachedBooks.count { it.downloadStatus == TextbookDownloadStatus.INSTALLED.id }
                         StudyQuestCard(
-                            accentColor = ElectricIndigo,
                             modifier = Modifier.testTag("profile_offline_books_card")
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -347,7 +458,7 @@ fun ProfileTabScreen(
                                     text = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ElectricIndigo
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = if (activeCache?.downloadStatus == TextbookDownloadStatus.INSTALLED.id) {
@@ -380,11 +491,89 @@ fun ProfileTabScreen(
                     }
                 }
 
-                // Badges, Trophy Cabinet & XP Ledger Card
+                item {
+                    val context = LocalContext.current
+                    var vaultStats by remember { mutableStateOf(OfflineVaultStats()) }
+                    LaunchedEffect(cachedBooks.size) {
+                        vaultStats = OfflineVaultManager.computeVaultStats(context)
+                    }
+                    StudyQuestCard(modifier = Modifier.testTag("profile_offline_vault_card")) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(98.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_vault_offline_vault),
+                                    contentDescription = StudyQuestStrings.t(
+                                        lang,
+                                        "Offline Study Vault Library",
+                                        "অফলাইন স্টাডি ভল্ট লাইব্রেরি"
+                                    ),
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            lang,
+                                            "Offline Study Vault",
+                                            "অফলাইন স্টাডি ভল্ট"
+                                        ),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            lang,
+                                            "${vaultStats.bundledBooksCount} Books • ${vaultStats.bundledAudioTracksCount} Audio • ${vaultStats.bundledPlatesCount} Plates • ${vaultStats.workedEntriesCount} Guides",
+                                            "${StudyQuestStrings.formatDigits(vaultStats.bundledBooksCount, lang)} বই • ${StudyQuestStrings.formatDigits(vaultStats.bundledAudioTracksCount, lang)} অডিও • ${StudyQuestStrings.formatDigits(vaultStats.workedEntriesCount, lang)} গাইড"
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    val mbText = String.format(java.util.Locale.US, "%.0f MB", vaultStats.bundledVaultSizeMb)
+                                    Text(
+                                        text = mbText,
+                                        fontFamily = JetBrainsMonoFontFamily,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                    )
+                                }
+                            }
+                            FilledTonalButton(
+                                onClick = onOpenDownloadManager,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("profile_open_downloads_btn")
+                            ) {
+                                Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(lang, "Open Offline Downloads & Packs", "অফলাইন ডাউনলোড ম্যানেজার খোলো"))
+                            }
+                        }
+                    }
+                }
+
+                // Badges & Trophy Cabinet Card
                 item {
                     StaggeredEntrance(index = 2, reducedMotion = reducedMotion) {
                         StudyQuestCard(
-                            containerColor = MaterialTheme.colorScheme.surface,
                             onClick = { pushDest(ProfileDestination.BadgesAndXp) },
                             modifier = Modifier.testTag("profile_open_badges_xp")
                         ) {
@@ -395,15 +584,16 @@ fun ProfileTabScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = StudyQuestStrings.t(lang, "Badges, Trophies & XP Ledger", "ব্যাজ, ট্রফি ও XP খাতা"),
+                                        text = StudyQuestStrings.t(lang, "Badges, Trophies & Milestones", "ব্যাজ, ট্রফি ও মাইলফলক"),
                                         style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = StudyQuestStrings.t(
                                             lang,
-                                            "$unlockedBadgesCount / ${GamificationCatalog.badgesCatalog.size} Badges • ${pinnedBadges.size} Pinned • ${xpLedger.size} XP txns",
-                                            "${StudyQuestStrings.formatDigits(unlockedBadgesCount, lang)} / ${StudyQuestStrings.formatDigits(GamificationCatalog.badgesCatalog.size, lang)} ব্যাজ"
+                                            "$unlockedBadgesCount / ${GamificationCatalog.badgesCatalog.size} Badges • ${pinnedBadges.size} Pinned • ${xpLedger.size} Milestones",
+                                            "${StudyQuestStrings.formatDigits(unlockedBadgesCount, lang)} / ${StudyQuestStrings.formatDigits(GamificationCatalog.badgesCatalog.size, lang)} ব্যাজ • ${StudyQuestStrings.formatDigits(xpLedger.size, lang)} মাইলফলক"
                                         ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -411,9 +601,9 @@ fun ProfileTabScreen(
                                 }
                                 StatBadgePill(
                                     icon = Icons.Filled.WorkspacePremium,
-                                    label = "${profile.totalXp} XP",
-                                    tint = semantic.success,
-                                    containerColor = semantic.successContainer
+                                    label = "${StudyQuestStrings.formatDigits(unlockedBadgesCount, lang)} / ${StudyQuestStrings.formatDigits(GamificationCatalog.badgesCatalog.size, lang)}",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             }
                         }
@@ -490,8 +680,8 @@ fun ProfileTabScreen(
                     StaggeredEntrance(index = 4, reducedMotion = reducedMotion) {
                         ProfileNavTile(
                             icon = Icons.Filled.ShoppingBag,
-                            title = StudyQuestStrings.t(lang, "Avatar & Coin Shop", "অ্যাভাটার ও কয়েন শপ"),
-                            subtitle = StudyQuestStrings.t(lang, "Unlock scholarly frames, avatars & titles with earned Coins", "অর্জিত কয়েন দিয়ে অ্যাভাটার ও ফ্রেম আনলক করো"),
+                            title = StudyQuestStrings.t(lang, "Scholar Emblems & Frames", "অ্যাভাটার, ফ্রেম ও টাইটেল"),
+                            subtitle = StudyQuestStrings.t(lang, "Unlock & equip scholarly frames, avatars & titles", "অ্যাভাটার, ফ্রেম ও মর্যাদার টাইটেল আনলক করো"),
                             onClick = { pushDest(ProfileDestination.CosmeticsShop) },
                             testTag = "profile_open_shop"
                         )
@@ -650,6 +840,41 @@ fun ProfileTabScreen(
 }
 
 @Composable
+private fun ProfileMetricChip(
+    value: String,
+    label: String,
+    containerColor: androidx.compose.ui.graphics.Color,
+    contentColor: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = containerColor,
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium.copy(fontFamily = JetBrainsMonoFontFamily),
+                fontWeight = FontWeight.Bold,
+                color = contentColor,
+                maxLines = 1
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor.copy(alpha = 0.78f),
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
 private fun ProfileNavTile(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
@@ -710,7 +935,11 @@ private fun AnalyticsAndAchievementsScreen(
                 StudyQuestCard {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(StudyQuestStrings.t(lang, subj?.titleEn ?: item.subjectId, subj?.titleBn ?: item.subjectId), fontWeight = FontWeight.Bold)
-                        Text("Lv.${item.subjectLevel} • ${item.totalXp} XP", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "${(item.averageAccuracy * 100).toInt()}% • ${item.lessonsCompleted + item.practiceSessions + item.examSessions} ${StudyQuestStrings.t(lang, "sessions", "সেশন")}",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                     Spacer(Modifier.height(6.dp))
                     LinearProgressIndicator(
@@ -769,7 +998,7 @@ private fun AnalyticsAndAchievementsScreen(
                         Text(StudyQuestStrings.t(lang, ach.descriptionEn, ach.descriptionBn), style = MaterialTheme.typography.bodySmall)
                     }
                     Text(
-                        text = if (unlocked) StudyQuestStrings.t(lang, "Unlocked", "অর্জিত") else "+${ach.xpBonus} XP",
+                        text = if (unlocked) StudyQuestStrings.t(lang, "Unlocked", "অর্জিত") else StudyQuestStrings.t(lang, "Milestone", "লক্ষ্য"),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (unlocked) semanticColors.success else MaterialTheme.colorScheme.primary
@@ -789,6 +1018,7 @@ private fun CosmeticsShopScreen(
     onPurchase: (String, Int) -> Unit,
     onEquip: (String, String) -> Unit
 ) {
+    val semantic = LocalStudyQuestColors.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -798,13 +1028,13 @@ private fun CosmeticsShopScreen(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
-                    Text(StudyQuestStrings.t(lang, "Avatar & Coin Shop", "কয়েন শপ"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(StudyQuestStrings.t(lang, "Scholar Emblems & Frames", "অ্যাভাটার ও ফ্রেম"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
                 StatBadgePill(
-                    icon = Icons.Filled.MonetizationOn,
-                    label = "${profile.coins}",
-                    tint = AmberGold,
-                    containerColor = MaterialTheme.colorScheme.surface
+                    icon = Icons.Filled.WorkspacePremium,
+                    label = StudyQuestStrings.t(lang, "${unlockedCosmetics.size} Unlocked", "${StudyQuestStrings.formatDigits(unlockedCosmetics.size, lang)}টি অর্জিত"),
+                    tint = semantic.onPastelLavender,
+                    containerColor = semantic.pastelLavender
                 )
             }
         }
@@ -831,10 +1061,9 @@ private fun CosmeticsShopScreen(
                             Text(StudyQuestStrings.t(lang, "Equip", "ব্যবহার করো"))
                         }
                         else -> Button(
-                            onClick = { onPurchase(item.id, item.costCoins) },
-                            enabled = profile.coins >= item.costCoins
+                            onClick = { onPurchase(item.id, item.costCoins) }
                         ) {
-                            Text("${item.costCoins} Coins")
+                            Text(StudyQuestStrings.t(lang, "Unlock", "আনলক"))
                         }
                     }
                 }
@@ -975,7 +1204,7 @@ private fun PreferencesAndSafetyScreen(
                     SettingToggleRow(StudyQuestStrings.t(lang, "Study & Streak Reminders", "পড়া ও স্ট্রিক রিমাইন্ডার"), preferences.notifStudyEnabled) {
                         onUpdateNotificationCategory("study", it)
                     }
-                    SettingToggleRow(StudyQuestStrings.t(lang, "XP & Level-Up Alerts", "XP ও লেভেল আপ"), preferences.notifXpEnabled) {
+                    SettingToggleRow(StudyQuestStrings.t(lang, "Streak & Milestone Alerts", "স্ট্রিক ও মাইলফলক এলার্ট"), preferences.notifXpEnabled) {
                         onUpdateNotificationCategory("xp", it)
                     }
                     SettingToggleRow(StudyQuestStrings.t(lang, "Badge Unlocks", "ব্যাজ আনলক"), preferences.notifBadgeEnabled) {

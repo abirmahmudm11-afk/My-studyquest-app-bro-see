@@ -95,7 +95,8 @@ fun AILabScreen(
     onRetryRequest: () -> Unit,
     onOpenPlanStore: () -> Unit,
     onRequestGoogleSignIn: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    isOnline: Boolean = true
 ) {
     BackHandler(onBack = onBack)
 
@@ -122,13 +123,37 @@ fun AILabScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = StudyQuestStrings.t(
-                        language,
-                        "Your Personal Learning Companion • $aiRemaining/$aiLimit AI credits left",
-                        "আপনার ব্যক্তিগত পড়াশোনার সঙ্গী • $aiRemaining/$aiLimit ক্রেডিট বাকি"
-                    ),
+                    text = if (isOnline) {
+                        StudyQuestStrings.t(
+                            language,
+                            "Cloud Gemini + OpenRouter • $aiRemaining/$aiLimit AI credits left",
+                            "ক্লাউড জেমিনি + OpenRouter • $aiRemaining/$aiLimit ক্রেডিট বাকি"
+                        )
+                    } else {
+                        StudyQuestStrings.t(
+                            language,
+                            "Offline Mode • 6,000-entry Knowledge Atlas active",
+                            "অফলাইন মোড • ৬,০০০ গাইডসহ অ্যাটলাস সক্রিয়"
+                        )
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = if (isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.testTag("ailab_mode_badge")
+            ) {
+                Text(
+                    text = if (isOnline) {
+                        StudyQuestStrings.t(language, "Cloud Live", "ক্লাউড লাইভ")
+                    } else {
+                        StudyQuestStrings.t(language, "Offline Atlas", "অফলাইন অ্যাটলাস")
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
             TextButton(onClick = onOpenPlanStore) {
@@ -154,7 +179,22 @@ fun AILabScreen(
         }
 
         if (providerTab == 1) {
-            PuterAiWebViewSection(language = language)
+            if (!isOnline) {
+                Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    StudyQuestCard(modifier = Modifier.testTag("puter_offline_locked_card")) {
+                        Text(
+                            text = StudyQuestStrings.t(
+                                language,
+                                "Puter.js requires an active internet connection. Switch to the StudyQuest AI tab to continue using the Offline Knowledge Atlas (6,000 guides).",
+                                "Puter.js ব্যবহার করতে ইন্টারনেট প্রয়োজন। অফলাইন নলেজ অ্যাটলাস ব্যবহার করতে প্রথম ট্যাবে ফিরে যান।"
+                            ),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            } else {
+                PuterAiWebViewSection(language = language)
+            }
         } else if (isGuestMode) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),

@@ -373,7 +373,7 @@ class AiVideoViewModel(
             val res = aiVideoRepo.recordAiVideoQuizCompleted(currentUserId, video, correctCount, totalQuestions)
             res.onSuccess { xp ->
                 if (xp > 0) {
-                    _message.value = "Lesson quiz checked ($correctCount/$totalQuestions)! +$xp XP"
+                    _message.value = "Lesson quiz verified ($correctCount/$totalQuestions)!"
                     onXpAwarded(xp)
                 }
             }.onFailure { err ->

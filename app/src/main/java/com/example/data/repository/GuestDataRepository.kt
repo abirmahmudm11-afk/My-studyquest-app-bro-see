@@ -327,8 +327,8 @@ class GuestDataRepository(
             title = StudyQuestStrings.t(language, "Guest Mode Active", "গেস্ট মোড চালু আছে"),
             body = StudyQuestStrings.t(
                 language,
-                "Your ${prefs.guestXp} XP & ${prefs.guestCoins} Coins are saved locally. Sign in with Google anytime to auto-merge!",
-                "তোমার ${StudyQuestStrings.formatDigits(prefs.guestXp, language)} XP এবং কয়েন ডিভাইসে সংরক্ষিত আছে। গুগল দিয়ে সাইন-ইন করলে সব স্বয়ংক্রিয়ভাবে সিঙ্ক হবে!"
+                "Your ${prefs.guestStreakCount}-day streak, badges & study progress are saved locally. Sign in with Google anytime to auto-merge!",
+                "তোমার ${StudyQuestStrings.formatDigits(prefs.guestStreakCount, language)} দিনের স্ট্রিক, ব্যাজ ও পড়াশোনার অগ্রগতি ডিভাইসে সংরক্ষিত আছে। গুগল দিয়ে সাইন-ইন করলে সব স্বয়ংক্রিয়ভাবে সিঙ্ক হবে!"
             ),
             read = false
         )

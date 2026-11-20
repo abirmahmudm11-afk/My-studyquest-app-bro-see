@@ -115,7 +115,7 @@ fun AdminStudioScreen(
         ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 12.dp) {
             Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Editorial") })
             Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Moderation (${cases.count { it.status == "open" } + flaggedPosts.size})") })
-            Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("XP & Tasks") })
+            Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Rules & Tasks") })
             Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("System") })
             Tab(selected = selectedTab == 4, onClick = { selectedTab = 4 }, text = { Text("Audit") })
             Tab(selected = selectedTab == 5, onClick = { selectedTab = 5 }, text = { Text("AI Provider") })
@@ -298,13 +298,13 @@ fun AdminStudioScreen(
                 ) {
                     item {
                         StudyQuestCard {
-                            Text("XP Rules & Anti-Farming Caps", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text("Scoring & Anti-Farming Caps", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(6.dp))
-                            OutlinedTextField(value = lessonXpText, onValueChange = { lessonXpText = it.filter(Char::isDigit) }, label = { Text("Lesson XP") }, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = examPassXpText, onValueChange = { examPassXpText = it.filter(Char::isDigit) }, label = { Text("Exam Base XP") }, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = dailyChallengeXpText, onValueChange = { dailyChallengeXpText = it.filter(Char::isDigit) }, label = { Text("Daily Challenge XP") }, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = focusXpText, onValueChange = { focusXpText = it.filter(Char::isDigit) }, label = { Text("Focus XP per Minute") }, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = dailyCapText, onValueChange = { dailyCapText = it.filter(Char::isDigit) }, label = { Text("Daily Anti-Farming Focus XP Cap") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = lessonXpText, onValueChange = { lessonXpText = it.filter(Char::isDigit) }, label = { Text("Lesson Points") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = examPassXpText, onValueChange = { examPassXpText = it.filter(Char::isDigit) }, label = { Text("Exam Base Points") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = dailyChallengeXpText, onValueChange = { dailyChallengeXpText = it.filter(Char::isDigit) }, label = { Text("Daily Challenge Points") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = focusXpText, onValueChange = { focusXpText = it.filter(Char::isDigit) }, label = { Text("Focus Points per Minute") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = dailyCapText, onValueChange = { dailyCapText = it.filter(Char::isDigit) }, label = { Text("Daily Anti-Farming Focus Cap") }, modifier = Modifier.fillMaxWidth())
                             Spacer(Modifier.height(8.dp))
                             Button(
                                 onClick = {
@@ -320,7 +320,7 @@ fun AdminStudioScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth().testTag("admin_save_xp_rules_btn")
                             ) {
-                                Text("Save XP Rules")
+                                Text("Save Scoring Rules")
                             }
                         }
                     }
@@ -348,7 +348,7 @@ fun AdminStudioScreen(
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedTextField(value = assignTargetText, onValueChange = { assignTargetText = it.filter(Char::isDigit) }, label = { Text("Target Count") }, modifier = Modifier.weight(1f))
-                                OutlinedTextField(value = assignXpText, onValueChange = { assignXpText = it.filter(Char::isDigit) }, label = { Text("XP Reward") }, modifier = Modifier.weight(1f))
+                                OutlinedTextField(value = assignXpText, onValueChange = { assignXpText = it.filter(Char::isDigit) }, label = { Text("Score Weight") }, modifier = Modifier.weight(1f))
                             }
                             Spacer(Modifier.height(8.dp))
                             Button(
@@ -384,7 +384,7 @@ fun AdminStudioScreen(
                             OutlinedTextField(value = badgeTitleBn, onValueChange = { badgeTitleBn = it }, label = { Text("Title (BN)") }, modifier = Modifier.fillMaxWidth())
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedTextField(value = badgeTargetText, onValueChange = { badgeTargetText = it.filter(Char::isDigit) }, label = { Text("Target") }, modifier = Modifier.weight(1f))
-                                OutlinedTextField(value = badgeXpText, onValueChange = { badgeXpText = it.filter(Char::isDigit) }, label = { Text("XP Bonus") }, modifier = Modifier.weight(1f))
+                                OutlinedTextField(value = badgeXpText, onValueChange = { badgeXpText = it.filter(Char::isDigit) }, label = { Text("Milestone Weight") }, modifier = Modifier.weight(1f))
                             }
                             Spacer(Modifier.height(8.dp))
                             Button(

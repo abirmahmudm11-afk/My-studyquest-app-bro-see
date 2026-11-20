@@ -1,0 +1,999 @@
+STUDY QUEST — PREMIUM REFERENCE-INSPIRED FULL-APPLICATION UI/UX REDESIGN
+
+EXECUTION MASTER PROMPT — COMMERCIAL PRODUCT QUALITY
+
+You are working on Study Quest, an existing, fully functional educational Android application.
+
+Your assignment is to transform its entire visual experience into a distinctive, premium-quality educational product inspired by the supplied visual reference.
+
+THIS IS A UI/UX REDESIGN PROJECT, NOT AN APPLICATION REBUILD.
+
+Preserve everything Study Quest can currently do. Preserve its existing features, educational content, backend integrations, authentication, database, curriculum, AI capabilities, navigation logic, offline functionality, and business logic.
+
+Your primary responsibility is to dramatically improve how the application LOOKS, FEELS, MOVES, and INTERACTS.
+
+The result should feel like a professionally designed, commercially released application developed by an experienced product design and engineering team.
+
+---
+
+1. FIRST: STUDY THE REFERENCE IMAGE
+
+Before modifying any code, carefully inspect the supplied reference image.
+
+Do not simply read its description. Actually study its visual composition.
+
+Identify its:
+
+- Overall layout and spatial composition.
+- Background treatment.
+- Central featured element.
+- Floating elements and their perspective.
+- Layered depth.
+- Card proportions.
+- Accent colors.
+- Surface treatments.
+- Shadows.
+- Navigation positioning.
+- Typography hierarchy.
+- Relationship between the hero area and supporting information.
+- Spacing and visual balance.
+- Interactive carousel presentation.
+- Overall visual identity.
+
+The reference is a banking interface, but Study Quest is an educational application.
+
+Transfer the visual design principles, not the banking content.
+
+Do not create another generic educational dashboard.
+
+Create a recognizable Study Quest visual identity using the reference as the foundation.
+
+The central idea is a beautiful, atmospheric application interface with a strong visual centerpiece, elegant surrounding elements, meaningful information, and carefully organized supporting sections.
+
+Do not blindly reproduce every element. Improve the concept where an educational application needs a different solution.
+
+---
+
+2. ABSOLUTE PROJECT RULE: PRESERVE THE ENTIRE EXISTING APPLICATION
+
+Before making changes, inspect the complete project.
+
+Understand the actual implementation, existing navigation, features, screens, components, data models, and integrations.
+
+Create an internal feature inventory.
+
+Identify every existing capability, including capabilities that are not immediately visible on the home screen.
+
+Preserve all of them.
+
+This includes, wherever implemented in the existing project:
+
+- Firebase and authentication.
+- Google sign-in.
+- Email sign-in and registration.
+- Password recovery.
+- Guest mode and guest account setup.
+- Bangla and English language support.
+- Offline functionality.
+- NCTB curriculum and textbook catalogues.
+- Textbook reading.
+- Class and subject selection.
+- Chapters and individual lessons.
+- Learning progress.
+- MCQ and CQ practice.
+- Question banks.
+- Mock examinations.
+- Revision tools.
+- Flashcards.
+- Study plans.
+- Focus and Pomodoro timers.
+- Daily learning activities.
+- Learning analytics.
+- AI Tutor.
+- AI Doubt Solver.
+- AI Lab.
+- AI Video Studio.
+- Friends and Study Circle.
+- Messaging and existing social functionality.
+- Compete functionality.
+- Profile and settings.
+- Notifications.
+- Existing subscriptions and AI-related systems.
+- Existing achievements and gamification logic.
+- Any additional screens, features, or integrations discovered in the repository.
+
+This is an inventory of systems to preserve, not permission to invent missing implementations.
+
+Do not assume that this list represents every feature. The actual repository is the source of truth.
+
+Strict preservation requirements
+
+1. Do not delete existing application functionality.
+2. Do not replace real systems with demonstrations.
+3. Do not replace Firebase with mock authentication.
+4. Do not replace real application data with invented sample information.
+5. Do not introduce fake progress, fake notifications, fake statistics, or fake activity history.
+6. Do not break navigation or remove existing routes.
+7. Do not change database schemas or backend architecture unnecessarily.
+8. Do not change existing API contracts.
+9. Do not remove offline capabilities.
+10. Do not sacrifice existing functionality to simplify a new design.
+
+You may restructure Compose layouts, visual components, theme tokens, and screen composition as necessary.
+
+Keep existing business logic separate from presentation changes.
+
+Every existing capability must remain accessible and functional after the redesign.
+
+---
+
+3. THE NEW VISUAL IDENTITY
+
+Create a premium visual language for Study Quest.
+
+Design direction
+
+Combine:
+
+- Premium modern application design.
+- Soft minimalism.
+- Refined product-dashboard composition.
+- Cool blue-gray atmosphere.
+- Elegant floating 3D elements.
+- Restrained glassmorphism.
+- Sophisticated layered surfaces.
+- Clean educational information architecture.
+- Refined interactive carousels.
+- Natural animation.
+- Carefully controlled contrast.
+- Distinctive visual storytelling.
+
+The design should feel modern, intelligent, polished, and trustworthy.
+
+It must not look like a generic school application template.
+
+It must not look like a childish educational game.
+
+Color direction
+
+Use the reference image as the primary color and composition inspiration.
+
+Build a cohesive palette around:
+
+- Cool blue-gray.
+- Deep slate blue.
+- Muted powder blue.
+- Soft teal.
+- Refined mint.
+- Cool light gray.
+- Deep slate typography.
+- A controlled, distinctive lime-mint highlight inspired by the reference.
+
+The central focal element may use a more vivid lime-mint accent when appropriate.
+
+However, use this accent selectively.
+
+It should make important educational content immediately recognizable without making the entire application neon or excessively colorful.
+
+Avoid:
+
+- Brown.
+- Beige.
+- Cream.
+- Golden yellow.
+- Warm ivory.
+- Excessive pure-white backgrounds.
+- Neon colors.
+- Aggressive gradients.
+- Excessive transparency.
+- Excessive glassmorphism.
+
+Do not make every screen identical in color composition.
+
+Use a consistent brand identity while giving individual screens their own appropriate visual hierarchy.
+
+---
+
+4. LIGHT MODE AND DARK MODE
+
+Design both themes as complete, independent visual experiences.
+
+Do not simply invert the light theme.
+
+Light mode
+
+Use cool light-gray and blue-gray canvases, carefully differentiated content surfaces, sophisticated slate typography, subtle borders, and restrained shadows.
+
+The interface should feel bright, spacious, and refined without becoming completely white.
+
+Dark mode
+
+Use a premium deep-slate and navy foundation.
+
+Create layered dark surfaces with appropriate separation between the page background, primary content, floating components, and interactive controls.
+
+Use the same brand accent system as light mode while adjusting brightness and contrast appropriately.
+
+Ensure that:
+
+- Text remains readable.
+- Icons remain distinguishable.
+- Cards remain visually separated.
+- Disabled controls remain understandable.
+- Animations remain elegant.
+- Bangla text remains readable.
+- The interface does not become excessively dark or visually flat.
+
+Test both themes across every redesigned screen.
+
+---
+
+5. THE MAIN VISUAL CONCEPT — A DISTINCTIVE EDUCATIONAL HERO EXPERIENCE
+
+The reference image has a strong central focal element surrounded by horizontally arranged floating elements.
+
+Translate that idea into a genuinely educational experience.
+
+Do not simply create a row of ordinary rectangular cards.
+
+Create a visually distinctive learning stage.
+
+Central featured learning element
+
+Use actual application data to display the learner's current learning destination.
+
+Examples of appropriate content include:
+
+- Current textbook.
+- Current subject.
+- Active chapter.
+- Next lesson.
+- Existing reading progress.
+- Continue Learning action.
+
+Give the central element a strong visual identity.
+
+It should feel like the main destination of the application.
+
+Surrounding visual elements
+
+Use carefully layered previews representing actual educational content.
+
+For example:
+
+- A Mathematics textbook preview.
+- A Science subject preview.
+- A chapter page.
+- A question-practice preview.
+- A small study-progress element.
+
+Use perspective and depth subtly.
+
+The surrounding elements should support the central focus rather than compete with it.
+
+Interactive behavior
+
+Implement:
+
+- Smooth horizontal carousel movement.
+- Previous and next controls.
+- Touch gestures.
+- Natural spring animations.
+- Carefully controlled perspective transitions.
+- Small depth changes.
+- Elegant focus transitions.
+- Meaningful active-item indicators.
+
+All carousel content must represent real application data.
+
+Do not create fake subjects or fake educational records just to fill the carousel.
+
+---
+
+6. REDESIGN THE ENTIRE APPLICATION
+
+Do not restrict the redesign to Today and Learn.
+
+The same visual quality must reach every existing screen.
+
+A. Language Selection and Launch Experience
+
+This is the user's first encounter with Study Quest.
+
+Make it immediately memorable.
+
+Avoid a boring centered screen containing only two language-selection cards.
+
+Create a distinctive Study Quest opening experience with an educational visual centerpiece.
+
+Possible visual ingredients:
+
+- Refined 3D textbook artwork.
+- Floating textbook pages.
+- Subtle educational diagrams.
+- Layered learning interfaces.
+- Small floating lesson previews.
+- Sophisticated atmospheric background.
+- Gentle perspective and movement.
+- A meaningful Study Quest brand presentation.
+
+These elements must communicate what Study Quest actually does.
+
+They should not be arbitrary decoration.
+
+Integrate the language-selection experience elegantly into the composition.
+
+Make Bangla and English selection immediately understandable and accessible.
+
+B. Welcome and Authentication
+
+Give the Welcome screen the same attention as the application's main dashboard.
+
+It should not look like a generic login template.
+
+Create a premium educational introduction experience.
+
+Include a meaningful interactive visual centerpiece representing the application's actual value:
+
+- NCTB textbook learning.
+- Board-standard MCQ and CQ preparation.
+- AI-supported learning.
+- Study planning.
+- Focus sessions.
+- Existing learning tools.
+
+The visual stage may use multiple floating elements and a live interactive showcase.
+
+A 3D preview carousel is acceptable, but do not make the entire experience simply a collection of cards.
+
+Use original, purpose-driven visual composition.
+
+Authentication surface
+
+Create a beautifully integrated authentication experience.
+
+Ensure that:
+
+- Create Account works.
+- Email Sign-In works.
+- Google Sign-In works.
+- Password Reset works.
+- Existing guest functionality works.
+- Existing consent and age-related flows remain intact.
+- Forms remain comfortable to use.
+- Keyboard appearance does not hide important controls.
+- Authentication errors appear elegantly.
+- Loading and disabled states are properly designed.
+
+The authentication surface should feel like a natural continuation of the launch design.
+
+Do not sacrifice usability for visual effects.
+
+C. Today — Main Dashboard
+
+Create a premium educational home dashboard.
+
+Include the existing functionality while improving its visual organization.
+
+Design the following areas:
+
+Personalized greeting
+
+A refined header with the actual learner information and appropriate controls.
+
+Featured learning stage
+
+A wide, distinctive hero region featuring:
+
+- Active learning destination.
+- Actual textbook or subject information.
+- Continue Learning.
+- Interactive neighboring previews.
+- Sophisticated carousel controls.
+
+Learning summaries
+
+Compact summary surfaces for genuine data, such as:
+
+- Study time.
+- Learning progress.
+- Course accuracy.
+- Current learning goals.
+
+Only display information already supported by the application.
+
+Recent learning activity
+
+Create elegant, compact activity-history rows using actual records.
+
+Study workspace
+
+Give existing tools a meaningful, organized entry point.
+
+Learning plans
+
+Display relevant existing plans and revision information without overwhelming the screen.
+
+Additional sections
+
+Preserve other existing dashboard content while reorganizing it into a more refined hierarchy.
+
+The result should have a strong first impression without becoming cluttered.
+
+D. Learn Hub
+
+Transform the learning-discovery experience.
+
+Include existing:
+
+- Classes.
+- Subjects.
+- Textbooks.
+- Chapters.
+- Lessons.
+- Search.
+- Filters.
+- Learning progress.
+- Study collections.
+
+Use horizontal subject discovery, featured learning destinations, compact information areas, and carefully designed lesson previews.
+
+Avoid endless vertical repetition.
+
+Make the progression from selecting a class to opening a textbook, selecting a chapter, and studying a lesson visually clear.
+
+Keep all existing curriculum and textbook data intact.
+
+E. Textbook and Lesson Experience
+
+Do not overlook the actual reading experience.
+
+Redesign the visual presentation of:
+
+- Textbook selection.
+- Book details.
+- Chapter lists.
+- Lesson content.
+- Reading controls.
+- Page navigation.
+- Bookmarks.
+- Reading progress.
+- Offline availability.
+- Revision actions.
+- Existing educational materials.
+
+Prioritize typography, readability, content hierarchy, and comfortable reading.
+
+Bangla and English layouts must both look professional.
+
+Do not sacrifice textbook readability to introduce decorative design.
+
+F. Practice and Examination Screens
+
+Give question-based learning its own coherent design language.
+
+Refine existing:
+
+- MCQ interfaces.
+- CQ interfaces.
+- Practice sessions.
+- Question banks.
+- Timed examinations.
+- Mock tests.
+- Answer evaluation.
+- Result screens.
+- Revision flows.
+
+Focus on readability, question hierarchy, answer selection, progress visibility, timers, and meaningful feedback.
+
+Do not change examination logic, scoring, answer evaluation, or existing functionality.
+
+G. Study Tools
+
+Redesign all existing study-tool interfaces.
+
+This includes the tools actually present in the project, such as:
+
+- Flashcards.
+- Revision Planner.
+- Focus Timer.
+- Pomodoro.
+- Daily Challenge.
+- Analytics.
+- Goals.
+- AI Lab.
+- AI Doubt Solver.
+- AI Video Studio.
+- Assignments.
+- Question Bank.
+
+Give each tool an appropriate visual identity while retaining the shared Study Quest design system.
+
+Avoid making every tool look like the same generic card grid.
+
+H. Compete
+
+Preserve all existing Compete capabilities.
+
+Improve the presentation of competitions, learning comparisons, and existing participation interfaces.
+
+Keep the experience sophisticated and educational rather than turning it into a gaming dashboard.
+
+Do not introduce XP badges, coins, giant achievement illustrations, or unnecessary rank decorations.
+
+I. Friends and Study Circle
+
+Redesign existing:
+
+- Friends lists.
+- Friend profiles.
+- Study Circle.
+- Existing messaging.
+- Chat screens.
+- Related navigation.
+- Empty and loading states.
+
+Make communication and social learning easy to understand.
+
+Maintain the real existing functionality.
+
+J. Profile and Settings
+
+Create a sophisticated profile experience.
+
+Improve:
+
+- Profile header.
+- Personal information.
+- Learning summaries.
+- Account settings.
+- Language settings.
+- Theme settings.
+- Existing preferences.
+- Existing subscription screens.
+- Other profile sub-screens.
+
+Keep important information organized rather than overcrowding the main profile.
+
+Gamification restriction
+
+Do not make XP, badges, achievements, coins, or streak counters the centerpiece of Study Quest.
+
+Do not add unnecessary achievement banners or reward clutter.
+
+Preserve any existing underlying gamification functionality and data.
+
+Keep secondary gamification information out of the main learning experience unless an existing feature specifically requires it.
+
+---
+
+7. ORIGINAL VISUAL ARTWORK — NOT GENERIC DECORATION
+
+One of the most important requirements is the visual centerpiece.
+
+Study Quest needs a recognizable visual identity.
+
+Do not rely entirely on ordinary Material icons, repeated rectangles, or generic dashboard cards.
+
+Create purposeful educational artwork and supporting visual elements.
+
+Possible elements:
+
+- Premium textbook illustrations.
+- Layered study materials.
+- Realistic floating pages.
+- Abstract mathematical structures.
+- Refined educational diagrams.
+- Interactive learning previews.
+- Depth-based learning compositions.
+- Subtle atmospheric environmental details.
+
+The artwork should make sense within the screen where it appears.
+
+For example, the launch screen should communicate the educational purpose of the entire application.
+
+The authentication screen should introduce its capabilities.
+
+The Today dashboard should communicate the next learning destination.
+
+The textbook interface should emphasize actual educational content.
+
+Do not use cartoon mascots or fantasy environments as the default visual solution.
+
+Do not turn the interface into a children's adventure game.
+
+---
+
+8. LIVE ANIMATIONS AND INTERACTIONS
+
+The reference-inspired visual language should not remain static.
+
+Implement appropriate live interactions.
+
+Examples:
+
+- Smooth, interactive learning carousels.
+- Subtle floating educational previews.
+- Natural layered parallax.
+- Carefully controlled 3D perspective.
+- Smooth transitions between navigation destinations.
+- Elegant page transitions.
+- Animated progress indicators.
+- Refined button feedback.
+- Beautifully designed selection states.
+- Subtle surface transitions.
+- Responsive gesture interactions.
+- Meaningful loading animations.
+
+Animation must communicate state, movement, or relationships.
+
+Do not animate every element simply because animation is available.
+
+Avoid:
+
+- Constant bouncing.
+- Excessive glowing effects.
+- Unnecessary spinning.
+- Heavy particle effects.
+- Distracting background animations.
+- Excessive spring movement.
+- Animations that slow down learning.
+
+Respect reduced-motion preferences and maintain good performance on ordinary Android devices.
+
+---
+
+9. COMPONENT DESIGN SYSTEM
+
+Establish one consistent, reusable visual system.
+
+Standardize:
+
+- Color tokens.
+- Typography.
+- Bangla typography.
+- Headings and body text.
+- Spacing.
+- Card proportions.
+- Corner radii.
+- Borders.
+- Shadows.
+- Elevation.
+- Icons.
+- Buttons.
+- Inputs.
+- Navigation.
+- Dialogs.
+- Bottom sheets.
+- Tabs.
+- Progress indicators.
+- Loading states.
+- Empty states.
+- Error states.
+
+Build reusable Compose components where appropriate.
+
+Avoid creating a completely different implementation of the same button or card on every screen.
+
+However, do not force every component into identical styling.
+
+Use the correct component for the actual interaction and purpose.
+
+---
+
+10. RESPONSIVE AND DEVICE-ADAPTIVE DESIGN
+
+Study Quest must work beautifully across different screen sizes.
+
+Phones
+
+Prioritize mobile usability.
+
+Use:
+
+- Compact, well-organized navigation.
+- Touch-friendly controls.
+- Carefully sized hero compositions.
+- Scrollable and interactive carousels.
+- Readable typography.
+- Proper keyboard handling.
+- Comfortable content spacing.
+
+Never simply shrink a desktop layout onto a phone.
+
+Tablets and larger screens
+
+Use available space intelligently.
+
+Adapt navigation, content widths, carousel positioning, and multi-column layouts.
+
+Avoid stretching individual components excessively.
+
+Maintain the same visual identity across all supported screen sizes.
+
+---
+
+11. ACCESSIBILITY AND REAL-WORLD USABILITY
+
+This is a genuine educational application.
+
+It must remain comfortable for real students.
+
+Ensure:
+
+- Appropriate text contrast.
+- Readable Bangla and English typography.
+- Suitable touch targets.
+- Clear focus states.
+- Accessible controls.
+- Appropriate content hierarchy.
+- Comfortable reading surfaces.
+- Proper screen-reader labels where needed.
+- Usable dialogs and forms.
+- No clipped text.
+- No overlapping content.
+- No hidden navigation controls.
+- No keyboard-related layout failures.
+
+Visual beauty must never compromise usability.
+
+---
+
+12. STRICT DESIGN QUALITY REQUIREMENTS
+
+Avoid all of the following:
+
+- Generic AI-generated dashboard layouts.
+- Repeated identical cards.
+- Excessive pill-shaped components.
+- Excessive glassmorphism.
+- Excessive gradients.
+- Random decorative graphics.
+- Unnecessary icons.
+- Overly large headings.
+- Inconsistent spacing.
+- Unbalanced composition.
+- Excessively empty screens.
+- Cluttered screens.
+- Childish illustrations.
+- Fantasy maps.
+- Large XP and reward banners.
+- Fake data.
+- Static decorative controls pretending to be interactive.
+- Generic login screens.
+- A visually impressive home screen with poorly designed secondary screens.
+
+Every screen must look intentionally designed.
+
+Every visual element must have a purpose.
+
+NO AI SLOP. NO GENERIC TEMPLATES. NO SHORTCUT DESIGN.
+
+---
+
+13. IMPLEMENTATION WORKFLOW
+
+Follow a professional product-design and engineering workflow.
+
+Phase 1 — Complete inspection
+
+Inspect the entire source repository.
+
+Identify:
+
+- Existing screens.
+- Navigation architecture.
+- Theme implementation.
+- Reusable components.
+- Data sources.
+- Authentication.
+- Existing functionality.
+- Existing tests.
+- Important UI states.
+
+Establish a feature-preservation checklist.
+
+Do not start deleting or replacing components before understanding their responsibilities.
+
+Phase 2 — Reference analysis
+
+Study the supplied reference image.
+
+Translate its design language into Study Quest's educational context.
+
+Establish the color system, surface system, typography, visual hierarchy, hero composition, and interaction principles.
+
+Phase 3 — Complete design planning
+
+Develop a screen-by-screen redesign specification.
+
+Do not only plan the Today and Learn screens.
+
+Include the launch experience, authentication, textbooks, lessons, examinations, tools, social screens, profile, settings, and every other existing screen.
+
+Identify reusable visual components and common interaction patterns.
+
+Phase 4 — Implementation
+
+Implement the redesign directly in the existing application.
+
+Preserve the established architecture wherever practical.
+
+Prioritize:
+
+1. Global visual system.
+2. Navigation.
+3. Launch and authentication.
+4. Today.
+5. Learn Hub.
+6. Textbook and reading interfaces.
+7. Practice and examinations.
+8. Study tools.
+9. Compete.
+10. Friends and communication.
+11. Profile and settings.
+12. Remaining dialogs, sub-screens, and states.
+
+Do not stop after completing the first few screens.
+
+Phase 5 — Visual refinement
+
+Inspect the actual implemented application.
+
+Compare screenshots against the supplied reference.
+
+Look for:
+
+- Incorrect proportions.
+- Weak visual hierarchy.
+- Poor alignment.
+- Repetitive layouts.
+- Incorrect spacing.
+- Inconsistent colors.
+- Weak focal elements.
+- Excessive shadows.
+- Poor carousel depth.
+- Clipped content.
+- Poor Bangla rendering.
+- Unattractive authentication screens.
+
+Fix the problems rather than merely reporting them.
+
+Phase 6 — Functional verification
+
+Verify that redesigned controls still work.
+
+Check:
+
+- Navigation.
+- Authentication.
+- Language switching.
+- Theme switching.
+- Search and filters.
+- Carousel navigation.
+- Reading and bookmarking.
+- Practice and examinations.
+- Existing study tools.
+- Friends and communication.
+- Profile settings.
+- Offline functionality.
+- Existing backend integrations.
+
+Do not report a feature as verified unless it was actually tested.
+
+Phase 7 — Build and test
+
+Run the available build and test commands.
+
+Verify:
+
+- Successful compilation.
+- Existing unit tests.
+- Existing Robolectric tests.
+- UI interaction tests.
+- Launch and authentication tests.
+- Dark and light theme rendering.
+- Navigation integrity.
+- Responsive layouts.
+
+Fix regressions introduced by this redesign.
+
+Do not hide existing failures or claim success without actual evidence.
+
+---
+
+14. FINAL ACCEPTANCE CRITERIA
+
+The project is not complete merely because the application compiles.
+
+It must meet all of these requirements.
+
+Visual quality
+
+- The entire app follows a coherent, premium design system.
+- The supplied reference's visual principles are clearly translated into the educational product.
+- The central learning experience is visually distinctive.
+- The launch and authentication experiences are genuinely redesigned.
+- All existing screens receive appropriate visual refinement.
+- Light and dark modes both look professionally designed.
+- Bangla and English interfaces remain polished.
+
+Functional preservation
+
+- Every existing feature remains available.
+- Existing navigation continues working.
+- Existing authentication and backend integrations remain intact.
+- Existing educational content and curriculum remain intact.
+- Existing offline functionality remains intact.
+- No real data is replaced with fake data.
+
+Interaction quality
+
+- Carousels work.
+- Navigation controls work.
+- Buttons work.
+- Forms work.
+- Animations are smooth.
+- Touch interactions work.
+- Existing application workflows remain usable.
+
+Technical quality
+
+- The application builds.
+- Relevant tests pass.
+- No new unintended runtime errors.
+- No obvious layout regressions.
+- No broken interactions.
+- No unnecessary architecture changes.
+
+---
+
+15. FINAL PROJECT STANDARD
+
+Treat this as a serious, premium commercial product-development engagement, with a quality benchmark comparable to a carefully executed $1,200 commissioned UI/UX redesign.
+
+That is a quality expectation, not a request to spend money or introduce paid dependencies.
+
+Take the time to understand the actual application and make thoughtful design decisions.
+
+Do not interpret this assignment as permission to rebuild Study Quest from scratch.
+
+Do not remove features to make implementation easier.
+
+Do not stop after changing colors.
+
+Do not spend the entire effort redesigning only the dashboard.
+
+Do not leave the language selection and authentication experiences behind.
+
+Do not claim that every screen is redesigned if some remain untouched.
+
+The goal is to make the entire Study Quest application feel like one beautifully designed, professionally engineered product.
+
+The first screen should create a strong impression.
+
+Authentication should feel welcoming.
+
+Learning should feel comfortable.
+
+Textbooks should be beautiful to read.
+
+Practice should feel intuitive.
+
+Study tools should feel cohesive.
+
+Navigation should feel natural.
+
+Every interaction should feel intentional.
+
+PRESERVE EVERYTHING THE APPLICATION CAN DO. TRANSFORM HOW THE ENTIRE APPLICATION LOOKS AND FEELS.
+
+FINAL DIRECTIVE
+
+REAL APPLICATION. REAL FEATURES. REAL DATA. REAL INTERACTIONS.
+
+PREMIUM UI/UX. REFERENCE-INSPIRED COMPOSITION. DISTINCTIVE EDUCATIONAL VISUAL IDENTITY. ELEGANT LIVE ANIMATIONS. COMPLETE LIGHT AND DARK THEMES.
+
+NO FEATURE REMOVAL. NO FAKE FUNCTIONALITY. NO GENERIC DASHBOARDS. NO CHILDISH GAME DESIGN. NO AI SLOP.
+
+MAKE STUDY QUEST LOOK AND FEEL LIKE A PREMIUM, PROFESSIONALLY COMMISSIONED EDUCATIONAL PRODUCT — NOT JUST AN EXISTING APP WITH A NEW COLOR PALETTE.

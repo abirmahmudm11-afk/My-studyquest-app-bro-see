@@ -76,7 +76,8 @@ class AuthUiRobolectricTest {
         composeRule.onNodeWithTag("auth_error_banner").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Google Sign-In timed out while contacting Firebase.").assertIsDisplayed()
         composeRule.onNodeWithTag("google_sign_in_button").assertIsNotEnabled()
-        composeRule.onNodeWithTag("email_auth_submit_button").assertIsNotEnabled()
+        composeRule.onNodeWithTag("welcome_sign_in_btn").assertIsNotEnabled()
+        composeRule.onNodeWithTag("welcome_create_account_btn").assertIsNotEnabled()
         composeRule.onNodeWithTag("auth_status_message").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Still contacting Firebase (retrying automatically in background, attempt #2)...").assertIsDisplayed()
     }
@@ -192,6 +193,8 @@ class AuthUiRobolectricTest {
             }
         }
 
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("welcome_sign_in_btn").performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("auth_email_input").performScrollTo().performTextInput("student@studyquest.bd")
         composeRule.onNodeWithTag("auth_password_input").performScrollTo().performTextInput("secret123")

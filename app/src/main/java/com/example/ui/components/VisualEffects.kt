@@ -170,7 +170,11 @@ fun ReferenceHeroCarouselStage(
     val visualConfig = LocalStudyQuestSurfaceStyle.current
     val scope = rememberCoroutineScope()
     val safeSlides = slides.ifEmpty { return }
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { safeSlides.size })
+    val hasMultiple = safeSlides.size > 1
+    val canonicalBase = if (hasMultiple) safeSlides.size * 100 else 0
+    val virtualCount = if (hasMultiple) safeSlides.size * 200 else 1
+    val pagerState = rememberPagerState(initialPage = canonicalBase, pageCount = { virtualCount })
+    val activeSlideIndex = pagerState.currentPage % safeSlides.size
 
     val bandColors = if (visualConfig.isDark) {
         listOf(DarkHeroSlateTop, DarkHeroSlateBottom)
@@ -233,17 +237,17 @@ fun ReferenceHeroCarouselStage(
                 val cardWidth = if (isWide) 320.dp else (maxWidth - 88.dp).coerceIn(228.dp, 310.dp)
                 val sidePadding = ((maxWidth - cardWidth) / 2f).coerceAtLeast(24.dp)
 
-                // Subtle back frosted glass frame centered behind active slide
+                // Back frosted glass frame centered behind active slide (Photo 1 signature stage)
                 Surface(
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(30.dp),
                     color = stageBg,
-                    border = BorderStroke(1.dp, stageBorder),
+                    border = BorderStroke(1.2.dp, stageBorder),
                     shadowElevation = 0.dp,
                     modifier = Modifier
-                        .widthIn(max = if (isWide) 520.dp else maxWidth - 24.dp)
+                        .widthIn(max = if (isWide) 540.dp else maxWidth - 26.dp)
                         .fillMaxWidth()
-                        .height(if (dockActions.isNotEmpty()) 292.dp else 230.dp)
-                        .padding(horizontal = if (isWide) 0.dp else 12.dp)
+                        .height(if (dockActions.isNotEmpty()) 296.dp else 234.dp)
+                        .padding(horizontal = if (isWide) 0.dp else 10.dp)
                 ) {}
 
                 Column(
@@ -259,16 +263,18 @@ fun ReferenceHeroCarouselStage(
                             state = pagerState,
                             pageSize = PageSize.Fixed(cardWidth),
                             contentPadding = PaddingValues(horizontal = sidePadding),
-                            pageSpacing = 14.dp,
+                            pageSpacing = 12.dp,
                             beyondViewportPageCount = 2,
                             modifier = Modifier.fillMaxWidth()
                         ) { page ->
-                            val slide = safeSlides[page]
+                            val slideIdx = page % safeSlides.size
+                            val slide = safeSlides[slideIdx]
+                            val isCanonical = page in canonicalBase until (canonicalBase + safeSlides.size)
                             val rawOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
                             val absOffset = rawOffset.absoluteValue.coerceIn(0f, 1.5f)
-                            val scale = lerp(1f, 0.87f, absOffset.coerceAtMost(1f))
-                            val alpha = lerp(1f, 0.72f, absOffset.coerceAtMost(1f))
-                            val tiltY = if (reducedMotion) 0f else (rawOffset * 10f).coerceIn(-12f, 12f)
+                            val scale = lerp(1f, 0.84f, absOffset.coerceAtMost(1f))
+                            val alpha = lerp(1f, 0.78f, absOffset.coerceAtMost(1f))
+                            val tiltY = if (reducedMotion) 0f else (rawOffset * 15f).coerceIn(-18f, 18f)
 
                             val baseCardMod = Modifier
                                 .width(cardWidth)
@@ -278,20 +284,20 @@ fun ReferenceHeroCarouselStage(
                                     scaleY = scale
                                     this.alpha = alpha
                                     rotationY = tiltY
-                                    cameraDistance = 12f * density
+                                    cameraDistance = 11f * density
                                 }
                                 .let { m ->
-                                    if (!slide.cardTestTag.isNullOrBlank()) m.testTag(slide.cardTestTag) else m
+                                    if (isCanonical && !slide.cardTestTag.isNullOrBlank()) m.testTag(slide.cardTestTag) else m
                                 }
 
                             Surface(
                                 onClick = slide.onClick,
                                 shape = RoundedCornerShape(22.dp),
                                 color = Color.Transparent,
-                                shadowElevation = if (absOffset < 0.25f) 10.dp else 3.dp,
+                                shadowElevation = if (absOffset < 0.25f) 12.dp else 3.dp,
                                 border = BorderStroke(
                                     1.dp,
-                                    Color.White.copy(alpha = if (absOffset < 0.25f) 0.52f else 0.24f)
+                                    Color.White.copy(alpha = if (absOffset < 0.25f) 0.58f else 0.24f)
                                 ),
                                 modifier = baseCardMod
                             ) {
@@ -393,7 +399,7 @@ fun ReferenceHeroCarouselStage(
                                                     .weight(1f)
                                                     .minimumInteractiveComponentSize()
                                                     .let { m ->
-                                                        if (!slide.primaryActionTestTag.isNullOrBlank()) {
+                                                        if (isCanonical && !slide.primaryActionTestTag.isNullOrBlank()) {
                                                             m.testTag(slide.primaryActionTestTag)
                                                         } else m
                                                     }
@@ -430,7 +436,7 @@ fun ReferenceHeroCarouselStage(
                                                     val secMod = Modifier
                                                         .minimumInteractiveComponentSize()
                                                         .let { m ->
-                                                            if (!slide.secondaryActionTestTag.isNullOrBlank()) {
+                                                            if (isCanonical && !slide.secondaryActionTestTag.isNullOrBlank()) {
                                                                 m.testTag(slide.secondaryActionTestTag)
                                                             } else m
                                                         }
@@ -458,23 +464,23 @@ fun ReferenceHeroCarouselStage(
                         }
 
                         // Subtle translucent circular Left / Right navigation arrows
-                        if (safeSlides.size > 1) {
+                        if (hasMultiple) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .widthIn(max = 520.dp)
+                                    .widthIn(max = 530.dp)
                                     .padding(horizontal = 18.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Surface(
                                     onClick = {
-                                        val prev = if (pagerState.currentPage > 0) pagerState.currentPage - 1 else safeSlides.lastIndex
+                                        val prev = (pagerState.currentPage - 1).coerceAtLeast(0)
                                         scope.launch { pagerState.animateScrollToPage(prev) }
                                     },
                                     shape = CircleShape,
-                                    color = Color.White.copy(alpha = if (visualConfig.isDark) 0.16f else 0.32f),
-                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.55f)),
+                                    color = Color.White.copy(alpha = if (visualConfig.isDark) 0.18f else 0.34f),
+                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.60f)),
                                     modifier = Modifier
                                         .size(40.dp)
                                         .minimumInteractiveComponentSize()
@@ -491,12 +497,12 @@ fun ReferenceHeroCarouselStage(
                                 }
                                 Surface(
                                     onClick = {
-                                        val next = if (pagerState.currentPage < safeSlides.lastIndex) pagerState.currentPage + 1 else 0
+                                        val next = (pagerState.currentPage + 1).coerceAtMost(virtualCount - 1)
                                         scope.launch { pagerState.animateScrollToPage(next) }
                                     },
                                     shape = CircleShape,
-                                    color = Color.White.copy(alpha = if (visualConfig.isDark) 0.16f else 0.32f),
-                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.55f)),
+                                    color = Color.White.copy(alpha = if (visualConfig.isDark) 0.18f else 0.34f),
+                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.60f)),
                                     modifier = Modifier
                                         .size(40.dp)
                                         .minimumInteractiveComponentSize()
@@ -595,10 +601,10 @@ fun ReferenceSummaryPanel(
     val visualConfig = LocalStudyQuestSurfaceStyle.current
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
         border = studyQuestGlassAwareBorder(),
-        shadowElevation = if (visualConfig.isGlass) 0.dp else 1.dp,
+        shadowElevation = 0.dp,
         modifier = modifier.minimumInteractiveComponentSize()
     ) {
         Column(
@@ -622,11 +628,11 @@ fun ReferenceSummaryPanel(
             )
             LinearProgressIndicator(
                 progress = { progress.coerceIn(0.04f, 1f) },
-                color = accentColor,
+                color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(4.dp)
+                    .height(3.dp)
                     .clip(RoundedCornerShape(999.dp))
             )
             Text(
@@ -666,15 +672,15 @@ fun ReferenceActivityRow(
     ) {
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = tint.copy(alpha = 0.13f),
-            modifier = Modifier.size(42.dp)
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.size(40.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = tint,
-                    modifier = Modifier.size(20.dp)
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(19.dp)
                 )
             }
         }
@@ -698,13 +704,13 @@ fun ReferenceActivityRow(
         if (!badgePill.isNullOrBlank()) {
             Surface(
                 shape = RoundedCornerShape(999.dp),
-                color = MutedMintContainer
+                color = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Text(
                     text = badgePill,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = DeepSlateInk,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
@@ -1023,74 +1029,18 @@ fun StudyQuestGradientHeroBanner(
     bottomContent: @Composable (ColumnScope.() -> Unit)? = null
 ) {
     val visualConfig = LocalStudyQuestSurfaceStyle.current
-    val resolvedColors = if (visualConfig.isDark && heroGradientColors.firstOrNull() == HeroSlateBlueTop) {
-        listOf(DarkHeroSlateTop, DarkHeroSlateBottom)
-    } else {
-        heroGradientColors
-    }
-    val shimmer = if (reducedMotion) 0f else {
-        val inf = rememberInfiniteTransition(label = "hero_wave")
-        val anim by inf.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(4200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "wave_phase"
-        )
-        anim
-    }
-
-    val containerBrush = if (visualConfig.isGlass) {
-        Brush.linearGradient(
-            listOf(
-                resolvedColors.first().copy(alpha = if (visualConfig.isDark) 0.84f else 0.94f),
-                resolvedColors.last().copy(alpha = if (visualConfig.isDark) 0.80f else 0.92f)
-            )
-        )
-    } else {
-        Brush.linearGradient(resolvedColors)
-    }
+    val resolvedSurface = if (visualConfig.isDark) Color(0xFF161D2A) else Color(0xFF0F172A)
+    val resolvedBorder = if (visualConfig.isDark) Color.White.copy(alpha = 0.12f) else Color(0xFF1E293B)
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        color = Color.Transparent,
+        shape = RoundedCornerShape(16.dp),
+        color = resolvedSurface,
         tonalElevation = 0.dp,
-        shadowElevation = if (visualConfig.isGlass) 0.dp else 3.dp,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f))
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, resolvedBorder)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(containerBrush)
-        ) {
-            if (backgroundResId != null) {
-                Image(
-                    painter = painterResource(id = backgroundResId),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .matchParentSize()
-                        .alpha(0.08f)
-                )
-            }
-            Canvas(modifier = Modifier.matchParentSize()) {
-                val w = size.width
-                val h = size.height
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.08f + 0.03f * shimmer),
-                    radius = h * 0.56f,
-                    center = Offset(w * 0.94f, h * 0.14f)
-                )
-                drawCircle(
-                    color = MutedMintFocal.copy(alpha = 0.16f),
-                    radius = h * 0.36f,
-                    center = Offset(w * 0.06f, h * 1.04f)
-                )
-            }
-
+        Box(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1105,18 +1055,18 @@ fun StudyQuestGradientHeroBanner(
                         if (!eyebrow.isNullOrBlank()) {
                             Surface(
                                 shape = RoundedCornerShape(999.dp),
-                                color = Color.White.copy(alpha = 0.18f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.34f))
+                                color = Color.White.copy(alpha = 0.10f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
                             ) {
                                 Text(
                                     text = eyebrow,
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White.copy(alpha = 0.90f),
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
                             }
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(10.dp))
                         }
                         Text(
                             text = title,
@@ -1128,7 +1078,7 @@ fun StudyQuestGradientHeroBanner(
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.88f)
+                            color = Color.White.copy(alpha = 0.78f)
                         )
                     }
                     if (trailingSlot != null) {
@@ -1459,8 +1409,8 @@ fun LessonSuccessLottieDialog(
                     Text(
                         text = StudyQuestStrings.t(
                             language,
-                            "Progress saved • +${StudyQuestStrings.formatDigits(xpEarned, language)} pts",
-                            "অগ্রগতি সংরক্ষিত • +${StudyQuestStrings.formatDigits(xpEarned, language)}"
+                            "Chapter milestone & badge progress saved",
+                            "অধ্যায়ের মাইলফলক ও ব্যাজ অগ্রগতি সংরক্ষিত"
                         ),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
@@ -1488,7 +1438,7 @@ fun GuestUpgradeBannerCard(
             .testTag("guest_upgrade_banner"),
         shape = RoundedCornerShape(16.dp),
         color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-        border = studyQuestGlassAwareBorder(MineralTeal.copy(alpha = 0.40f))
+        border = studyQuestGlassAwareBorder()
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -1497,14 +1447,14 @@ fun GuestUpgradeBannerCard(
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = semantic.cyanContainer,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.CloudUpload,
                         contentDescription = null,
-                        tint = MineralTeal
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -1527,8 +1477,8 @@ fun GuestUpgradeBannerCard(
             Button(
                 onClick = onSignInClick,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = BrandTealPrimary,
-                    contentColor = CrispCoolSurface
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 modifier = Modifier
                     .minimumInteractiveComponentSize()

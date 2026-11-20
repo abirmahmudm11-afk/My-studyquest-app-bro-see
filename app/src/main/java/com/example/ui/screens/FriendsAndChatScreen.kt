@@ -75,12 +75,11 @@ import com.example.data.model.PublicProfile
 import com.example.data.model.StudyGroupParticipantDoc
 import com.example.ui.components.AvatarBadgeView
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.OfflineLockBadgeChip
 import com.example.ui.components.PulseLiveDot
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
-import com.example.ui.theme.BerryViolet
 import com.example.ui.theme.CobaltPrimary
-import com.example.ui.theme.ElectricIndigo
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.SkyCyan
 import com.example.ui.theme.TealSecondary
@@ -146,7 +145,8 @@ fun FriendsTabScreen(
     onUpdateGroupStatus: (ConversationDoc, String) -> Unit = { _, _ -> },
     onUpdateGroupSharedProblem: (ConversationDoc, String, String) -> Unit = { _, _, _ -> },
     onAskAiAboutProblem: (String) -> Unit = {},
-    onCreateStudyGroupWithSubject: ((name: String, invitedUids: List<String>, subjectId: String?) -> Unit)? = null
+    onCreateStudyGroupWithSubject: ((name: String, invitedUids: List<String>, subjectId: String?) -> Unit)? = null,
+    isOnline: Boolean = true
 ) {
     if (activeConversation != null) {
         ChatConversationScreen(
@@ -178,7 +178,8 @@ fun FriendsTabScreen(
             onUpdateGroupSharedProblem = { title, prompt ->
                 onUpdateGroupSharedProblem(activeConversation, title, prompt)
             },
-            onAskAiAboutProblem = onAskAiAboutProblem
+            onAskAiAboutProblem = onAskAiAboutProblem,
+            isOnline = isOnline
         )
         return
     }
@@ -256,6 +257,26 @@ fun FriendsTabScreen(
                 text = { Text(StudyQuestStrings.t(uiLanguage, "Community", "কমিউনিটি")) },
                 modifier = Modifier.testTag("friends_tab_community")
             )
+        }
+
+        if (!isOnline) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("friends_offline_notice")
+            ) {
+                Text(
+                    text = StudyQuestStrings.t(
+                        uiLanguage,
+                        "Offline mode: Cached threads & local Study Circle notes remain readable; cloud messages sync on reconnect.",
+                        "অফলাইন মোড: সংরক্ষিত চ্যাট ও লোকাল স্টাডি নোট দেখা যাবে; নেটওয়ার্কে ফিরলে মেসেজ সিঙ্ক হবে।"
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                )
+            }
         }
 
         when (selectedTab) {
@@ -412,6 +433,7 @@ fun FriendsTabScreen(
                                 onValueChange = { searchText = it },
                                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                                 label = { Text(StudyQuestStrings.t(uiLanguage, "Search SQ-ID, username or name", "SQ-ID বা নাম লিখুন")) },
+                                enabled = isOnline,
                                 singleLine = true,
                                 modifier = Modifier
                                     .weight(1f)
@@ -419,6 +441,7 @@ fun FriendsTabScreen(
                             )
                             Button(
                                 onClick = { onSearchStudents(searchText) },
+                                enabled = isOnline,
                                 modifier = Modifier.minimumInteractiveComponentSize()
                             ) {
                                 Text(StudyQuestStrings.t(uiLanguage, "Search", "খুঁজুন"))
@@ -442,7 +465,7 @@ fun FriendsTabScreen(
                                     AvatarBadgeView(candidate.avatarId, candidate.frameId, candidate.displayName, size = 42.dp)
                                     Column {
                                         Text(candidate.displayName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                        Text("${candidate.studyQuestId} • Lv.${candidate.overallLevel}", style = MaterialTheme.typography.labelSmall)
+                                        Text("${candidate.studyQuestId} • ${StudyQuestStrings.rankTierLabel(candidate.rankTier, uiLanguage)}", style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                                 when {
@@ -454,6 +477,7 @@ fun FriendsTabScreen(
                                     }
                                     else -> Button(
                                         onClick = { onSendFriendRequest(candidate) },
+                                        enabled = isOnline,
                                         modifier = Modifier.testTag("send_friend_req_${candidate.userId}")
                                     ) {
                                         Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -501,10 +525,16 @@ fun FriendsTabScreen(
                                         Text(req.fromStudyQuestId ?: "", style = MaterialTheme.typography.labelSmall)
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Button(onClick = { onRespondFriendRequest(req, true) }) {
+                                        Button(
+                                            onClick = { onRespondFriendRequest(req, true) },
+                                            enabled = isOnline
+                                        ) {
                                             Text(StudyQuestStrings.t(uiLanguage, "Accept", "গ্রহণ"))
                                         }
-                                        OutlinedButton(onClick = { onRespondFriendRequest(req, false) }) {
+                                        OutlinedButton(
+                                            onClick = { onRespondFriendRequest(req, false) },
+                                            enabled = isOnline
+                                        ) {
                                             Text(StudyQuestStrings.t(uiLanguage, "Decline", "বাতিল"))
                                         }
                                     }
@@ -522,7 +552,10 @@ fun FriendsTabScreen(
                             StudyQuestCard {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text("ID: ${blk.blockedUid.take(10)}", style = MaterialTheme.typography.bodySmall)
-                                    OutlinedButton(onClick = { onUnblockUser(blk.id) }) {
+                                    OutlinedButton(
+                                        onClick = { onUnblockUser(blk.id) },
+                                        enabled = isOnline
+                                    ) {
                                         Text(StudyQuestStrings.t(uiLanguage, "Unblock", "আনব্লক"))
                                     }
                                 }
@@ -552,16 +585,26 @@ fun FriendsTabScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item {
-                        Button(
-                            onClick = { showCreateGroupDialog = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .minimumInteractiveComponentSize()
-                                .testTag("create_study_group_btn")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Filled.GroupAdd, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text(StudyQuestStrings.t(uiLanguage, "Create Private Study Group", "প্রাইভেট স্টাডি গ্রুপ তৈরি"))
+                            Button(
+                                onClick = { showCreateGroupDialog = true },
+                                enabled = isOnline,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("create_study_group_btn")
+                            ) {
+                                Icon(Icons.Filled.GroupAdd, contentDescription = null)
+                                Spacer(Modifier.width(6.dp))
+                                Text(StudyQuestStrings.t(uiLanguage, "Create Private Study Group", "প্রাইভেট স্টাডি গ্রুপ তৈরি"))
+                            }
+                            if (!isOnline) {
+                                OfflineLockBadgeChip(language = uiLanguage)
+                            }
                         }
                     }
 
@@ -589,7 +632,10 @@ fun FriendsTabScreen(
                                         )
                                     }
                                     if (isInvited) {
-                                        Button(onClick = { onAcceptGroupInvite(grp) }) {
+                                        Button(
+                                            onClick = { onAcceptGroupInvite(grp) },
+                                            enabled = isOnline
+                                        ) {
                                             Text(StudyQuestStrings.t(uiLanguage, "Join Group", "যোগ দাও"))
                                         }
                                     } else {
@@ -621,7 +667,8 @@ fun FriendsTabScreen(
                     onMarkHelpful = onMarkCommentHelpful,
                     onReportPost = onReportCommunityPost,
                     onDeleteOwnPost = onDeleteOwnCommunityPost,
-                    onRequestGoogleSignIn = onRequestGoogleSignIn
+                    onRequestGoogleSignIn = onRequestGoogleSignIn,
+                    isOnline = isOnline
                 )
             }
         }
@@ -714,7 +761,8 @@ fun ChatConversationScreen(
     onReportConversation: (String) -> Unit,
     onUpdateGroupStatus: (String) -> Unit = {},
     onUpdateGroupSharedProblem: (title: String, prompt: String) -> Unit = { _, _ -> },
-    onAskAiAboutProblem: (String) -> Unit = {}
+    onAskAiAboutProblem: (String) -> Unit = {},
+    isOnline: Boolean = true
 ) {
     BackHandler(onBack = onBack)
 
@@ -774,20 +822,23 @@ fun ChatConversationScreen(
                         )
                     }
                 }
-                Row {
-                    IconButton(onClick = onToggleMute) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!isOnline) {
+                        OfflineLockBadgeChip(language = uiLanguage)
+                    }
+                    IconButton(onClick = onToggleMute, enabled = isOnline) {
                         Icon(Icons.Filled.NotificationsOff, contentDescription = "Mute")
                     }
                     if (conversation.type == "direct") {
-                        IconButton(onClick = onBlockOther) {
+                        IconButton(onClick = onBlockOther, enabled = isOnline) {
                             Icon(Icons.Filled.Block, contentDescription = "Block user")
                         }
                     } else {
-                        TextButton(onClick = onLeaveGroup) {
+                        TextButton(onClick = onLeaveGroup, enabled = isOnline) {
                             Text(StudyQuestStrings.t(uiLanguage, "Leave", "ত্যাগ"))
                         }
                     }
-                    IconButton(onClick = { onReportConversation("Inappropriate chat message") }) {
+                    IconButton(onClick = { onReportConversation("Inappropriate chat message") }, enabled = isOnline) {
                         Icon(Icons.Filled.Report, contentDescription = "Report")
                     }
                 }
@@ -799,7 +850,7 @@ fun ChatConversationScreen(
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-                border = studyQuestGlassAwareBorder(ElectricIndigo.copy(alpha = 0.35f)),
+                border = studyQuestGlassAwareBorder(MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -832,6 +883,7 @@ fun ChatConversationScreen(
                                         myGroupStatus = statusId
                                         onUpdateGroupStatus(statusId)
                                     },
+                                    enabled = isOnline,
                                     label = { Text(label, style = MaterialTheme.typography.labelSmall) },
                                     modifier = Modifier.testTag("group_status_$statusId")
                                 )
@@ -842,7 +894,7 @@ fun ChatConversationScreen(
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             groupParticipants.take(8).forEach { p ->
                                 val statusColor = when (p.status) {
-                                    "solving" -> ElectricIndigo
+                                    "solving" -> MaterialTheme.colorScheme.primary
                                     "reviewing" -> SkyCyan
                                     "online" -> VividEmerald
                                     else -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -877,8 +929,8 @@ fun ChatConversationScreen(
             val hasProblem = !conversation.activeProblemTitle.isNullOrBlank() || !conversation.activeProblemPrompt.isNullOrBlank()
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = studyQuestGlassAwareSurfaceColor(BerryViolet.copy(alpha = 0.10f)),
-                border = studyQuestGlassAwareBorder(BerryViolet.copy(alpha = 0.45f)),
+                color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                border = studyQuestGlassAwareBorder(MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 2.dp)
@@ -891,7 +943,7 @@ fun ChatConversationScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Filled.PushPin, contentDescription = null, tint = BerryViolet, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.PushPin, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                             Text(
                                 text = conversation.activeProblemTitle?.takeIf { it.isNotBlank() }
                                     ?: StudyQuestStrings.t(uiLanguage, "Shared Problem Board", "শেয়ার করা সমস্যা বোর্ড"),
@@ -901,6 +953,7 @@ fun ChatConversationScreen(
                         }
                         TextButton(
                             onClick = { showEditProblemDialog = true },
+                            enabled = isOnline,
                             modifier = Modifier.testTag("group_edit_problem_btn")
                         ) {
                             Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(15.dp))
@@ -1045,7 +1098,13 @@ fun ChatConversationScreen(
             OutlinedTextField(
                 value = inputText,
                 onValueChange = { inputText = it },
-                placeholder = { Text(StudyQuestStrings.t(uiLanguage, "Write a safe study message...", "মেসেজ লেখো...")) },
+                placeholder = {
+                    Text(
+                        if (isOnline) StudyQuestStrings.t(uiLanguage, "Write a safe study message...", "মেসেজ লেখো...")
+                        else StudyQuestStrings.t(uiLanguage, "Offline — read-only cached chat", "অফলাইন — সংরক্ষিত চ্যাট পড়ুন")
+                    )
+                },
+                enabled = isOnline,
                 singleLine = true,
                 modifier = Modifier
                     .weight(1f)
@@ -1059,6 +1118,7 @@ fun ChatConversationScreen(
                         replyTarget = null
                     }
                 },
+                enabled = isOnline && inputText.isNotBlank(),
                 modifier = Modifier
                     .minimumInteractiveComponentSize()
                     .testTag("chat_send_btn")

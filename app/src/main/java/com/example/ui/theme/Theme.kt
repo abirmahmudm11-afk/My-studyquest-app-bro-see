@@ -28,8 +28,22 @@ data class StudyQuestSemanticColors(
     val coralContainer: Color = SoftCeruleanSlate,
     val cyan: Color = SlateBotanical,
     val cyanContainer: Color = SoftSlateBotanical,
-    val violet: Color = MineralTeal,
-    val violetContainer: Color = SoftMineralTeal
+    val violet: Color = BerryViolet,
+    val violetContainer: Color = QuestPastelLavender,
+    // Playful Pastel Quest & Hero Tokens (Light + Dark aware)
+    val pastelPeach: Color = QuestPastelPeach,
+    val onPastelPeach: Color = QuestPastelPeachInk,
+    val pastelLavender: Color = QuestPastelLavender,
+    val onPastelLavender: Color = QuestPastelLavenderInk,
+    val pastelSky: Color = QuestPastelSky,
+    val onPastelSky: Color = QuestPastelSkyInk,
+    val pastelMint: Color = QuestPastelMint,
+    val onPastelMint: Color = QuestPastelMintInk,
+    val charcoalMilestone: Color = QuestCharcoalMilestone,
+    val onCharcoalMilestone: Color = QuestCharcoalMilestoneInk,
+    val heroLimeStart: Color = HeroMintCardStart,
+    val heroLimeEnd: Color = HeroMintCardEnd,
+    val onHeroLime: Color = DeepSlateInk
 )
 
 @Immutable
@@ -45,9 +59,9 @@ val LocalStudyQuestColors = staticCompositionLocalOf {
         success = EditorialSuccess,
         successContainer = EditorialSuccessContainer,
         onSuccessContainer = OnEditorialSuccessContainer,
-        warning = MutedMintDarkInk,
-        warningContainer = MutedMintContainer,
-        onWarningContainer = OnMutedMintContainer
+        warning = DeepQuestGold,
+        warningContainer = QuestPastelPeach,
+        onWarningContainer = QuestPastelPeachInk
     )
 }
 
@@ -64,10 +78,10 @@ private val StudyQuestLightScheme = lightColorScheme(
     onSecondary = CrispCoolSurface,
     secondaryContainer = SoftMineralTeal,
     onSecondaryContainer = OnSoftMineralTeal,
-    tertiary = SlateBotanical,
+    tertiary = CeruleanSlate,
     onTertiary = CrispCoolSurface,
-    tertiaryContainer = MutedMintContainer,
-    onTertiaryContainer = OnMutedMintContainer,
+    tertiaryContainer = SoftSlateBotanical,
+    onTertiaryContainer = OnSoftCeruleanSlate,
     background = CoolIceGrayCanvas,
     onBackground = DeepSlateInk,
     surface = CrispCoolSurface,
@@ -75,7 +89,7 @@ private val StudyQuestLightScheme = lightColorScheme(
     surfaceVariant = SoftCoolMistSurface,
     onSurfaceVariant = MutedSlateInk,
     surfaceContainerLowest = CrispCoolSurface,
-    surfaceContainerLow = Color(0xFFF8FAFD),
+    surfaceContainerLow = Color(0xFFF8FAFC),
     surfaceContainer = SoftCoolMistSurface,
     surfaceContainerHigh = CoolSurfaceVariant,
     outline = StrongCoolBorder,
@@ -88,17 +102,17 @@ private val StudyQuestLightScheme = lightColorScheme(
 
 private val StudyQuestDarkScheme = darkColorScheme(
     primary = DarkSlatePrimary,
-    onPrimary = Color(0xFF0A2426),
+    onPrimary = DarkSlateBackground,
     primaryContainer = DarkSlatePrimaryContainer,
-    onPrimaryContainer = Color(0xFFCDEEE9),
+    onPrimaryContainer = DarkOnSurface,
     secondary = DarkSlateSecondary,
-    onSecondary = Color(0xFF0B2036),
+    onSecondary = DarkSlateBackground,
     secondaryContainer = DarkSlateSecondaryContainer,
-    onSecondaryContainer = Color(0xFFD5E6F8),
+    onSecondaryContainer = DarkOnSurface,
     tertiary = DarkSlateTertiary,
-    onTertiary = Color(0xFF0A2623),
+    onTertiary = DarkSlateBackground,
     tertiaryContainer = DarkSlateTertiaryContainer,
-    onTertiaryContainer = Color(0xFFCDF1EA),
+    onTertiaryContainer = DarkHeroLimeInk,
     background = DarkSlateBackground,
     onBackground = DarkOnSurface,
     surface = DarkSlateSurface,
@@ -110,7 +124,7 @@ private val StudyQuestDarkScheme = darkColorScheme(
     surfaceContainer = DarkSlateSurfaceElevated,
     surfaceContainerHigh = DarkSlateSurfaceHigh,
     outline = DarkOutline,
-    outlineVariant = DarkOutline.copy(alpha = 0.9f),
+    outlineVariant = DarkOutline,
     error = DarkErrorRose,
     onError = Color(0xFF47161B),
     errorContainer = DarkErrorContainer,
@@ -136,32 +150,58 @@ fun StudyQuestTheme(
     val semanticColors = if (darkTheme) {
         StudyQuestSemanticColors(
             success = DarkScholarGreen,
-            successContainer = DarkSlateTertiaryContainer,
-            onSuccessContainer = Color(0xFFCFF2EA),
-            warning = DarkSlateSecondary,
-            warningContainer = DarkSlateSecondaryContainer,
-            onWarningContainer = Color(0xFFD7E8FA),
-            coral = DarkSlateSecondary,
-            coralContainer = DarkSlateSecondaryContainer,
-            cyan = Color(0xFF7CB9D4),
-            cyanContainer = Color(0xFF1A3344),
-            violet = DarkSlatePrimary,
-            violetContainer = DarkSlatePrimaryContainer
+            successContainer = DarkPastelMint,
+            onSuccessContainer = DarkPastelMintInk,
+            warning = Color(0xFFE5BA5D),
+            warningContainer = DarkPastelPeach,
+            onWarningContainer = DarkPastelPeachInk,
+            coral = Color(0xFF94A3B8),
+            coralContainer = DarkPastelPeach,
+            cyan = Color(0xFF94A3B8),
+            cyanContainer = DarkPastelSky,
+            violet = Color(0xFFCBD5E1),
+            violetContainer = DarkPastelLavender,
+            pastelPeach = DarkPastelPeach,
+            onPastelPeach = DarkPastelPeachInk,
+            pastelLavender = DarkPastelLavender,
+            onPastelLavender = DarkPastelLavenderInk,
+            pastelSky = DarkPastelSky,
+            onPastelSky = DarkPastelSkyInk,
+            pastelMint = DarkPastelMint,
+            onPastelMint = DarkPastelMintInk,
+            charcoalMilestone = DarkCharcoalMilestone,
+            onCharcoalMilestone = QuestCharcoalMilestoneInk,
+            heroLimeStart = DarkHeroLimeStart,
+            heroLimeEnd = DarkHeroLimeEnd,
+            onHeroLime = DarkHeroLimeInk
         )
     } else {
         StudyQuestSemanticColors(
             success = EditorialSuccess,
             successContainer = EditorialSuccessContainer,
             onSuccessContainer = OnEditorialSuccessContainer,
-            warning = MutedMintDarkInk,
-            warningContainer = MutedMintContainer,
-            onWarningContainer = OnMutedMintContainer,
+            warning = DeepQuestGold,
+            warningContainer = QuestPastelPeach,
+            onWarningContainer = QuestPastelPeachInk,
             coral = CeruleanSlate,
-            coralContainer = SoftCeruleanSlate,
-            cyan = SlateBotanical,
-            cyanContainer = SoftSlateBotanical,
-            violet = MineralTeal,
-            violetContainer = SoftMineralTeal
+            coralContainer = QuestPastelPeach,
+            cyan = MineralTeal,
+            cyanContainer = QuestPastelSky,
+            violet = SlateBotanical,
+            violetContainer = QuestPastelLavender,
+            pastelPeach = QuestPastelPeach,
+            onPastelPeach = QuestPastelPeachInk,
+            pastelLavender = QuestPastelLavender,
+            onPastelLavender = QuestPastelLavenderInk,
+            pastelSky = QuestPastelSky,
+            onPastelSky = QuestPastelSkyInk,
+            pastelMint = QuestPastelMint,
+            onPastelMint = QuestPastelMintInk,
+            charcoalMilestone = QuestCharcoalMilestone,
+            onCharcoalMilestone = QuestCharcoalMilestoneInk,
+            heroLimeStart = HeroMintCardStart,
+            heroLimeEnd = HeroMintCardEnd,
+            onHeroLime = DeepSlateInk
         )
     }
 
@@ -187,7 +227,7 @@ fun studyQuestGlassAwareSurfaceColor(baseColor: Color = MaterialTheme.colorSchem
     return if (baseColor == MaterialTheme.colorScheme.surface) {
         if (config.isDark) GlassDarkSurface else GlassLightSurface
     } else {
-        baseColor.copy(alpha = if (config.isDark) 0.80f else 0.90f)
+        baseColor.copy(alpha = if (config.isDark) 0.82f else 0.90f)
     }
 }
 

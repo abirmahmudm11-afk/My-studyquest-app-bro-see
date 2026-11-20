@@ -804,11 +804,11 @@ object BangladeshCurriculumCatalog {
         AvatarCosmetic("crest_indigo", "Indigo Book Crest", "ইন্ডিগো ক্রেস্ট", "avatar", 0, "Default StudyQuest geometric emblem", "ডিফল্ট স্টাডিকোয়েস্ট প্রতীক"),
         AvatarCosmetic("crest_cyan", "Cyan Compass", "সায়ান কম্পাস", "avatar", 0, "Free scholarly geometric avatar", "বিনামূল্যে একাডেমিক প্রতীক"),
         AvatarCosmetic("crest_emerald", "Emerald Prism", "সবুজ প্রিজম", "avatar", 0, "Free scholarly geometric avatar", "বিনামূল্যে একাডেমিক প্রতীক"),
-        AvatarCosmetic("tiger_bengal", "Royal Bengal Crest", "রয়েল বেঙ্গল ক্রেস্ট", "avatar", 60, "Unlock with 60 Coins", "৬০ কয়েনে আনলক করো"),
-        AvatarCosmetic("kingfisher_bd", "River Kingfisher Crest", "মাছরাঙা ক্রেস্ট", "avatar", 90, "Unlock with 90 Coins", "৯০ কয়েনে আনলক করো"),
-        AvatarCosmetic("frame_emerald", "Emerald Laurel Frame", "সবুজ বিজয় ফ্রেম", "frame", 50, "Unlock with 50 Coins", "৫০ কয়েনে আনলক করো"),
-        AvatarCosmetic("frame_indigo", "Electric Indigo Halo", "ইলেকট্রিক ইন্ডিগো হ্যালো", "frame", 75, "Unlock with 75 Coins", "৭৫ কয়েনে আনলক করো"),
-        AvatarCosmetic("frame_mango", "Golden Crest Frame", "সোনালী মুকুট ফ্রেম", "frame", 120, "Unlock with 120 Coins", "১২০ কয়েনে আনলক করো"),
+        AvatarCosmetic("tiger_bengal", "Royal Bengal Crest", "রয়েল বেঙ্গল ক্রেস্ট", "avatar", 60, "Unlock via study milestones", "অধ্যয়ন মাইলফলকের মাধ্যমে আনলক করো"),
+        AvatarCosmetic("kingfisher_bd", "River Kingfisher Crest", "মাছরাঙা ক্রেস্ট", "avatar", 90, "Unlock via streak & badge milestones", "স্ট্রিক ও ব্যাজ মাইলফলকের মাধ্যমে আনলক করো"),
+        AvatarCosmetic("frame_emerald", "Emerald Laurel Frame", "সবুজ বিজয় ফ্রেম", "frame", 50, "Unlock via focus & study milestones", "ফোকাস ও অধ্যয়ন মাইলফলকের মাধ্যমে আনলক করো"),
+        AvatarCosmetic("frame_indigo", "Electric Indigo Halo", "ইলেকট্রিক ইন্ডিগো হ্যালো", "frame", 75, "Unlock via chapter & exam milestones", "অধ্যায় ও পরীক্ষা মাইলফলকের মাধ্যমে আনলক করো"),
+        AvatarCosmetic("frame_mango", "Golden Crest Frame", "সোনালী মুকুট ফ্রেম", "frame", 120, "Unlock via rare achievement milestones", "দুর্লভ অর্জন মাইলফলকের মাধ্যমে আনলক করো"),
         AvatarCosmetic("title_gonit_bir", "Math Trailblazer", "গণিত পথিকৃৎ", "title", 80, "Cosmetic profile title", "প্রোফাইল উপাধি")
     )
 }

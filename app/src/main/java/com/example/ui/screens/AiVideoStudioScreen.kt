@@ -433,9 +433,9 @@ fun AiVideoStudioScreen(
                             ) {
                                 Text(
                                     when {
-                                        isGuestMode -> StudyQuestStrings.t(uiLanguage, "Sign in to Claim XP", "XP পেতে সাইন-ইন করো")
+                                        isGuestMode -> StudyQuestStrings.t(uiLanguage, "Sign in to Save Progress", "অগ্রগতি সংরক্ষণে সাইন-ইন করো")
                                         quizSubmitted -> StudyQuestStrings.t(uiLanguage, "Quiz Verified!", "কুইজ যাচাই সম্পন্ন")
-                                        else -> StudyQuestStrings.t(uiLanguage, "Submit Quiz & Claim XP", "কুইজ জমা ও XP সংগ্রহ")
+                                        else -> StudyQuestStrings.t(uiLanguage, "Submit Quiz & Verify", "কুইজ জমা ও যাচাই করুন")
                                     }
                                 )
                             }

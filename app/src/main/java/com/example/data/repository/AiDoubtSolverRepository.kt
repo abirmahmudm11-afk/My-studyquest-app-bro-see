@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.BillingAndAdProvider
+import com.example.core.OfflineVaultManager
 import com.example.data.model.AiChatMessageDoc
 import com.example.data.model.AiConversationDoc
 import com.example.data.model.UserSubscriptionDoc
@@ -30,12 +31,14 @@ class AiDoubtSolverRepository(
     private val billingProvider: BillingAndAdProvider = BillingAndAdProvider(db),
     val modelRouter: StudyQuestModelRouter = StudyQuestModelRouter(),
     val openRouterClient: OpenRouterClient = OpenRouterClient(),
-    val costGuard: StudyQuestAiCostGuard = StudyQuestAiCostGuard(db)
+    val costGuard: StudyQuestAiCostGuard = StudyQuestAiCostGuard(db),
+    private val appContext: Context? = null
 ) {
     constructor(context: Context) : this(
-        FirebaseFirestore.getInstance(
+        db = FirebaseFirestore.getInstance(
             context.applicationContext.getString(R.string.firestore_database_id)
-        )
+        ),
+        appContext = context.applicationContext
     )
 
     private val fallbackFirebaseModel by lazy {
@@ -184,11 +187,25 @@ class AiDoubtSolverRepository(
         // Check global/user cost guard before spending user credits
         val budgetCheck = costGuard.checkAIBudgetBeforeRequest(userId, decision.selectedModelId, settings)
         if (!budgetCheck.allowed) {
+            val ctx = appContext
+            if (ctx != null) {
+                val offline = OfflineVaultManager.resolveOfflineDoubtExplanation(
+                    context = ctx,
+                    questionPrompt = activeBookTitle,
+                    studentQuestion = cleanText,
+                    classId = classId,
+                    subjectName = subjectName,
+                    language = language
+                )
+                emit(AiStreamUpdate(text = offline, modelUsed = "offline_study_vault", isComplete = true))
+                return@flow
+            }
             throw IllegalStateException(budgetCheck.reason ?: "StudyQuest AI budget limit reached.")
         }
 
         // Atomic credit reservation when user is signed in
         val isSignedIn = userId.isNotBlank() && userId != "guest_local"
+        var creditsReserved = false
         if (isSignedIn) {
             val reserveRes = billingProvider.reserveAIRequestCredits(
                 userId = userId,
@@ -198,7 +215,24 @@ class AiDoubtSolverRepository(
                 toolId = toolId,
                 modelUsed = decision.selectedModelId
             )
-            reserveRes.getOrElse { throw it }
+            if (reserveRes.isSuccess) {
+                creditsReserved = true
+            } else {
+                val ctx = appContext
+                if (ctx != null) {
+                    val offline = OfflineVaultManager.resolveOfflineDoubtExplanation(
+                        context = ctx,
+                        questionPrompt = activeBookTitle,
+                        studentQuestion = cleanText,
+                        classId = classId,
+                        subjectName = subjectName,
+                        language = language
+                    )
+                    emit(AiStreamUpdate(text = offline, modelUsed = "offline_study_vault", isComplete = true))
+                    return@flow
+                }
+                reserveRes.getOrElse { throw it }
+            }
         }
 
         // Persist user prompt if conversation exists
@@ -299,7 +333,7 @@ class AiDoubtSolverRepository(
                 throw IllegalStateException("StudyQuest Helper returned an empty response.")
             }
 
-            if (isSignedIn) {
+            if (isSignedIn && creditsReserved) {
                 billingProvider.settleAIRequestCredits(
                     userId = userId,
                     requestId = requestId,
@@ -350,7 +384,7 @@ class AiDoubtSolverRepository(
             }
             emit(AiStreamUpdate(text = finalOutput, modelUsed = usedModel, isComplete = true))
         } catch (e: CancellationException) {
-            if (isSignedIn) {
+            if (isSignedIn && creditsReserved) {
                 billingProvider.restoreFailedAIRequestCredits(
                     userId = userId,
                     requestId = requestId,
@@ -362,7 +396,7 @@ class AiDoubtSolverRepository(
             }
             throw e
         } catch (e: TimeoutCancellationException) {
-            if (isSignedIn) {
+            if (isSignedIn && creditsReserved) {
                 billingProvider.restoreFailedAIRequestCredits(
                     userId = userId,
                     requestId = requestId,
@@ -372,10 +406,23 @@ class AiDoubtSolverRepository(
                     reason = "Timed out"
                 )
             }
-            throw IllegalStateException("StudyQuest Helper timed out. Reserved AI credits were refunded.")
+            val ctx = appContext
+            if (ctx != null) {
+                val offline = OfflineVaultManager.resolveOfflineDoubtExplanation(
+                    context = ctx,
+                    questionPrompt = activeBookTitle,
+                    studentQuestion = cleanText,
+                    classId = classId,
+                    subjectName = subjectName,
+                    language = language
+                )
+                emit(AiStreamUpdate(text = offline, modelUsed = "offline_study_vault", isComplete = true))
+            } else {
+                throw IllegalStateException("StudyQuest Helper timed out. Reserved AI credits were refunded.")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "StudyQuest Helper request failed", e)
-            if (isSignedIn) {
+            if (isSignedIn && creditsReserved) {
                 billingProvider.restoreFailedAIRequestCredits(
                     userId = userId,
                     requestId = requestId,
@@ -396,7 +443,20 @@ class AiDoubtSolverRepository(
                     status = "failed"
                 )
             }
-            throw e
+            val ctx = appContext
+            if (ctx != null) {
+                val offline = OfflineVaultManager.resolveOfflineDoubtExplanation(
+                    context = ctx,
+                    questionPrompt = activeBookTitle,
+                    studentQuestion = cleanText,
+                    classId = classId,
+                    subjectName = subjectName,
+                    language = language
+                )
+                emit(AiStreamUpdate(text = offline, modelUsed = "offline_study_vault", isComplete = true))
+            } else {
+                throw e
+            }
         }
     }
 
@@ -460,7 +520,38 @@ class AiDoubtSolverRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: TimeoutCancellationException) {
-            throw IllegalStateException("AI Doubt Solver timed out. Please check your connection and try again.")
+            val ctx = appContext
+            if (ctx != null) {
+                emit(
+                    OfflineVaultManager.resolveOfflineDoubtExplanation(
+                        context = ctx,
+                        questionPrompt = questionPrompt,
+                        studentQuestion = cleanQuestion,
+                        classId = classId,
+                        subjectName = subjectName,
+                        language = language
+                    )
+                )
+            } else {
+                throw IllegalStateException("AI Doubt Solver timed out. Please check your connection and try again.")
+            }
+        } catch (e: Exception) {
+            val ctx = appContext
+            if (ctx != null && accumulated.isBlank()) {
+                Log.w(TAG, "Cloud AI unavailable, serving Offline Vault explanation", e)
+                emit(
+                    OfflineVaultManager.resolveOfflineDoubtExplanation(
+                        context = ctx,
+                        questionPrompt = questionPrompt,
+                        studentQuestion = cleanQuestion,
+                        classId = classId,
+                        subjectName = subjectName,
+                        language = language
+                    )
+                )
+            } else if (accumulated.isBlank()) {
+                throw e
+            }
         }
     }
 

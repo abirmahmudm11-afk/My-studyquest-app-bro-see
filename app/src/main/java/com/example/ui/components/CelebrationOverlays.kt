@@ -159,7 +159,11 @@ fun GamificationCelebrationHost(
                                         color = semantic.onSuccessContainer
                                     )
                                     Text(
-                                        text = "${currentEvent.title} (+${currentEvent.xpReward} XP)",
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "${currentEvent.title} • Milestone logged",
+                                            "${currentEvent.title} • মাইলফলক অর্জিত"
+                                        ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = semantic.onSuccessContainer
                                     )
@@ -237,8 +241,8 @@ fun GamificationCelebrationHost(
                             Text(
                                 text = StudyQuestStrings.t(
                                     language,
-                                    "Level ${currentEvent.newLevel} Reached!",
-                                    "লেভেল ${StudyQuestStrings.formatDigits(currentEvent.newLevel, language)} অর্জিত!"
+                                    "Milestone ${currentEvent.newLevel} Reached!",
+                                    "মাইলফলক ${StudyQuestStrings.formatDigits(currentEvent.newLevel, language)} অর্জিত!"
                                 ),
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
@@ -332,8 +336,8 @@ fun GamificationCelebrationHost(
                             Text(
                                 text = StudyQuestStrings.t(
                                     language,
-                                    "Total Verified XP: ${currentEvent.totalXp}",
-                                    "মোট যাচাইকৃত XP: ${StudyQuestStrings.formatDigits(currentEvent.totalXp, language)}"
+                                    "Keep completing lessons and challenges to unlock rare trophies!",
+                                    "নতুন ব্যাজ ও ট্রফি আনলক করতে প্রতিদিন অনুশীলন চালিয়ে যাও!"
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center
@@ -352,7 +356,7 @@ fun GamificationCelebrationHost(
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "${StudyQuestStrings.t(language, b.rarity.labelEn, b.rarity.labelBn)} • +${b.xpBonus} XP",
+                                text = StudyQuestStrings.t(language, "${b.rarity.labelEn} Achievement", "${b.rarity.labelBn} অর্জন"),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = semantic.success

@@ -227,4 +227,68 @@ interface StudyQuestDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertLocalXpEntry(entry: LocalXpLedgerEntity)
+
+    // --- Download Manager Packs ---
+    @Query("SELECT * FROM download_packs ORDER BY category ASC, titleEn ASC")
+    fun observeDownloadPacks(): Flow<List<DownloadPackEntity>>
+
+    @Query("SELECT * FROM download_packs")
+    suspend fun getAllDownloadPacks(): List<DownloadPackEntity>
+
+    @Query("SELECT * FROM download_packs WHERE packId = :packId LIMIT 1")
+    suspend fun getDownloadPack(packId: String): DownloadPackEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertDownloadPack(pack: DownloadPackEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertDownloadPacksIfAbsent(packs: List<DownloadPackEntity>)
+
+    @Query("UPDATE download_packs SET status = :status, progressPct = :progressPct, localPath = :localPath, installedAtMs = :installedAtMs WHERE packId = :packId")
+    suspend fun updateDownloadPackState(
+        packId: String,
+        status: String,
+        progressPct: Int,
+        localPath: String?,
+        installedAtMs: Long
+    )
+
+    // --- Mistake Notebook ---
+    @Query("SELECT * FROM mistake_notes WHERE resolved = 0 ORDER BY lastMissedAtMs DESC")
+    fun observeUnresolvedMistakes(): Flow<List<MistakeNoteEntity>>
+
+    @Query("SELECT * FROM mistake_notes WHERE questionId = :questionId LIMIT 1")
+    suspend fun getMistakeNote(questionId: String): MistakeNoteEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertMistakeNote(note: MistakeNoteEntity)
+
+    @Query("UPDATE mistake_notes SET resolved = 1 WHERE questionId = :questionId")
+    suspend fun markMistakeResolved(questionId: String)
+
+    // --- Exam Countdowns ---
+    @Query("SELECT * FROM exam_countdowns ORDER BY targetDateEpochMs ASC")
+    fun observeExamCountdowns(): Flow<List<ExamCountdownEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertExamCountdown(exam: ExamCountdownEntity)
+
+    @Query("UPDATE exam_countdowns SET completedTopics = completedTopics + 1 WHERE id = :examId")
+    suspend fun incrementExamCompletedTopics(examId: String)
+
+    @Query("DELETE FROM exam_countdowns WHERE id = :examId")
+    suspend fun deleteExamCountdown(examId: String)
+
+    // --- Formula Bookmarks ---
+    @Query("SELECT * FROM formula_bookmarks ORDER BY savedAtMs DESC")
+    fun observeFormulaBookmarks(): Flow<List<FormulaBookmarkEntity>>
+
+    @Query("SELECT * FROM formula_bookmarks WHERE formulaId = :formulaId LIMIT 1")
+    suspend fun getFormulaBookmark(formulaId: String): FormulaBookmarkEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertFormulaBookmark(bookmark: FormulaBookmarkEntity)
+
+    @Query("DELETE FROM formula_bookmarks WHERE formulaId = :formulaId")
+    suspend fun deleteFormulaBookmark(formulaId: String)
 }

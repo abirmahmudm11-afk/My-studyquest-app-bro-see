@@ -40,12 +40,15 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -92,11 +95,16 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
+import com.example.core.AmbientMusicPlayer
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.local.BookChapterEntity
@@ -105,10 +113,7 @@ import com.example.data.local.CachedBookEntity
 import com.example.data.model.TextbookCatalogItem
 import com.example.data.model.TextbookDownloadStatus
 import com.example.ui.components.StudyQuestCard
-import com.example.ui.theme.BerryViolet
-import com.example.ui.theme.ElectricIndigo
 import com.example.ui.theme.SkyCyan
-import com.example.ui.theme.SunsetCoral
 import com.example.ui.theme.VividEmerald
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -132,9 +137,18 @@ fun TextbookReaderScreen(
     onAskAiAboutPage: (contextPrompt: String) -> Unit,
     onPracticeBookQuestions: () -> Unit,
     onReportBookIssue: (reason: String, details: String) -> Unit,
-    onSwitchBook: () -> Unit
+    onSwitchBook: () -> Unit,
+    onOpenStemLab: ((String) -> Unit)? = null
 ) {
     BackHandler { onBack() }
+
+    val context = LocalContext.current
+    val briefingPlayer = remember(context) { AmbientMusicPlayer(context) }
+    val audioState by briefingPlayer.state.collectAsStateWithLifecycle()
+    val isBriefingPlaying = audioState.activeBriefingSubjectId == book.subjectId
+    DisposableEffect(briefingPlayer) {
+        onDispose { briefingPlayer.release() }
+    }
 
     val uriHandler = LocalUriHandler.current
     var selectedTab by remember { mutableIntStateOf(0) } // 0=Reader, 1=Chapters, 2=Search & Notes
@@ -291,7 +305,7 @@ fun TextbookReaderScreen(
             } ?: TextbookDownloadStatus.NOT_DOWNLOADED
 
             Surface(
-                color = ElectricIndigo.copy(alpha = 0.08f),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
@@ -315,7 +329,7 @@ fun TextbookReaderScreen(
                                 tint = if (localPdfFile != null || statusEnum == TextbookDownloadStatus.INSTALLED) {
                                     VividEmerald
                                 } else {
-                                    ElectricIndigo
+                                    MaterialTheme.colorScheme.primary
                                 },
                                 modifier = Modifier.size(18.dp)
                             )
@@ -438,7 +452,7 @@ fun TextbookReaderScreen(
                                 }
                             } else {
                                 // Structured offline reader page view when PDF binary is not attached yet
-                                StudyQuestCard(accentColor = ElectricIndigo) {
+                                StudyQuestCard {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -446,7 +460,7 @@ fun TextbookReaderScreen(
                                     ) {
                                         Surface(
                                             shape = RoundedCornerShape(999.dp),
-                                            color = ElectricIndigo.copy(alpha = 0.14f)
+                                            color = MaterialTheme.colorScheme.surfaceVariant
                                         ) {
                                             Text(
                                                 text = StudyQuestStrings.t(
@@ -456,7 +470,7 @@ fun TextbookReaderScreen(
                                                 ),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
-                                                color = ElectricIndigo,
+                                                color = MaterialTheme.colorScheme.onSurface,
                                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                             )
                                         }
@@ -635,6 +649,44 @@ fun TextbookReaderScreen(
                                         Spacer(Modifier.width(4.dp))
                                         Text(StudyQuestStrings.t(uiLanguage, "Add Note", "নোট লেখো"))
                                     }
+                                    OutlinedButton(
+                                        onClick = { briefingPlayer.playSubjectBriefing(book.subjectId) },
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("reader_audio_brief_btn")
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isBriefingPlaying) Icons.Filled.Stop else Icons.Filled.GraphicEq,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            StudyQuestStrings.t(
+                                                uiLanguage,
+                                                if (isBriefingPlaying) "Stop Audio" else "Audio Brief",
+                                                if (isBriefingPlaying) "অডিও থামাও" else "অডিও সারসংক্ষেপ"
+                                            )
+                                        )
+                                    }
+                                    if (onOpenStemLab != null && book.subjectId in listOf("math", "physics", "chemistry", "biology", "gen_science")) {
+                                        val labId = when (book.subjectId) {
+                                            "math" -> "trig"
+                                            "physics" -> "physics"
+                                            "chemistry" -> "chem"
+                                            else -> "bio"
+                                        }
+                                        OutlinedButton(
+                                            onClick = { onOpenStemLab(labId) },
+                                            modifier = Modifier
+                                                .minimumInteractiveComponentSize()
+                                                .testTag("reader_stem_lab_btn")
+                                        ) {
+                                            Icon(Icons.Filled.Science, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(StudyQuestStrings.t(uiLanguage, "STEM Lab", "STEM ল্যাব"))
+                                        }
+                                    }
                                 }
                                 Spacer(Modifier.height(8.dp))
                                 Row(
@@ -648,7 +700,10 @@ fun TextbookReaderScreen(
                                                 "Explain page ${safePage + 1} from ${book.titleEn} ($chName) clearly step by step."
                                             )
                                         },
-                                        colors = ButtonDefaults.buttonColors(containerColor = BerryViolet, contentColor = Color.White),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
                                         modifier = Modifier
                                             .weight(1f)
                                             .minimumInteractiveComponentSize()
@@ -692,7 +747,7 @@ fun TextbookReaderScreen(
                     ) {
                         items(chapters, key = { it.id }) { ch ->
                             StudyQuestCard(
-                                accentColor = if (ch.completed) VividEmerald else ElectricIndigo
+                                accentColor = if (ch.completed) VividEmerald else null
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -795,7 +850,7 @@ fun TextbookReaderScreen(
                                 )
                             }
                             items(filteredChapters, key = { "search_${it.id}" }) { ch ->
-                                StudyQuestCard(accentColor = ElectricIndigo) {
+                                StudyQuestCard {
                                     Text(
                                         text = StudyQuestStrings.t(uiLanguage, ch.titleEn, ch.titleBn),
                                         style = MaterialTheme.typography.titleSmall,
@@ -844,7 +899,7 @@ fun TextbookReaderScreen(
                             }
                         } else {
                             items(filteredNotes, key = { it.id }) { note ->
-                                StudyQuestCard(accentColor = if (note.isBookmark) SunsetCoral else BerryViolet) {
+                                StudyQuestCard {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -855,7 +910,7 @@ fun TextbookReaderScreen(
                                             Text(
                                                 text = StudyQuestStrings.t(uiLanguage, "Page ${note.pageNumber}", "পৃষ্ঠা ${note.pageNumber}"),
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = ElectricIndigo
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                         IconButton(onClick = { onDeletePageNote(note.id) }) {

@@ -1170,7 +1170,7 @@ class MainSessionViewModel(
             val res = gamificationEngine?.claimGoalReward(currentUser.uid, goal)
                 ?: Result.failure(IllegalStateException("Goals service unavailable"))
             res.onSuccess { xp ->
-                if (xp > 0) _bannerMessage.value = "Goal completed! +$xp XP claimed"
+                if (xp > 0) _bannerMessage.value = "Goal completed & verified!"
             }.onFailure {
                 _bannerMessage.value = unwrapFirestoreMessage(it, it.localizedMessage ?: "Could not claim goal")
             }
@@ -1188,7 +1188,7 @@ class MainSessionViewModel(
             val res = gamificationEngine?.submitAssignmentCompletion(currentUser.uid, assignment)
                 ?: Result.failure(IllegalStateException("Assignments service unavailable"))
             res.onSuccess { xp ->
-                if (xp > 0) _bannerMessage.value = "Assignment verified! +$xp XP"
+                if (xp > 0) _bannerMessage.value = "Assignment verified & recorded!"
             }.onFailure {
                 _bannerMessage.value = unwrapFirestoreMessage(it, it.localizedMessage ?: "Submission failed")
             }

@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
@@ -52,6 +53,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -177,9 +182,9 @@ fun StudyQuestCard(
     }
     Card(
         modifier = cardModifier,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = resolvedColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (visualConfig.isGlass) 0.dp else 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = resolvedBorder
     ) {
         Column(
@@ -194,7 +199,8 @@ fun SyncStatusPill(
     isOnline: Boolean,
     pendingSyncCount: Int,
     language: AppLanguage,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
     val semantic = LocalStudyQuestColors.current
     val bgColor = if (isOnline) {
@@ -207,8 +213,17 @@ fun SyncStatusPill(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val pillModifier = if (onClick != null) {
+        modifier
+            .minimumInteractiveComponentSize()
+            .clip(RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick)
+            .testTag("mode_status_pill")
+    } else {
+        modifier.testTag("mode_status_pill")
+    }
     Surface(
-        modifier = modifier,
+        modifier = pillModifier,
         shape = RoundedCornerShape(999.dp),
         color = studyQuestGlassAwareSurfaceColor(bgColor),
         border = studyQuestGlassAwareBorder(if (isOnline) EditorialSuccess else null)
@@ -237,6 +252,153 @@ fun SyncStatusPill(
                 color = fgColor,
                 fontWeight = FontWeight.SemiBold
             )
+        }
+    }
+}
+
+@Composable
+fun OfflineLockBadgeChip(
+    language: AppLanguage,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.testTag("offline_lock_badge"),
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                text = StudyQuestStrings.t(language, "Offline", "অফলাইন"),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ModeStatusBottomSheet(
+    isOnline: Boolean,
+    pendingSyncCount: Int,
+    language: AppLanguage,
+    onDismiss: () -> Unit
+) {
+    BackHandler { onDismiss() }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .testTag("mode_status_sheet"),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = if (isOnline) Icons.Filled.CloudDone else Icons.Filled.CloudOff,
+                    contentDescription = null,
+                    tint = if (isOnline) EditorialSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(26.dp)
+                )
+                Column {
+                    Text(
+                        text = if (isOnline) {
+                            StudyQuestStrings.t(language, "Full Online Mode Active", "সম্পূর্ণ অনলাইন মোড সক্রিয়")
+                        } else {
+                            StudyQuestStrings.t(language, "Offline Study Mode Active", "অফলাইন স্টাডি মোড সক্রিয়")
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = StudyQuestStrings.t(
+                            language,
+                            "Switches automatically based on your live internet connection.",
+                            "ইন্টারনেট সংযোগের উপর ভিত্তি করে স্বয়ংক্রিয়ভাবে পরিবর্তিত হয়।"
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (pendingSyncCount > 0) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = StudyQuestStrings.t(
+                            language,
+                            "$pendingSyncCount offline study records queued for automatic cloud sync.",
+                            "${StudyQuestStrings.formatDigits(pendingSyncCount, language)}টি অফলাইন রেকর্ড সিঙ্কের জন্য অপেক্ষমাণ।"
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+
+            StudyQuestCard {
+                Text(
+                    text = StudyQuestStrings.t(language, "Always Ready Offline", "অফলাইনে সর্বদা চালু"),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = EditorialSuccess
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = StudyQuestStrings.t(
+                        language,
+                        "• Downloaded Textbooks & PDF Vault\n• 6,000-entry Knowledge Atlas Doubt Solver\n• Formula Atlas, Mistake Bank & Exam Countdown\n• Focus Timer, 44.1 kHz Audio Briefings & STEM Labs\n• Solo Speed Sprints & Local Study Circle Notes",
+                        "• ডাউনলোড করা পাঠ্যবই ও PDF ভল্ট\n• ৬,০০০ গাইডসহ অফলাইন ডাউট সলভার\n• সূত্র অ্যাটলাস, ভুলের খাতা ও পরীক্ষা কাউন্টডাউন\n• ফোকাস টাইমার, অডিও ব্রিফিং ও STEM ল্যাব"
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            StudyQuestCard {
+                Text(
+                    text = if (isOnline) {
+                        StudyQuestStrings.t(language, "Cloud Features Unlocked", "ক্লাউড ফিচারসমূহ চালু")
+                    } else {
+                        StudyQuestStrings.t(language, "Paused Until Reconnect", "নেটওয়ার্কে ফিরলে চালু হবে")
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = StudyQuestStrings.t(
+                        language,
+                        "• Live 1v1, Private Rooms & Tournaments\n• Peer Messaging, Study Groups & Class Community\n• Cloud Gemini Live AI & Remote Pack Downloads",
+                        "• লাইভ ১v১, প্রাইভেট রুম ও টুর্নামেন্ট\n• বন্ধু চ্যাট, স্টাডি গ্রুপ ও শ্রেণি কমিউনিটি\n• ক্লাউড জেমিনি AI ও রিমোট প্যাক ডাউনলোড"
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
@@ -281,6 +443,8 @@ fun SubjectCard(
     masteryProgress: Float = 0f
 ) {
     val accent = Color(subject.accentHex)
+    val visualConfig = LocalStudyQuestSurfaceStyle.current
+    val semantic = LocalStudyQuestColors.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -288,6 +452,10 @@ fun SubjectCard(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "subject_press"
     )
+    val cardBg = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface)
+    val cardInk = MaterialTheme.colorScheme.onSurface
+    val chipBg = MaterialTheme.colorScheme.surfaceVariant
+    val pct = (masteryProgress.coerceIn(0f, 1f) * 100f).toInt()
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -295,60 +463,97 @@ fun SubjectCard(
             .minimumInteractiveComponentSize()
             .clickable(interactionSource = interactionSource, indication = androidx.compose.material3.ripple(), onClick = onClick)
             .testTag("subject_card_${subject.id}"),
-        shape = RoundedCornerShape(18.dp),
-        color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp),
+        color = cardBg,
         tonalElevation = 0.dp,
-        border = studyQuestGlassAwareBorder(accent)
+        border = studyQuestGlassAwareBorder()
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = StudyQuestStrings.t(language, subject.titleEn, subject.titleBn),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = cardInk,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "${StudyQuestStrings.formatDigits(pct, language)}%",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = accent.copy(alpha = 0.14f)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
                 ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = chipBg
+                    ) {
+                        Text(
+                            text = subject.code,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                     Text(
-                        text = subject.code,
+                        text = StudyQuestStrings.t(
+                            language,
+                            "$chapterCount ch",
+                            "${StudyQuestStrings.formatDigits(chapterCount, language)} অধ্যায়"
+                        ),
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = accent,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Text(
-                    text = StudyQuestStrings.t(
-                        language,
-                        "$chapterCount ch",
-                        "${StudyQuestStrings.formatDigits(chapterCount, language)} অধ্যায়"
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(30.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = StudyQuestStrings.t(language, "Open ${subject.titleEn}", "${subject.titleBn} খুলুন"),
+                            tint = cardInk,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                }
             }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = StudyQuestStrings.t(language, subject.titleEn, subject.titleBn),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+
             if (masteryProgress > 0f) {
-                Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(
                     progress = { masteryProgress.coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(5.dp)
+                        .height(3.dp)
                         .clip(RoundedCornerShape(999.dp)),
-                    color = accent,
+                    color = cardInk,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-            } else {
-                Spacer(Modifier.height(4.dp))
             }
         }
     }
@@ -419,8 +624,8 @@ fun QuestCard(
             Text(
                 text = StudyQuestStrings.t(
                     language,
-                    "Daily Goal • +${StudyQuestStrings.formatDigits(quest.xpReward, language)} pts",
-                    "দৈনিক লক্ষ্য • +${StudyQuestStrings.formatDigits(quest.xpReward, language)}"
+                    "Daily Milestone • Badge Progress",
+                    "দৈনিক মাইলফলক • ব্যাজ অগ্রগতি"
                 ),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

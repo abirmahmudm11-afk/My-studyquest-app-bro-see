@@ -1,7 +1,14 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,12 +60,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.curriculum.BangladeshCurriculumCatalog
@@ -376,7 +390,7 @@ fun FocusAndMusicScreen(
                             ) {
                                 Icon(Icons.Filled.Stop, contentDescription = null)
                                 Spacer(Modifier.width(6.dp))
-                                Text(StudyQuestStrings.t(uiLanguage, "Stop & Verify XP", "শেষ ও XP সংগ্রহ"))
+                                Text(StudyQuestStrings.t(uiLanguage, "Stop & Save Session", "শেষ ও সংরক্ষণ করুন"))
                             }
 
                             OutlinedButton(
@@ -396,6 +410,24 @@ fun FocusAndMusicScreen(
         // Ambient Focus Music Player
         item {
             StudyQuestCard(modifier = Modifier.testTag("ambient_music_card")) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(108.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.img_vault_focus_deck),
+                        contentDescription = StudyQuestStrings.t(
+                            uiLanguage,
+                            "StudyQuest Ambient Sound Studio",
+                            "স্টাডিকোয়েস্ট অ্যাম্বিয়েন্ট সাউন্ড স্টুডিও"
+                        ),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Filled.MusicNote, contentDescription = null, tint = CobaltPrimary)
                     Column(modifier = Modifier.weight(1f)) {
@@ -413,6 +445,15 @@ fun FocusAndMusicScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = CobaltPrimary
                         )
+                        Text(
+                            text = StudyQuestStrings.t(
+                                uiLanguage,
+                                "44.1 kHz Studio Offline Audio",
+                                "৪৪.১ kHz স্টুডিও অফলাইন অডিও"
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     Surface(
                         shape = RoundedCornerShape(999.dp),
@@ -425,6 +466,43 @@ fun FocusAndMusicScreen(
                             fontWeight = FontWeight.Bold,
                             color = if (musicState.isPlaying) semantic.onSuccessContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                // Studio Waveform Visualizer
+                Spacer(Modifier.height(10.dp))
+                val waveTransition = rememberInfiniteTransition(label = "studio_wave")
+                val wavePhase by waveTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 6.283f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 1600, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "wave_phase"
+                )
+                val activeBarColor = if (musicState.isPlaying) CobaltPrimary else MaterialTheme.colorScheme.outlineVariant
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp)
+                ) {
+                    val bars = 28
+                    val slotW = size.width / bars
+                    val barW = (slotW * 0.56f).coerceAtLeast(3f)
+                    for (i in 0 until bars) {
+                        val amp = if (musicState.isPlaying) {
+                            (0.25f + 0.72f * kotlin.math.abs(kotlin.math.sin(wavePhase + i * 0.48f))).toFloat()
+                        } else {
+                            0.18f + (i % 3) * 0.08f
+                        }
+                        val barH = size.height * amp
+                        drawRoundRect(
+                            color = activeBarColor,
+                            topLeft = Offset(i * slotW + (slotW - barW) / 2f, (size.height - barH) / 2f),
+                            size = Size(barW, barH),
+                            cornerRadius = CornerRadius(4f, 4f)
                         )
                     }
                 }
@@ -514,6 +592,21 @@ fun FocusAndMusicScreen(
                         onCheckedChange = { focusVm.setMusicDuringBreak(it) }
                     )
                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = StudyQuestStrings.t(uiLanguage, "Blend ambient monsoon rain layer", "মৃদু বৃষ্টির আবহ স্তর মেশাও"),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Switch(
+                        checked = musicState.rainLayerEnabled,
+                        onCheckedChange = { focusVm.toggleAmbientRainLayer() },
+                        modifier = Modifier.testTag("music_rain_layer_switch")
+                    )
+                }
             }
         }
 
@@ -548,7 +641,11 @@ fun FocusAndMusicScreen(
                         }
                         StatBadgePill(
                             icon = Icons.Filled.Timer,
-                            label = "+${s.xpAwarded} XP",
+                            label = StudyQuestStrings.t(
+                                uiLanguage,
+                                "${mins}m Verified",
+                                "${StudyQuestStrings.formatDigits(mins, uiLanguage)} মি. যাচাইকৃত"
+                            ),
                             tint = semantic.success,
                             containerColor = semantic.successContainer
                         )

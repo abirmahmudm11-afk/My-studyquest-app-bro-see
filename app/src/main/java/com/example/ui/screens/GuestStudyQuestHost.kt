@@ -123,6 +123,10 @@ fun GuestStudyQuestHost(
     val examRemaining by learnVm.examRemainingSeconds.collectAsStateWithLifecycle()
     val assessmentResult by learnVm.lastAssessmentResult.collectAsStateWithLifecycle()
     val aiState by learnVm.aiState.collectAsStateWithLifecycle()
+    val downloadPacks by learnVm.downloadPacks.collectAsStateWithLifecycle()
+    val unresolvedMistakes by learnVm.unresolvedMistakes.collectAsStateWithLifecycle()
+    val examCountdowns by learnVm.examCountdowns.collectAsStateWithLifecycle()
+    val formulaBookmarks by learnVm.formulaBookmarks.collectAsStateWithLifecycle()
     val learnBanner by learnVm.statusBanner.collectAsStateWithLifecycle()
 
     val activeLockedBook by guestVm.activeLockedBook.collectAsStateWithLifecycle()
@@ -292,7 +296,8 @@ fun GuestStudyQuestHost(
                                             activeBookTitle = StudyQuestStrings.t(lang, activeLockedBook.titleEn, activeLockedBook.titleBn)
                                         )
                                     },
-                                    onBack = { todayOverlay = TodayOverlayDestination.None }
+                                    onBack = { todayOverlay = TodayOverlayDestination.None },
+                                    isOnline = isOnline
                                 )
 
                                 TodayOverlayDestination.None -> TodayTabScreen(
@@ -384,7 +389,39 @@ fun GuestStudyQuestHost(
                                         pendingLearnDest = LearnDestination.TextbookReader
                                         navigateToTab(1)
                                     },
-                                    onSwitchActiveBook = { book -> guestVm.switchGuestActiveBook(book) }
+                                    onSwitchActiveBook = { book -> guestVm.switchGuestActiveBook(book) },
+                                    userBadges = userBadges,
+                                    onOpenStemLab = {
+                                        val labId = when (activeLockedBook.subjectId) {
+                                            "physics" -> "physics"
+                                            "chemistry" -> "chem"
+                                            "biology", "gen_science" -> "bio"
+                                            else -> "trig"
+                                        }
+                                        pendingLearnDest = LearnDestination.InteractiveStemLab(labId)
+                                        navigateToTab(1)
+                                    },
+                                    onOpenDownloadManager = {
+                                        pendingLearnDest = LearnDestination.OfflineDownloads
+                                        navigateToTab(1)
+                                    },
+                                    onOpenFormulaAtlas = {
+                                        pendingLearnDest = LearnDestination.FormulaAtlas
+                                        navigateToTab(1)
+                                    },
+                                    onOpenMistakeNotebook = {
+                                        pendingLearnDest = LearnDestination.MistakeNotebook
+                                        navigateToTab(1)
+                                    },
+                                    onOpenExamCountdown = {
+                                        pendingLearnDest = LearnDestination.ExamCountdown
+                                        navigateToTab(1)
+                                    },
+                                    onOpenPocketAudio = {
+                                        pendingLearnDest = LearnDestination.PocketAudioRevision
+                                        navigateToTab(1)
+                                    },
+                                    unresolvedMistakesCount = unresolvedMistakes.size
                                 )
                             }
 
@@ -494,7 +531,36 @@ fun GuestStudyQuestHost(
                                 onSwitchActiveBook = { book -> guestVm.switchGuestActiveBook(book) },
                                 onReportBookIssue = { tType, tId, details ->
                                     learnVm.reportQuestionOrBook(tType, tId, "Textbook content review", details)
-                                }
+                                },
+                                downloadPacks = downloadPacks,
+                                unresolvedMistakes = unresolvedMistakes,
+                                examCountdowns = examCountdowns,
+                                formulaBookmarks = formulaBookmarks,
+                                learningRecords = learningRecords,
+                                soloMatches = soloMatches,
+                                onSeedDownloads = {
+                                    learnVm.seedDownloadCatalog(
+                                        profile.classId,
+                                        profile.curriculumVersion,
+                                        profile.academicGroup
+                                    )
+                                },
+                                onDownloadPack = { pack -> learnVm.downloadPack(pack, isOnline, lang) },
+                                onDownloadClassBundle = {
+                                    learnVm.downloadClassBundle(
+                                        profile.classId,
+                                        profile.curriculumVersion,
+                                        profile.academicGroup,
+                                        isOnline,
+                                        lang
+                                    )
+                                },
+                                onRemoveDownloadPack = { packId -> learnVm.removeDownloadedPack(packId) },
+                                onToggleFormulaBookmark = { entry -> learnVm.toggleFormulaBookmark(entry) },
+                                onResolveMistake = { qId -> learnVm.resolveMistake(qId) },
+                                onAddExamCountdown = { t, s, days, goal -> learnVm.addExamCountdown(t, s, days, goal) },
+                                onIncrementExamTopic = { id -> learnVm.incrementExamTopic(id) },
+                                onDeleteExamCountdown = { id -> learnVm.deleteExamCountdown(id) }
                             )
 
                             2 -> CompeteTabScreen(
@@ -533,7 +599,8 @@ fun GuestStudyQuestHost(
                                     guestVm.answerSoloSprintQuestion(corr, ms)
                                 },
                                 onCloseSoloSprint = { guestVm.closeSoloSprint() },
-                                onRequestGoogleSignIn = onRequestGoogleSignIn
+                                onRequestGoogleSignIn = onRequestGoogleSignIn,
+                                isOnline = isOnline
                             )
 
                             3 -> FriendsTabScreen(
@@ -576,7 +643,8 @@ fun GuestStudyQuestHost(
                                 onDeleteCircleNote = { guestVm.deleteCircleNote(it) },
                                 onRequestGoogleSignIn = onRequestGoogleSignIn,
                                 externalSubTab = pendingFriendsSubTab,
-                                onConsumeExternalSubTab = { pendingFriendsSubTab = null }
+                                onConsumeExternalSubTab = { pendingFriendsSubTab = null },
+                                isOnline = isOnline
                             )
 
                             4 -> ProfileTabScreen(
@@ -637,7 +705,11 @@ fun GuestStudyQuestHost(
                                     navigateToTab(1)
                                 },
                                 onReinstallBookOffline = { book -> learnVm.installBookOffline(book, lang, forceRedownload = true) },
-                                onDeleteCachedBook = { bookId -> learnVm.deleteOfflineBookCache(bookId) }
+                                onDeleteCachedBook = { bookId -> learnVm.deleteOfflineBookCache(bookId) },
+                                onOpenDownloadManager = {
+                                    pendingLearnDest = LearnDestination.OfflineDownloads
+                                    navigateToTab(1)
+                                }
                             )
                 }
             }
@@ -672,7 +744,8 @@ fun GuestStudyQuestHost(
             onDismiss = {
                 learnVm.resetAiDoubtState()
                 showGlobalAiSheet = false
-            }
+            },
+            isOnline = isOnline
         )
     }
 }

@@ -405,7 +405,7 @@ fun GuestSocialFeatureGateCard(
                 Text(
                     text = StudyQuestStrings.t(
                         uiLanguage,
-                        "To protect student safety, discovering classmates, friend requests, private 1v1 chats, and Study Groups require a verified Google account. Your local Guest XP & notes will automatically merge when you sign in!",
+                        "To protect student safety, discovering classmates, friend requests, private 1v1 chats, and Study Groups require a verified Google account. Your local Guest badges, streak & notes will automatically merge when you sign in!",
                         "শিক্ষার্থীদের নিরাপত্তার জন্য বন্ধু খোঁজা, ব্যক্তিগত চ্যাট ও স্টাডি গ্রুপে যুক্ত হতে গুগল সাইন-ইন প্রয়োজন। সাইন-ইন করলেই গেস্ট মোডের সব অগ্রগতি স্বয়ংক্রিয়ভাবে সিঙ্ক হবে!"
                     ),
                     style = MaterialTheme.typography.bodySmall,

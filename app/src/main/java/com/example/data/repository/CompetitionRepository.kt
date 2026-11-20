@@ -29,7 +29,7 @@ import com.example.data.curriculum.GamificationCatalog
 import com.example.data.model.CompetitionArchiveDoc
 
 enum class LeaderboardCategory(val id: String, val labelEn: String, val labelBn: String) {
-    XP("xp", "XP", "অর্জিত XP"),
+    XP("xp", "Overall Score", "সামগ্রিক স্কোর"),
     STUDY_TIME("study_time", "Study Time", "অধ্যয়ন সময়"),
     EXAM("exam", "Exam", "পরীক্ষা স্কোর"),
     ASSIGNMENT("assignment", "Assignment", "অ্যাসাইনমেন্ট"),
@@ -658,7 +658,7 @@ class CompetitionRepository(
         costCoins: Int
     ): Result<Unit> {
         if (profile.coins < costCoins) {
-            return Result.failure(IllegalStateException("Insufficient coins"))
+            return Result.failure(IllegalStateException("Complete more study milestones & streaks to unlock this emblem!"))
         }
         val ledgerId = "cosmetic_$cosmeticId"
         val ledgerRef = db.collection("users").document(profile.userId)

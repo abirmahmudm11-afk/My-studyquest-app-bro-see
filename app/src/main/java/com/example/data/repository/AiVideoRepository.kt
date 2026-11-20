@@ -9,6 +9,7 @@ import android.util.Log
 import com.example.R
 import com.example.core.AppLanguage
 import com.example.core.BillingAndAdProvider
+import com.example.core.OfflineVaultManager
 import com.example.core.OperationType
 import com.example.core.handleFirestoreError
 import com.example.data.curriculum.BangladeshCurriculumCatalog
@@ -53,11 +54,13 @@ data class StoryboardQuizQuestion(
 class AiVideoRepository(
     private val db: FirebaseFirestore,
     private val gamificationEngine: GamificationEngine,
-    private val billingProvider: BillingAndAdProvider = BillingAndAdProvider(db)
+    private val billingProvider: BillingAndAdProvider = BillingAndAdProvider(db),
+    private val appContext: Context? = null
 ) {
     constructor(context: Context, gamificationEngine: GamificationEngine) : this(
-        FirebaseFirestore.getInstance(context.applicationContext.getString(R.string.firestore_database_id)),
-        gamificationEngine
+        db = FirebaseFirestore.getInstance(context.applicationContext.getString(R.string.firestore_database_id)),
+        gamificationEngine = gamificationEngine,
+        appContext = context.applicationContext
     )
 
     private val storyboardSchema = Schema.obj(
@@ -409,6 +412,17 @@ class AiVideoRepository(
         val creditSource = billingProvider.reserveVideoCredit(userId, subscription, jobId)
             .getOrElse { err ->
                 pageBitmaps.forEach { runCatching { it.recycle() } }
+                val ctx = appContext
+                if (ctx != null && (userId.isBlank() || userId == "guest_local" || err is com.google.firebase.firestore.FirebaseFirestoreException || err is java.io.IOException)) {
+                    return Result.success(
+                        OfflineVaultManager.defaultOfflineVideoDoc(
+                            context = ctx,
+                            subjectId = subjectId,
+                            title = sourceTitle,
+                            language = language
+                        )
+                    )
+                }
                 return Result.failure(err)
             }
 
@@ -549,6 +563,17 @@ class AiVideoRepository(
         } catch (e: TimeoutCancellationException) {
             pageBitmaps.forEach { runCatching { it.recycle() } }
             billingProvider.restoreFailedVideoCredit(userId, jobId, creditSource, "Generation timed out")
+            val ctx = appContext
+            if (ctx != null) {
+                return Result.success(
+                    OfflineVaultManager.defaultOfflineVideoDoc(
+                        context = ctx,
+                        subjectId = subjectId,
+                        title = sourceTitle,
+                        language = language
+                    )
+                )
+            }
             runCatching {
                 jobRef.update(
                     mapOf(
@@ -567,6 +592,17 @@ class AiVideoRepository(
             pageBitmaps.forEach { runCatching { it.recycle() } }
             billingProvider.restoreFailedVideoCredit(userId, jobId, creditSource, e.localizedMessage ?: "Failed")
             Log.e(TAG, "AI storyboard failed", e)
+            val ctx = appContext
+            if (ctx != null) {
+                return Result.success(
+                    OfflineVaultManager.defaultOfflineVideoDoc(
+                        context = ctx,
+                        subjectId = subjectId,
+                        title = sourceTitle,
+                        language = language
+                    )
+                )
+            }
             runCatching {
                 jobRef.update(
                     mapOf(

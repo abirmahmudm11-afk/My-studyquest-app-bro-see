@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
@@ -139,9 +138,9 @@ fun SoloSpeedSprintScreen(
                 val won = sprint.correctCount * 2 >= total
                 QuestCoachCard(
                     mood = if (won) QuestCoachMood.ACHIEVEMENT else QuestCoachMood.ENCOURAGEMENT,
-                    messageEn = if (won) "Awesome sprint! You scored ${sprint.scorePoints} points and earned +${sprint.earnedXp} XP & +${sprint.earnedCoins} Coins."
-                    else "Good effort! You answered ${sprint.correctCount}/$total correctly and earned +${sprint.earnedXp} XP.",
-                    messageBn = if (won) "দারুণ খেলেছো! ${StudyQuestStrings.formatDigits(sprint.scorePoints, uiLanguage)} পয়েন্ট সহ +${StudyQuestStrings.formatDigits(sprint.earnedXp, uiLanguage)} XP অর্জন করেছো।"
+                    messageEn = if (won) "Awesome sprint! You scored ${sprint.scorePoints} points ($total questions) toward your Arena Badges."
+                    else "Good effort! You answered ${sprint.correctCount}/$total correctly and scored ${sprint.scorePoints} points.",
+                    messageBn = if (won) "দারুণ খেলেছো! ${StudyQuestStrings.formatDigits(sprint.scorePoints, uiLanguage)} পয়েন্টসহ অ্যারেনা ব্যাজ অগ্রগতি অর্জিত হয়েছে।"
                     else "ভালো চেষ্টা! ${StudyQuestStrings.formatDigits(sprint.correctCount, uiLanguage)}/${StudyQuestStrings.formatDigits(total, uiLanguage)} সঠিক হয়েছে।",
                     language = uiLanguage,
                     reducedMotion = reducedMotion,
@@ -165,13 +164,13 @@ fun SoloSpeedSprintScreen(
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 StatBadgePill(
                                     icon = Icons.Filled.Star,
-                                    label = "+${StudyQuestStrings.formatDigits(sprint.earnedXp, uiLanguage)} XP",
+                                    label = "${StudyQuestStrings.formatDigits(sprint.scorePoints, uiLanguage)} ${StudyQuestStrings.t(uiLanguage, "pts", "পয়েন্ট")}",
                                     tint = CobaltPrimary,
                                     containerColor = MaterialTheme.colorScheme.primaryContainer
                                 )
                                 StatBadgePill(
-                                    icon = Icons.Filled.MonetizationOn,
-                                    label = "+${StudyQuestStrings.formatDigits(sprint.earnedCoins, uiLanguage)} Coins",
+                                    icon = Icons.Filled.EmojiEvents,
+                                    label = StudyQuestStrings.t(uiLanguage, "Badge Progress", "ব্যাজ অগ্রগতি"),
                                     tint = VioletTertiary,
                                     containerColor = MaterialTheme.colorScheme.tertiaryContainer
                                 )
@@ -319,8 +318,8 @@ fun GuestArenaTabContent(
                     title = StudyQuestStrings.t(uiLanguage, "Quiz Battle Arena", "কুইজ ব্যাটল অ্যারেনা"),
                     subtitle = StudyQuestStrings.t(
                         uiLanguage,
-                        "Play 5-question timed Solo Speed Sprints anytime to earn Coins, XP & Rating!",
-                        "৫ প্রশ্নের টাইমড সোলো স্প্রিন্ট খেলে কয়েন, XP ও রেটিং বাড়াও!"
+                        "Play 5-question timed Solo Speed Sprints anytime to earn Badges & Rating!",
+                        "৫ প্রশ্নের টাইমড সোলো স্প্রিন্ট খেলে ব্যাজ ও রেটিং বাড়াও!"
                     ),
                     reducedMotion = reducedMotion,
                     backgroundResId = R.drawable.img_arena_banner,
@@ -386,7 +385,7 @@ fun GuestArenaTabContent(
                             Text(
                                 text = StudyQuestStrings.t(
                                     uiLanguage,
-                                    "Sign in with Google to challenge real classmates live. All Solo XP merges automatically!",
+                                    "Sign in with Google to challenge real classmates live. All Solo badges & milestones merge automatically!",
                                     "সহপাঠীদের সাথে লাইভ কুইজ খেলতে গুগল সাইন-ইন করো।"
                                 ),
                                 style = MaterialTheme.typography.bodySmall
@@ -417,7 +416,7 @@ fun GuestArenaTabContent(
                     Text(
                         text = StudyQuestStrings.t(
                             uiLanguage,
-                            "No sprints completed yet — tap Start above to earn your first battle XP!",
+                            "No sprints completed yet — tap Start above to earn your first sprint milestone!",
                             "এখনো কোনো স্প্রিন্ট খেলা হয়নি — উপরে ট্যাপ করে প্রথম স্প্রিন্ট শুরু করো!"
                         ),
                         style = MaterialTheme.typography.bodySmall,
@@ -436,7 +435,7 @@ fun GuestArenaTabContent(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(m.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                text = "${m.score} pts • +${m.xpEarned} XP",
+                                text = "${m.score} ${StudyQuestStrings.t(uiLanguage, "pts", "পয়েন্ট")} • ${if (m.won) StudyQuestStrings.t(uiLanguage, "Victory", "জয়") else StudyQuestStrings.t(uiLanguage, "Completed", "সম্পন্ন")}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

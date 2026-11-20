@@ -1,8 +1,10 @@
 package com.example.core
 
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.media.MediaPlayer
 import android.util.Log
 import com.example.data.curriculum.GamificationCatalog
 import com.example.data.model.FocusMusicTrack
@@ -26,16 +28,27 @@ data class AmbientMusicUiState(
     val selectedCategory: String = "focus",
     val currentTrack: FocusMusicTrack = GamificationCatalog.focusMusicTracks.first(),
     val volume: Float = 0.65f,
-    val musicDuringBreak: Boolean = true
+    val musicDuringBreak: Boolean = true,
+    val rainLayerEnabled: Boolean = false,
+    val activeBriefingSubjectId: String? = null
 )
 
 /**
- * Procedural PCM ambient sound synthesizer using Android AudioTrack.
- * Generates genuine offline Focus, Relaxing, and Background audio without broken remote streams.
+ * Dual-engine offline studio audio player:
+ * 1) Primary: Streams bundled 44.1 kHz studio-mastered WAV tracks, rain ambient layer,
+ *    chimes, and subject audio briefings from assets/study_vault/audio via MediaPlayer.
+ * 2) Fallback: Procedural PCM synthesizer via AudioTrack if AssetFileDescriptor is unavailable.
  */
-class AmbientMusicPlayer {
+class AmbientMusicPlayer(
+    private val context: Context? = null
+) {
+    private val appContext: Context? = context?.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var playbackJob: Job? = null
+    private var mainMediaPlayer: MediaPlayer? = null
+    private var rainMediaPlayer: MediaPlayer? = null
+    private var briefingMediaPlayer: MediaPlayer? = null
+    private val playerLock = Any()
 
     private val _state = MutableStateFlow(AmbientMusicUiState())
     val state: StateFlow<AmbientMusicUiState> = _state.asStateFlow()
@@ -82,6 +95,8 @@ class AmbientMusicPlayer {
     fun pause() {
         playbackJob?.cancel()
         playbackJob = null
+        releaseMainPlayer()
+        releaseRainPlayer()
         _state.value = _state.value.copy(isPlaying = false)
     }
 
@@ -106,13 +121,82 @@ class AmbientMusicPlayer {
         val clamped = volume.coerceIn(0f, 1f)
         currentVolume = clamped
         _state.value = _state.value.copy(volume = clamped)
+        synchronized(playerLock) {
+            runCatching { mainMediaPlayer?.setVolume(clamped, clamped) }
+            runCatching {
+                val rainVol = (clamped * 0.42f).coerceIn(0f, 1f)
+                rainMediaPlayer?.setVolume(rainVol, rainVol)
+            }
+            runCatching { briefingMediaPlayer?.setVolume(clamped, clamped) }
+        }
     }
 
     fun setMusicDuringBreak(enabled: Boolean) {
         _state.value = _state.value.copy(musicDuringBreak = enabled)
     }
 
+    fun toggleAmbientRainLayer() {
+        val nextEnabled = !_state.value.rainLayerEnabled
+        _state.value = _state.value.copy(rainLayerEnabled = nextEnabled)
+        if (nextEnabled) {
+            if (_state.value.isPlaying) {
+                startRainOverlay()
+            } else {
+                startRainOverlay()
+            }
+        } else {
+            releaseRainPlayer()
+        }
+    }
+
+    fun playSubjectBriefing(subjectId: String) {
+        if (_state.value.activeBriefingSubjectId == subjectId) {
+            stopSubjectBriefing()
+            return
+        }
+        stopSubjectBriefing()
+        val ctx = appContext ?: return
+        val started = startBundledMediaPlayer(
+            ctx = ctx,
+            fileName = "briefing_${subjectId}.wav",
+            loop = false,
+            volScale = 1f,
+            onCompletion = {
+                _state.value = _state.value.copy(activeBriefingSubjectId = null)
+                releaseBriefingPlayer()
+            }
+        )
+        if (started != null) {
+            synchronized(playerLock) { briefingMediaPlayer = started }
+            _state.value = _state.value.copy(activeBriefingSubjectId = subjectId)
+        }
+    }
+
+    fun stopSubjectBriefing() {
+        releaseBriefingPlayer()
+        if (_state.value.activeBriefingSubjectId != null) {
+            _state.value = _state.value.copy(activeBriefingSubjectId = null)
+        }
+    }
+
     fun playBreakChime() {
+        val ctx = appContext
+        if (ctx != null) {
+            val mp = startBundledMediaPlayer(
+                ctx = ctx,
+                fileName = "chime_focus_end.wav",
+                loop = false,
+                volScale = 1f,
+                onCompletion = { player ->
+                    runCatching {
+                        player.stop()
+                        player.release()
+                    }
+                }
+            )
+            if (mp != null) return
+        }
+
         scope.launch {
             runCatching {
                 val sampleRate = 22050
@@ -122,7 +206,8 @@ class AmbientMusicPlayer {
                     val t = i.toDouble() / sampleRate
                     val env = kotlin.math.exp(-t * 6.0)
                     val tone = sin(2.0 * PI * 523.25 * t) * 0.5 + sin(2.0 * PI * 783.99 * t) * 0.3
-                    buffer[i] = (tone * env * currentVolume * 14000.0).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+                    buffer[i] = (tone * env * currentVolume * 14000.0).toInt()
+                        .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
                 }
                 val minBuf = AudioTrack.getMinBufferSize(
                     sampleRate,
@@ -157,7 +242,28 @@ class AmbientMusicPlayer {
 
     private fun startTrack(musicTrack: FocusMusicTrack) {
         playbackJob?.cancel()
+        releaseMainPlayer()
         _state.value = _state.value.copy(isPlaying = true, currentTrack = musicTrack)
+
+        val ctx = appContext
+        if (ctx != null) {
+            val mp = startBundledMediaPlayer(
+                ctx = ctx,
+                fileName = "${musicTrack.id}.wav",
+                loop = true,
+                volScale = 1f,
+                onCompletion = null
+            )
+            if (mp != null) {
+                synchronized(playerLock) { mainMediaPlayer = mp }
+                if (_state.value.rainLayerEnabled) {
+                    startRainOverlay()
+                }
+                return
+            }
+        }
+
+        // Fallback procedural PCM synthesis when asset FD isn't available (e.g., JVM tests)
         playbackJob = scope.launch {
             val sampleRate = 22050
             val chunkSamples = 2048
@@ -238,8 +344,81 @@ class AmbientMusicPlayer {
         }
     }
 
+    private fun startRainOverlay() {
+        releaseRainPlayer()
+        val ctx = appContext ?: return
+        val mp = startBundledMediaPlayer(
+            ctx = ctx,
+            fileName = "track_monsoon_rain.wav",
+            loop = true,
+            volScale = 0.42f,
+            onCompletion = null
+        )
+        if (mp != null) {
+            synchronized(playerLock) { rainMediaPlayer = mp }
+        }
+    }
+
+    private fun startBundledMediaPlayer(
+        ctx: Context,
+        fileName: String,
+        loop: Boolean,
+        volScale: Float,
+        onCompletion: ((MediaPlayer) -> Unit)?
+    ): MediaPlayer? {
+        return runCatching {
+            val afd = OfflineVaultManager.openAudioAssetFd(ctx, fileName) ?: return null
+            val mp = MediaPlayer()
+            afd.use {
+                mp.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                mp.setDataSource(it.fileDescriptor, it.startOffset, it.length)
+            }
+            mp.isLooping = loop
+            val v = (currentVolume * volScale).coerceIn(0f, 1f)
+            mp.setVolume(v, v)
+            if (onCompletion != null) {
+                mp.setOnCompletionListener { player -> onCompletion(player) }
+            }
+            mp.prepare()
+            mp.start()
+            mp
+        }.onFailure { err ->
+            Log.d(TAG, "Bundled WAV $fileName fallback: ${err.message}")
+        }.getOrNull()
+    }
+
+    private fun releaseMainPlayer() {
+        synchronized(playerLock) {
+            runCatching { mainMediaPlayer?.stop() }
+            runCatching { mainMediaPlayer?.release() }
+            mainMediaPlayer = null
+        }
+    }
+
+    private fun releaseRainPlayer() {
+        synchronized(playerLock) {
+            runCatching { rainMediaPlayer?.stop() }
+            runCatching { rainMediaPlayer?.release() }
+            rainMediaPlayer = null
+        }
+    }
+
+    private fun releaseBriefingPlayer() {
+        synchronized(playerLock) {
+            runCatching { briefingMediaPlayer?.stop() }
+            runCatching { briefingMediaPlayer?.release() }
+            briefingMediaPlayer = null
+        }
+    }
+
     fun release() {
         pause()
+        releaseBriefingPlayer()
         scope.cancel()
     }
 

@@ -62,7 +62,7 @@ object StudyQuestViewModelFactories {
             GuestSessionViewModel(
                 preferences = prefs,
                 guestRepo = GuestDataRepository(dao, prefs),
-                aiRepo = AiDoubtSolverRepository(db),
+                aiRepo = AiDoubtSolverRepository(db, appContext = app),
                 connectivityObserver = ConnectivityObserver(app),
                 gamificationEngine = buildGamificationEngine(app, db),
                 textbookRepo = TextbookDownloadRepository(app, db, dao)
@@ -97,12 +97,16 @@ object StudyQuestViewModelFactories {
             val prefs = StudyQuestPreferences(app)
             val guestRepo = GuestDataRepository(dao, prefs)
             val engine = buildGamificationEngine(app, db)
+            val textbookRepo = TextbookDownloadRepository(app, db, dao)
+            val downloadsRepo = com.example.data.repository.OfflineDownloadsRepository(app, dao, textbookRepo)
             LearnAndExamViewModel(
                 currentUserId = userId,
                 academicRepo = AcademicProgressRepository(db, dao, app, prefs, guestRepo, engine),
-                aiRepo = AiDoubtSolverRepository(db),
-                textbookRepo = TextbookDownloadRepository(app, db, dao),
-                socialRepo = SocialRepository(db)
+                aiRepo = AiDoubtSolverRepository(db, appContext = app),
+                textbookRepo = textbookRepo,
+                socialRepo = SocialRepository(db),
+                dao = dao,
+                downloadsRepo = downloadsRepo
             )
         }
     }
@@ -160,7 +164,7 @@ object StudyQuestViewModelFactories {
                 currentUserId = userId,
                 focusRepo = focusRepo,
                 preferences = prefs,
-                musicPlayer = AmbientMusicPlayer()
+                musicPlayer = AmbientMusicPlayer(app)
             )
         }
     }
@@ -170,7 +174,7 @@ object StudyQuestViewModelFactories {
             val app = requireApp()
             val db = firestoreInstance(app)
             val engine = buildGamificationEngine(app, db)
-            val aiVideoRepo = AiVideoRepository(db, engine)
+            val aiVideoRepo = AiVideoRepository(db, engine, appContext = app)
             AiVideoViewModel(
                 appContext = app,
                 currentUserId = userId,

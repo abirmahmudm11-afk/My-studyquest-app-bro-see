@@ -156,8 +156,8 @@ fun AssignmentsAndGoalsScreen(
                             EmptyStateView(
                                 titleEn = "No personal goals yet",
                                 titleBn = "এখনো কোনো লক্ষ্য নির্ধারণ করোনি",
-                                subtitleEn = "Set a daily or weekly study time, lesson, or quiz goal to earn verified XP!",
-                                subtitleBn = "দৈনিক বা সাপ্তাহিক পড়া, পাঠ বা প্রশ্ন সমাধানের লক্ষ্য ঠিক করে XP অর্জন করো।",
+                                subtitleEn = "Set a daily or weekly study time, lesson, or quiz goal to earn Goal Badges!",
+                                subtitleBn = "দৈনিক বা সাপ্তাহিক পড়া, পাঠ বা প্রশ্ন সমাধানের লক্ষ্য ঠিক করে ব্যাজ অর্জন করো।",
                                 language = uiLanguage
                             )
                         }
@@ -201,7 +201,11 @@ fun AssignmentsAndGoalsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "+${goal.xpReward} XP",
+                                        text = StudyQuestStrings.t(
+                                            uiLanguage,
+                                            "${goal.currentValue} / ${goal.targetValue} progress",
+                                            "${StudyQuestStrings.formatDigits(goal.currentValue, uiLanguage)} / ${StudyQuestStrings.formatDigits(goal.targetValue, uiLanguage)} অগ্রগতি"
+                                        ),
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = if (goal.completed) semantic.success else CobaltPrimary
@@ -294,7 +298,11 @@ fun AssignmentsAndGoalsScreen(
                                     )
                                     StatBadgePill(
                                         icon = Icons.Filled.Assignment,
-                                        label = "+${item.xpReward} XP • +${item.coinReward}c",
+                                        label = StudyQuestStrings.t(
+                                            uiLanguage,
+                                            "${item.targetCount} target • ${item.durationLimitMinutes}m",
+                                            "${StudyQuestStrings.formatDigits(item.targetCount, uiLanguage)} লক্ষ্য • ${StudyQuestStrings.formatDigits(item.durationLimitMinutes, uiLanguage)} মি."
+                                        ),
                                         tint = VioletTertiary,
                                         containerColor = MaterialTheme.colorScheme.tertiaryContainer
                                     )
@@ -375,7 +383,7 @@ fun AssignmentsAndGoalsScreen(
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("easy" to "Easy (+35)", "medium" to "Med (+55)", "hard" to "Hard (+90)").forEach { (id, lbl) ->
+                        listOf("easy" to "Easy", "medium" to "Medium", "hard" to "Hard").forEach { (id, lbl) ->
                             FilterChip(selected = difficulty == id, onClick = { difficulty = id }, label = { Text(lbl) })
                         }
                     }

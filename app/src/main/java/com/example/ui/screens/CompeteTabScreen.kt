@@ -76,6 +76,7 @@ import com.example.data.repository.CompetitionRepository
 import com.example.data.repository.LeaderboardCategory
 import com.example.data.repository.LeaderboardPeriod
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.OfflineLockBadgeChip
 import com.example.ui.components.QuestCoachCard
 import com.example.ui.components.RankTierBadge
 import com.example.ui.components.StaggeredEntrance
@@ -125,7 +126,8 @@ fun CompeteTabScreen(
     selectedPeriod: LeaderboardPeriod = LeaderboardPeriod.WEEKLY,
     competitionArchives: List<CompetitionArchiveDoc> = emptyList(),
     onSelectCategory: (LeaderboardCategory) -> Unit = {},
-    onSelectPeriod: (LeaderboardPeriod) -> Unit = {}
+    onSelectPeriod: (LeaderboardPeriod) -> Unit = {},
+    isOnline: Boolean = true
 ) {
     if (activeSoloSprint != null) {
         SoloSpeedSprintScreen(
@@ -210,6 +212,40 @@ fun CompeteTabScreen(
             )
         }
 
+        if (!isOnline) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("compete_offline_notice")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = StudyQuestStrings.t(
+                            uiLanguage,
+                            "Offline mode: Live matchmaking pauses without network; Solo Speed Sprints stay available.",
+                            "অফলাইন মোড: নেটওয়ার্ক ছাড়া লাইভ ম্যাচ বন্ধ, তবে সলো স্পিড স্প্রিন্ট চালু আছে।"
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    FilledTonalButton(
+                        onClick = { onStartSoloSprint(profile.classId, selectedSubjectId, "solo_sprint", null) }
+                    ) {
+                        Text(StudyQuestStrings.t(uiLanguage, "Solo Sprint", "সলো স্প্রিন্ট"))
+                    }
+                }
+            }
+        }
+
         when (selectedTab) {
             0 -> {
                 if (isGuestMode) {
@@ -227,7 +263,7 @@ fun CompeteTabScreen(
                     )
                 } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().testTag("compete_arena_list"),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -282,14 +318,67 @@ fun CompeteTabScreen(
                         }
                     }
 
+                    if (!isOnline) {
+                        item {
+                            StudyQuestCard(modifier = Modifier.testTag("compete_offline_solo_card")) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = StudyQuestStrings.t(uiLanguage, "Offline Solo Speed Sprint", "অফলাইন সলো স্পিড স্প্রিন্ট"),
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            OfflineLockBadgeChip(language = uiLanguage)
+                                        }
+                                        Text(
+                                            text = StudyQuestStrings.t(
+                                                uiLanguage,
+                                                "Instant local 5-question timed drill using bundled NCTB questions.",
+                                                "ইন্টারনেট ছাড়াই ৫ প্রশ্নের দ্রুত স্প্রিন্ট খেলো।"
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    Button(
+                                        onClick = { onStartSoloSprint(profile.classId, selectedSubjectId, "solo_sprint", null) },
+                                        modifier = Modifier.minimumInteractiveComponentSize().testTag("compete_offline_solo_play_btn")
+                                    ) {
+                                        Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(StudyQuestStrings.t(uiLanguage, "Play", "খেলো"))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Mode Selector Card
                     item {
                         StudyQuestCard {
-                            Text(
-                                text = StudyQuestStrings.t(uiLanguage, "Choose Battle Subject", "প্রতিযোগিতার বিষয়"),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = StudyQuestStrings.t(uiLanguage, "Choose Battle Subject", "প্রতিযোগিতার বিষয়"),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (!isOnline) {
+                                    OfflineLockBadgeChip(language = uiLanguage)
+                                }
+                            }
                             Spacer(Modifier.height(6.dp))
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 BangladeshCurriculumCatalog.subjectsForClass(profile.classId).take(5).forEach { subj ->
@@ -304,6 +393,7 @@ fun CompeteTabScreen(
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(
                                     onClick = { onEnterQuickBattle(profile.classId, selectedSubjectId) },
+                                    enabled = isOnline,
                                     modifier = Modifier
                                         .weight(1f)
                                         .minimumInteractiveComponentSize()
@@ -315,6 +405,7 @@ fun CompeteTabScreen(
                                 }
                                 FilledTonalButton(
                                     onClick = { onCreatePrivateRoom(profile.classId, selectedSubjectId) },
+                                    enabled = isOnline,
                                     modifier = Modifier
                                         .weight(1f)
                                         .minimumInteractiveComponentSize()
@@ -328,6 +419,7 @@ fun CompeteTabScreen(
                             Spacer(Modifier.height(8.dp))
                             FilledTonalButton(
                                 onClick = { showChallengeDialog = true },
+                                enabled = isOnline,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .minimumInteractiveComponentSize()
@@ -343,17 +435,27 @@ fun CompeteTabScreen(
                     // Join Private Room by Code
                     item {
                         StudyQuestCard {
-                            Text(
-                                text = StudyQuestStrings.t(uiLanguage, "Join Room by Code", "কোড দিয়ে রুমে যুক্ত হও"),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = StudyQuestStrings.t(uiLanguage, "Join Room by Code", "কোড দিয়ে রুমে যুক্ত হও"),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (!isOnline) {
+                                    OfflineLockBadgeChip(language = uiLanguage)
+                                }
+                            }
                             Spacer(Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedTextField(
                                     value = joinCodeInput,
                                     onValueChange = { joinCodeInput = it.uppercase().take(8) },
                                     label = { Text(StudyQuestStrings.t(uiLanguage, "6-char Room Code", "৬ অক্ষরের কোড")) },
+                                    enabled = isOnline,
                                     singleLine = true,
                                     modifier = Modifier
                                         .weight(1f)
@@ -361,6 +463,7 @@ fun CompeteTabScreen(
                                 )
                                 Button(
                                     onClick = { if (joinCodeInput.isNotBlank()) onJoinRoomByCode(joinCodeInput) },
+                                    enabled = isOnline && joinCodeInput.isNotBlank(),
                                     modifier = Modifier
                                         .minimumInteractiveComponentSize()
                                         .testTag("join_room_code_btn")
@@ -415,11 +518,17 @@ fun CompeteTabScreen(
                                         )
                                     }
                                     if (isInvited) {
-                                        Button(onClick = { onJoinInvitedMatch(m) }) {
+                                        Button(
+                                            onClick = { onJoinInvitedMatch(m) },
+                                            enabled = isOnline
+                                        ) {
                                             Text(StudyQuestStrings.t(uiLanguage, "Accept", "গ্রহণ"))
                                         }
                                     } else {
-                                        FilledTonalButton(onClick = { onOpenMatch(m.id) }) {
+                                        FilledTonalButton(
+                                            onClick = { onOpenMatch(m.id) },
+                                            enabled = isOnline || m.status == "completed"
+                                        ) {
                                             Text(
                                                 if (m.status == "completed") StudyQuestStrings.t(uiLanguage, "Results", "ফলাফল")
                                                 else StudyQuestStrings.t(uiLanguage, "Enter", "প্রবেশ")
@@ -481,7 +590,7 @@ fun CompeteTabScreen(
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "${tour.classId} • ${tour.subjectId} • ${tour.participantUids.size}/${tour.maxParticipants} • +${tour.rewardCoins} Coins",
+                                            text = "${tour.classId} • ${tour.subjectId} • ${tour.participantUids.size}/${tour.maxParticipants} • ${StudyQuestStrings.t(uiLanguage, "Trophy Bracket", "ট্রফি টুর্নামেন্ট")}",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -501,14 +610,22 @@ fun CompeteTabScreen(
                                             Text(StudyQuestStrings.t(uiLanguage, "Play Bracket", "খেলুন"))
                                         }
                                     } else {
-                                        Button(
-                                            onClick = { onJoinTournament(tour) },
-                                            enabled = !joined && tour.status == "registration"
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
-                                            Text(
-                                                if (joined) StudyQuestStrings.t(uiLanguage, "Joined", "যুক্ত")
-                                                else StudyQuestStrings.t(uiLanguage, "Register", "নিবন্ধন")
-                                            )
+                                            if (!isOnline) {
+                                                OfflineLockBadgeChip(language = uiLanguage)
+                                            }
+                                            Button(
+                                                onClick = { onJoinTournament(tour) },
+                                                enabled = isOnline && !joined && tour.status == "registration"
+                                            ) {
+                                                Text(
+                                                    if (joined) StudyQuestStrings.t(uiLanguage, "Joined", "যুক্ত")
+                                                    else StudyQuestStrings.t(uiLanguage, "Register", "নিবন্ধন")
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -601,7 +718,7 @@ private fun LeaderboardSubTab(
     val remHours = ((remainingMs % 86_400_000L) / 3_600_000L).toInt()
 
     val categoryUnit = when (selectedCategory) {
-        LeaderboardCategory.XP -> "XP"
+        LeaderboardCategory.XP -> StudyQuestStrings.t(uiLanguage, "pts", "পয়েন্ট")
         LeaderboardCategory.STUDY_TIME -> StudyQuestStrings.t(uiLanguage, "min", "মি.")
         LeaderboardCategory.EXAM -> StudyQuestStrings.t(uiLanguage, "pts", "নম্বর")
         LeaderboardCategory.ASSIGNMENT -> StudyQuestStrings.t(uiLanguage, "pts", "নম্বর")
@@ -736,8 +853,8 @@ private fun LeaderboardSubTab(
                     else -> ""
                 }
                 val rankColor = when (idx) {
-                    0 -> AmberGold
-                    1 -> CobaltPrimary
+                    0 -> MaterialTheme.colorScheme.primary
+                    1 -> MaterialTheme.colorScheme.onSurface
                     2 -> semantic.success
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
@@ -801,7 +918,7 @@ private fun LeaderboardSubTab(
             items(competitionArchives.take(4), key = { it.id }) { arch ->
                 StudyQuestCard {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = AmberGold)
+                        Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "${arch.periodKey} • ${arch.category.uppercase()}",

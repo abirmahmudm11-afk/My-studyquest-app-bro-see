@@ -23,18 +23,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -48,14 +48,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -75,6 +71,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -121,35 +118,16 @@ import com.example.data.curriculum.TextbookCatalog
 import com.example.data.model.AcademicGroup
 import com.example.data.model.CurriculumVersion
 import com.example.data.model.PublicProfile
-import com.example.data.model.QuestCoachMood
 import com.example.data.model.TextbookCatalogItem
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.offset
-import com.example.ui.components.AnimatedLanguageChoiceCard
 import com.example.ui.components.AuthWelcomePreviewCarouselStage
 import com.example.ui.components.AvatarBadgeView
 import com.example.ui.components.GoogleLogoMark
 import com.example.ui.components.LaunchStudyPortalHeroShowcase
-import com.example.ui.components.OpenBookQuestIllustration
-import com.example.ui.components.QuestCoachCard
-import com.example.ui.components.StaggeredEntrance
-import com.example.ui.components.StudyQuestAmbientBackdrop
-import com.example.ui.components.StudyQuestBrandMark
-import com.example.ui.components.StudyQuestCard
-import com.example.ui.theme.BrandTealPrimary
-import com.example.ui.theme.CoolHairlineBorder
-import com.example.ui.theme.DarkSlateSurface
 import com.example.ui.theme.EditorialError
 import com.example.ui.theme.EditorialSuccess
+import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.LocalStudyQuestColors
 import com.example.ui.theme.LocalStudyQuestSurfaceStyle
-import com.example.ui.theme.MutedMintContainer
-import com.example.ui.theme.MutedMintFocal
-import com.example.ui.theme.OnMutedMintContainer
-import com.example.ui.theme.PureEditorialSurface
-import com.example.ui.theme.SoftPowderBlue
-import com.example.ui.theme.SoftSageGreen
-import com.example.ui.theme.studyQuestGlassAwareBorder
-import com.example.ui.theme.studyQuestGlassAwareSurfaceColor
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -324,143 +302,145 @@ fun rememberGoogleSignInLauncher(
     ).launch
 }
 
+/**
+ * First Screen — Swiss Minimal Launch.
+ * Architecture: Compact top [ বাংলা | EN ] pill toggle + single Slate/Lime focal stage + ONE Display Title + ONE Primary CTA.
+ */
 @Composable
 fun LanguagePickerLaunchScreen(
     onSelectLanguage: (AppLanguage) -> Unit,
     reducedMotion: Boolean = false
 ) {
-    val visualConfig = LocalStudyQuestSurfaceStyle.current
+    var previewLanguage by remember { mutableStateOf(AppLanguage.ENGLISH) }
     val scrollState = rememberScrollState()
 
-    val glassSurfaceColor = if (visualConfig.isDark) {
-        DarkSlateSurface.copy(alpha = if (visualConfig.isGlass) 0.86f else 0.96f)
-    } else {
-        Color.White.copy(alpha = if (visualConfig.isGlass) 0.90f else 0.97f)
-    }
-    val glassBorder = if (visualConfig.isDark) {
-        BorderStroke(1.dp, Color.White.copy(alpha = 0.16f))
-    } else {
-        BorderStroke(1.2.dp, Color.White.copy(alpha = 0.94f))
-    }
-
-    BoxWithConstraints(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(scrollState)
+            .navigationBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val isWide = maxWidth >= 740.dp
+        LaunchStudyPortalHeroShowcase(
+            language = previewLanguage,
+            reducedMotion = reducedMotion,
+            headerTrailingSlot = {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Color.White.copy(alpha = 0.16f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.30f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        LaunchLangSegment(
+                            label = "বাংলা",
+                            selected = previewLanguage == AppLanguage.BANGLA,
+                            testTag = "pick_lang_bn",
+                            onClick = { previewLanguage = AppLanguage.BANGLA }
+                        )
+                        LaunchLangSegment(
+                            label = "EN",
+                            selected = previewLanguage == AppLanguage.ENGLISH,
+                            testTag = "pick_lang_en",
+                            onClick = { previewLanguage = AppLanguage.ENGLISH }
+                        )
+                    }
+                }
+            }
+        )
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .navigationBarsPadding(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .widthIn(max = 560.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            LaunchStudyPortalHeroShowcase(
-                reducedMotion = reducedMotion,
-                compactMode = false
+            Text(
+                text = StudyQuestStrings.t(
+                    previewLanguage,
+                    "Your NCTB study space, simplified.",
+                    "এনসিটিবি পড়াশোনার গোছানো স্থান।"
+                ),
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.testTag("launch_display_title")
             )
 
-            // Frosted Glass Language Selector overlapping the atmospheric hero edge
-            Box(
+            Text(
+                text = StudyQuestStrings.t(
+                    previewLanguage,
+                    "Offline textbooks, board practice, and bilingual help for Classes 6–10.",
+                    "৬ষ্ঠ–১০ম শ্রেণির অফলাইন পাঠ্যবই, বোর্ড অনুশীলন ও সহজ AI সহায়তা।"
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Button(
+                onClick = { onSelectLanguage(previewLanguage) },
+                shape = RoundedCornerShape(999.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .offset(y = (-22).dp),
-                contentAlignment = Alignment.TopCenter
+                    .height(56.dp)
+                    .minimumInteractiveComponentSize()
+                    .testTag("launch_get_started_btn")
             ) {
-                Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    color = glassSurfaceColor,
-                    border = glassBorder,
-                    shadowElevation = if (visualConfig.isGlass) 2.dp else 10.dp,
-                    modifier = Modifier
-                        .widthIn(max = if (isWide) 840.dp else 540.dp)
-                        .fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 22.dp, vertical = 22.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Surface(
-                                shape = RoundedCornerShape(999.dp),
-                                color = if (visualConfig.isDark) MaterialTheme.colorScheme.secondaryContainer else SoftPowderBlue
-                            ) {
-                                Text(
-                                    text = "SELECT LANGUAGE • পছন্দের ভাষা নির্বাচন",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                                )
-                            }
-
-                            Text(
-                                text = "পড়াশোনা শুরু করতে ভাষা বেছে নিন",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Choose Bangla or English for your NCTB 2026 & 2027 books, practice sets, and AI tutor. You can switch anytime.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        if (isWide) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                AnimatedLanguageChoiceCard(
-                                    title = "বাংলা (Bangla)",
-                                    subtitle = "বাংলাদেশ বোর্ড পাঠ্যক্রম, প্রশ্ন ও ইন্টারফেস",
-                                    badgeCode = "বাং",
-                                    isFeaturedTeal = true,
-                                    testTag = "pick_lang_bn",
-                                    onClick = { onSelectLanguage(AppLanguage.BANGLA) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                AnimatedLanguageChoiceCard(
-                                    title = "English (ইংরেজি)",
-                                    subtitle = "English interface & NCTB English/Bangla Version",
-                                    badgeCode = "EN",
-                                    isFeaturedTeal = false,
-                                    testTag = "pick_lang_en",
-                                    onClick = { onSelectLanguage(AppLanguage.ENGLISH) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        } else {
-                            AnimatedLanguageChoiceCard(
-                                title = "বাংলা (Bangla)",
-                                subtitle = "বাংলাদেশ বোর্ড পাঠ্যক্রম, প্রশ্ন ও ইন্টারফেস",
-                                badgeCode = "বাং",
-                                isFeaturedTeal = true,
-                                testTag = "pick_lang_bn",
-                                onClick = { onSelectLanguage(AppLanguage.BANGLA) }
-                            )
-                            AnimatedLanguageChoiceCard(
-                                title = "English (ইংরেজি)",
-                                subtitle = "English interface & NCTB English/Bangla Version",
-                                badgeCode = "EN",
-                                isFeaturedTeal = false,
-                                testTag = "pick_lang_en",
-                                onClick = { onSelectLanguage(AppLanguage.ENGLISH) }
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = StudyQuestStrings.t(previewLanguage, "Get Started", "শুরু করো"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
 }
 
+@Composable
+private fun LaunchLangSegment(
+    label: String,
+    selected: Boolean,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        color = if (selected) Color.White else Color.Transparent,
+        modifier = Modifier
+            .minimumInteractiveComponentSize()
+            .testTag(testTag)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) Color(0xFF0F172A) else Color.White.copy(alpha = 0.88f),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+        )
+    }
+}
+
+/**
+ * Welcome & Redesigned Full-Canvas Auth Flow.
+ * - WELCOME stage: Slate + Lime 3D carousel stage -> 1 Display Title + 1 Primary CTA ("Continue with Google") + quiet link strip below.
+ * - SIGN_IN / SIGN_UP stage: Dedicated full-canvas monochrome Swiss typography Auth workspace (zero hero carousel competing on screen).
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WelcomeAndGoogleSignInScreen(
@@ -495,7 +475,7 @@ fun WelcomeAndGoogleSignInScreen(
     val webClientId = remember(context) { context.getString(R.string.default_web_client_id) }
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
-    val visualConfig = LocalStudyQuestSurfaceStyle.current
+    val semantic = LocalStudyQuestColors.current
 
     var currentStage by remember(initialStage) { mutableStateOf(initialStage) }
     var fullName by remember { mutableStateOf("") }
@@ -538,9 +518,7 @@ fun WelcomeAndGoogleSignInScreen(
     }
 
     DisposableEffect(Unit) {
-        onDispose {
-            silentAutoSignInJob?.cancel()
-        }
+        onDispose { silentAutoSignInJob?.cancel() }
     }
 
     LaunchedEffect(Unit) {
@@ -596,915 +574,725 @@ fun WelcomeAndGoogleSignInScreen(
         score
     }
     val passwordStrengthLabel = when (passwordScore) {
-        0, 1 -> StudyQuestStrings.t(language, "Weak • use 6+ characters", "দুর্বল • কমপক্ষে ৬ অক্ষর দিন")
-        2 -> StudyQuestStrings.t(language, "Fair • add uppercase or numbers", "মাঝারি • বড় হাতের অক্ষর বা সংখ্যা দিন")
+        0, 1 -> StudyQuestStrings.t(language, "Weak • use 6+ chars", "দুর্বল • কমপক্ষে ৬ অক্ষর")
+        2 -> StudyQuestStrings.t(language, "Fair • add uppercase or digits", "মাঝারি • বড় হাতের অক্ষর বা সংখ্যা দিন")
         else -> StudyQuestStrings.t(language, "Strong password", "শক্তিশালী পাসওয়ার্ড")
     }
     val passwordMismatch = confirmPassword.isNotEmpty() && confirmPassword != password
 
-    val glassCardColor = if (visualConfig.isDark) {
-        DarkSlateSurface.copy(alpha = if (visualConfig.isGlass) 0.86f else 0.96f)
-    } else {
-        Color.White.copy(alpha = if (visualConfig.isGlass) 0.90f else 0.97f)
-    }
-    val glassCardBorder = if (visualConfig.isDark) {
-        BorderStroke(1.dp, Color.White.copy(alpha = 0.16f))
-    } else {
-        BorderStroke(1.2.dp, Color.White.copy(alpha = 0.94f))
-    }
+    val cleanFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surface,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+    )
 
-    Column(
+    AnimatedContent(
+        targetState = currentStage,
+        transitionSpec = {
+            if (reducedMotion) fadeIn(tween(10)) togetherWith fadeOut(tween(10))
+            else fadeIn(tween(220)) togetherWith fadeOut(tween(150))
+        },
+        label = "auth_canvas_stage",
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(scrollState)
-            .imePadding()
-            .navigationBarsPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Atmospheric Slate Hero Band with Interactive 3D Preview Carousel + Minimal Header
-        AuthWelcomePreviewCarouselStage(
-            language = language,
-            reducedMotion = reducedMotion,
-            showCarousel = currentStage == AuthStage.WELCOME,
-            headerContent = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        if (currentStage == AuthStage.WELCOME) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.White.copy(alpha = 0.18f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.34f))
-                            ) {
-                                IconButton(
-                                    onClick = {
-                                        userInteractedWithAuth = true
-                                        silentAutoSignInJob?.cancel()
-                                        googleController.cancel()
-                                        onCancelSignIn()
-                                        onBackToLanguagePicker()
-                                    },
-                                    modifier = Modifier
-                                        .minimumInteractiveComponentSize()
-                                        .size(40.dp)
-                                        .testTag("welcome_back_to_lang_btn")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        tint = Color.White,
-                                        contentDescription = StudyQuestStrings.t(
-                                            language,
-                                            "Back to language picker",
-                                            "ভাষা নির্বাচনে ফিরে যাও"
-                                        )
-                                    )
-                                }
-                            }
-                        } else {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.White.copy(alpha = 0.18f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.34f))
-                            ) {
-                                IconButton(
-                                    onClick = {
-                                        userInteractedWithAuth = true
-                                        currentStage = AuthStage.WELCOME
-                                        onClearAuthMessages()
-                                    },
-                                    modifier = Modifier
-                                        .minimumInteractiveComponentSize()
-                                        .size(40.dp)
-                                        .testTag("auth_back_to_welcome_btn")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        tint = Color.White,
-                                        contentDescription = StudyQuestStrings.t(
-                                            language,
-                                            "Back to welcome",
-                                            "স্বাগতম স্ক্রিনে ফিরে যাও"
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                        StudyQuestBrandMark(size = 34.dp)
-                        Text(
-                            text = "StudyQuest",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    Surface(
-                        onClick = {
-                            onSetLanguage(
-                                if (language == AppLanguage.BANGLA) AppLanguage.ENGLISH
-                                else AppLanguage.BANGLA
-                            )
-                        },
-                        shape = RoundedCornerShape(999.dp),
-                        color = Color.White.copy(alpha = 0.18f),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.36f)),
-                        modifier = Modifier
-                            .minimumInteractiveComponentSize()
-                            .testTag("toggle_lang_welcome")
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Language,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = if (language == AppLanguage.BANGLA) "English" else "বাংলা",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-            }
-        )
-
-        // Frosted Glass Authentication Card Overlapping the Hero Edge
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .offset(y = (-22).dp),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            AnimatedContent(
-                targetState = currentStage,
-                transitionSpec = {
-                    if (reducedMotion) {
-                        fadeIn(tween(10)) togetherWith fadeOut(tween(10))
-                    } else {
-                        fadeIn(tween(240)) togetherWith fadeOut(tween(150))
-                    }
-                },
-                label = "auth_stage_content",
+    ) { stage ->
+        if (stage == AuthStage.WELCOME) {
+            Column(
                 modifier = Modifier
-                    .widthIn(max = if (currentStage == AuthStage.WELCOME) 600.dp else 520.dp)
-                    .fillMaxWidth()
-            ) { stage ->
-                when (stage) {
-                    AuthStage.WELCOME -> {
-                        Surface(
-                            shape = RoundedCornerShape(28.dp),
-                            color = glassCardColor,
-                            border = glassCardBorder,
-                            shadowElevation = if (visualConfig.isGlass) 2.dp else 10.dp,
-                            modifier = Modifier.fillMaxWidth()
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .imePadding()
+                    .navigationBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AuthWelcomePreviewCarouselStage(
+                    language = language,
+                    reducedMotion = reducedMotion,
+                    showCarousel = true,
+                    headerContent = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(
+                            IconButton(
+                                onClick = {
+                                    userInteractedWithAuth = true
+                                    silentAutoSignInJob?.cancel()
+                                    googleController.cancel()
+                                    onCancelSignIn()
+                                    onBackToLanguagePicker()
+                                },
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 22.dp, vertical = 22.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("welcome_back_to_lang_btn")
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(999.dp),
-                                        color = if (visualConfig.isDark) MaterialTheme.colorScheme.secondaryContainer else MutedMintContainer
-                                    ) {
-                                        Text(
-                                            text = StudyQuestStrings.t(
-                                                language,
-                                                "NCTB STUDY WORKSPACE",
-                                                "এনসিটিবি স্টাডি ওয়ার্কস্পেস"
-                                            ),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (visualConfig.isDark) MaterialTheme.colorScheme.onSecondaryContainer else OnMutedMintContainer,
-                                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 4.dp)
-                                        )
-                                    }
-
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.CloudDone,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(15.dp)
-                                        )
-                                        Text(
-                                            text = StudyQuestStrings.t(language, "Cloud Sync", "ক্লাউড সিঙ্ক"),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-
-                                Text(
-                                    text = StudyQuestStrings.t(
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    tint = Color.White,
+                                    contentDescription = StudyQuestStrings.t(
                                         language,
-                                        "Learn Calmly. Master Every Chapter.",
-                                        "গোছানো পড়াশোনায় প্রতিটি অধ্যায়ে দক্ষ হও"
-                                    ),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                        "Back to language picker",
+                                        "ভাষা নির্বাচনে ফিরে যাও"
+                                    )
                                 )
+                            }
 
+                            Surface(
+                                onClick = {
+                                    onSetLanguage(
+                                        if (language == AppLanguage.BANGLA) AppLanguage.ENGLISH
+                                        else AppLanguage.BANGLA
+                                    )
+                                },
+                                shape = RoundedCornerShape(999.dp),
+                                color = Color.White.copy(alpha = 0.16f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.30f)),
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("toggle_lang_welcome")
+                            ) {
                                 Text(
-                                    text = StudyQuestStrings.t(
-                                        language,
-                                        "Sign in to keep your Classes 6–10 textbooks, practice reviews, and saved notes synced across devices.",
-                                        "আপনার ৬ষ্ঠ–১০ম শ্রেণির পাঠ্যবই, অনুশীলন ফলাফল এবং নোট নিরাপদে সিঙ্ক রাখতে সাইন-ইন করুন।"
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = if (language == AppLanguage.BANGLA) "বাংলা  |  EN" else "বাংলা  |  EN",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
                                 )
-
-                                Button(
-                                    onClick = {
-                                        userInteractedWithAuth = true
-                                        silentAutoSignInJob?.cancel()
-                                        onClearAuthMessages()
-                                        currentStage = AuthStage.SIGN_UP
-                                    },
-                                    enabled = !isSigningIn,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = BrandTealPrimary,
-                                        contentColor = PureEditorialSurface
-                                    ),
-                                    shape = RoundedCornerShape(15.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(52.dp)
-                                        .testTag("welcome_create_account_btn")
-                                ) {
-                                    Text(
-                                        text = StudyQuestStrings.t(language, "Create Account", "নতুন অ্যাকাউন্ট তৈরি করুন"),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        userInteractedWithAuth = true
-                                        silentAutoSignInJob?.cancel()
-                                        onClearAuthMessages()
-                                        currentStage = AuthStage.SIGN_IN
-                                    },
-                                    enabled = !isSigningIn,
-                                    shape = RoundedCornerShape(15.dp),
-                                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(50.dp)
-                                        .testTag("welcome_sign_in_btn")
-                                ) {
-                                    Text(
-                                        text = StudyQuestStrings.t(language, "Sign In with Email", "ইমেইল দিয়ে সাইন-ইন"),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                                    Text(
-                                        text = StudyQuestStrings.t(language, "or", "অথবা"),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        userInteractedWithAuth = true
-                                        silentAutoSignInJob?.cancel()
-                                        focusManager.clearFocus()
-                                        googleController.launch()
-                                    },
-                                    enabled = !isSigningIn,
-                                    shape = RoundedCornerShape(15.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(50.dp)
-                                        .testTag("google_sign_in_button")
-                                ) {
-                                    if (isSigningIn) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            strokeWidth = 2.4.dp
-                                        )
-                                    } else {
-                                        GoogleLogoMark(size = 20.dp)
-                                        Spacer(Modifier.width(10.dp))
-                                        Text(
-                                            text = StudyQuestStrings.t(language, "Continue with Google", "গুগল দিয়ে শুরু করুন"),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
-
-                                if (onEnterGuestMode != null) {
-                                    TextButton(
-                                        onClick = {
-                                            userInteractedWithAuth = true
-                                            silentAutoSignInJob?.cancel()
-                                            onEnterGuestMode()
-                                        },
-                                        enabled = !isSigningIn,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .minimumInteractiveComponentSize()
-                                            .testTag("welcome_guest_mode_btn")
-                                    ) {
-                                        Text(
-                                            text = StudyQuestStrings.t(
-                                                language,
-                                                "Continue Offline as Guest",
-                                                "অফলাইন গেস্ট হিসেবে শুরু করো"
-                                            ),
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
                             }
                         }
                     }
-
-                    AuthStage.SIGN_IN, AuthStage.SIGN_UP -> {
-                        val isSignUp = stage == AuthStage.SIGN_UP
-                        Surface(
-                            shape = RoundedCornerShape(28.dp),
-                            color = glassCardColor,
-                            border = glassCardBorder,
-                            shadowElevation = if (visualConfig.isGlass) 2.dp else 10.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 22.dp, vertical = 22.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(999.dp),
-                                    color = if (visualConfig.isDark) MaterialTheme.colorScheme.secondaryContainer else SoftPowderBlue
-                                ) {
-                                    Text(
-                                        text = if (isSignUp) {
-                                            StudyQuestStrings.t(language, "CREATE STUDENT ACCOUNT", "নতুন শিক্ষার্থী অ্যাকাউন্ট")
-                                        } else {
-                                            StudyQuestStrings.t(language, "STUDENT SIGN IN", "শিক্ষার্থী সাইন-ইন")
-                                        },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 4.dp)
-                                    )
-                                }
-
-                                Text(
-                                    text = if (isSignUp) {
-                                        StudyQuestStrings.t(language, "Set Up Your Account", "আপনার অ্যাকাউন্ট তৈরি করুন")
-                                    } else {
-                                        StudyQuestStrings.t(language, "Welcome Back", "আবার স্বাগতম")
-                                    },
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-
-                                if (isSignUp) {
-                                    OutlinedTextField(
-                                        value = fullName,
-                                        onValueChange = { fullName = it },
-                                        label = { Text(StudyQuestStrings.t(language, "Full Name", "তোমার পুরো নাম")) },
-                                        leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
-                                        singleLine = true,
-                                        enabled = !isSigningIn,
-                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                                        shape = RoundedCornerShape(14.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .testTag("auth_name_input")
-                                    )
-                                }
-
-                                OutlinedTextField(
-                                    value = email,
-                                    onValueChange = { email = it },
-                                    label = { Text(StudyQuestStrings.t(language, "Email Address", "ইমেইল ঠিকানা")) },
-                                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
-                                    isError = emailLooksMalformed,
-                                    supportingText = if (emailLooksMalformed) {
-                                        {
-                                            Text(
-                                                text = StudyQuestStrings.t(language, "Enter a valid email address", "সঠিক ইমেইল ঠিকানা দিন"),
-                                                color = EditorialError
-                                            )
-                                        }
-                                    } else null,
-                                    singleLine = true,
-                                    enabled = !isSigningIn,
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Email,
-                                        imeAction = ImeAction.Next
-                                    ),
-                                    shape = RoundedCornerShape(14.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("auth_email_input")
-                                )
-
-                                OutlinedTextField(
-                                    value = password,
-                                    onValueChange = { password = it },
-                                    label = { Text(StudyQuestStrings.t(language, "Password", "পাসওয়ার্ড")) },
-                                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
-                                    trailingIcon = {
-                                        IconButton(
-                                            onClick = { passwordVisible = !passwordVisible },
-                                            modifier = Modifier
-                                                .minimumInteractiveComponentSize()
-                                                .testTag("auth_password_visibility_btn")
-                                        ) {
-                                            Icon(
-                                                imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                                contentDescription = StudyQuestStrings.t(
-                                                    language,
-                                                    if (passwordVisible) "Hide password" else "Show password",
-                                                    if (passwordVisible) "পাসওয়ার্ড লুকাও" else "পাসওয়ার্ড দেখাও"
-                                                )
-                                            )
-                                        }
-                                    },
-                                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                    singleLine = true,
-                                    enabled = !isSigningIn,
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Password,
-                                        imeAction = if (!isSignUp) ImeAction.Done else ImeAction.Next
-                                    ),
-                                    keyboardActions = KeyboardActions(
-                                        onDone = {
-                                            if (!isSignUp && !isSigningIn) {
-                                                focusManager.clearFocus()
-                                                onEmailSignIn(email, password)
-                                            }
-                                        }
-                                    ),
-                                    shape = RoundedCornerShape(14.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("auth_password_input")
-                                )
-
-                                if (isSignUp && password.isNotEmpty()) {
-                                    val strengthColor = when (passwordScore) {
-                                        0, 1 -> EditorialError
-                                        2 -> MaterialTheme.colorScheme.secondary
-                                        else -> EditorialSuccess
-                                    }
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .testTag("auth_password_strength")
-                                    ) {
-                                        LinearProgressIndicator(
-                                            progress = { (passwordScore.coerceAtLeast(1) / 3f).coerceIn(0.25f, 1f) },
-                                            color = strengthColor,
-                                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(5.dp)
-                                                .clip(RoundedCornerShape(999.dp))
-                                        )
-                                        Text(
-                                            text = passwordStrengthLabel,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = strengthColor
-                                        )
-                                    }
-                                }
-
-                                if (isSignUp) {
-                                    OutlinedTextField(
-                                        value = confirmPassword,
-                                        onValueChange = { confirmPassword = it },
-                                        label = { Text(StudyQuestStrings.t(language, "Confirm Password", "পাসওয়ার্ড নিশ্চিত করো")) },
-                                        leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
-                                        isError = passwordMismatch,
-                                        supportingText = if (passwordMismatch) {
-                                            {
-                                                Text(
-                                                    text = StudyQuestStrings.t(language, "Passwords do not match", "পাসওয়ার্ড দুটি মিলছে না"),
-                                                    color = EditorialError
-                                                )
-                                            }
-                                        } else null,
-                                        trailingIcon = {
-                                            IconButton(
-                                                onClick = { confirmPasswordVisible = !confirmPasswordVisible },
-                                                modifier = Modifier.minimumInteractiveComponentSize()
-                                            ) {
-                                                Icon(
-                                                    imageVector = if (confirmPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                                    contentDescription = StudyQuestStrings.t(
-                                                        language,
-                                                        if (confirmPasswordVisible) "Hide confirm password" else "Show confirm password",
-                                                        if (confirmPasswordVisible) "পাসওয়ার্ড লুকাও" else "পাসওয়ার্ড দেখাও"
-                                                    )
-                                                )
-                                            }
-                                        },
-                                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                        singleLine = true,
-                                        enabled = !isSigningIn,
-                                        keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Password,
-                                            imeAction = ImeAction.Done
-                                        ),
-                                        keyboardActions = KeyboardActions(
-                                            onDone = {
-                                                if (!isSigningIn) {
-                                                    focusManager.clearFocus()
-                                                    onEmailSignUp(fullName, email, password, confirmPassword)
-                                                }
-                                            }
-                                        ),
-                                        shape = RoundedCornerShape(14.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .testTag("auth_confirm_password_input")
-                                    )
-
-                                    Text(
-                                        text = StudyQuestStrings.t(language, "Learner Age Group", "শিক্ষার্থীর বয়সসীমা"),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    FlowRow(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        listOf(
-                                            "under_13" to StudyQuestStrings.t(language, "Under 13", "১৩-এর নিচে"),
-                                            "13_17" to StudyQuestStrings.t(language, "13–17 Years", "১৩–১৭ বছর"),
-                                            "18_plus" to StudyQuestStrings.t(language, "18+", "১৮+")
-                                        ).forEach { (bracketId, label) ->
-                                            FilterChip(
-                                                selected = selectedAgeBracket == bracketId,
-                                                onClick = {
-                                                    selectedAgeBracket = bracketId
-                                                    val consent = if (bracketId != "under_13" || guardianApproved) "verified" else "pending"
-                                                    onAgeAndConsentSelected(bracketId, consent)
-                                                },
-                                                label = { Text(label) },
-                                                modifier = Modifier.testTag("auth_age_$bracketId")
-                                            )
-                                        }
-                                    }
-                                    if (selectedAgeBracket == "under_13") {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Checkbox(
-                                                checked = guardianApproved,
-                                                onCheckedChange = { checked ->
-                                                    guardianApproved = checked
-                                                    onAgeAndConsentSelected("under_13", if (checked) "verified" else "pending")
-                                                },
-                                                modifier = Modifier.testTag("auth_guardian_consent_checkbox")
-                                            )
-                                            Text(
-                                                text = StudyQuestStrings.t(
-                                                    language,
-                                                    "Parent or guardian approved this study account (restricts public social feed).",
-                                                    "অভিভাবকের সম্মতি রয়েছে (পাবলিক সোশ্যাল ফিড সীমিত থাকবে)।"
-                                                ),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
-                                        TextButton(
-                                            onClick = {
-                                                resetEmail = email.trim()
-                                                onClearPasswordResetStatus()
-                                                showResetDialog = true
-                                            },
-                                            enabled = !isSigningIn,
-                                            modifier = Modifier
-                                                .minimumInteractiveComponentSize()
-                                                .testTag("auth_forgot_password_btn")
-                                        ) {
-                                            Text(
-                                                text = StudyQuestStrings.t(language, "Forgot Password?", "পাসওয়ার্ড ভুলে গেছ?"),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Button(
-                                    onClick = {
-                                        userInteractedWithAuth = true
-                                        silentAutoSignInJob?.cancel()
-                                        focusManager.clearFocus()
-                                        if (!isSignUp) {
-                                            onEmailSignIn(email, password)
-                                        } else {
-                                            onAgeAndConsentSelected(
-                                                selectedAgeBracket,
-                                                if (selectedAgeBracket != "under_13" || guardianApproved) "verified" else "pending"
-                                            )
-                                            onEmailSignUp(fullName, email, password, confirmPassword)
-                                        }
-                                    },
-                                    enabled = !isSigningIn && (!isSignUp || selectedAgeBracket != "under_13" || guardianApproved),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = BrandTealPrimary,
-                                        contentColor = PureEditorialSurface
-                                    ),
-                                    shape = RoundedCornerShape(15.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(52.dp)
-                                        .testTag("email_auth_submit_button")
-                                ) {
-                                    if (isSigningIn) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            color = PureEditorialSurface,
-                                            strokeWidth = 2.5.dp
-                                        )
-                                    } else {
-                                        Text(
-                                            text = if (!isSignUp) {
-                                                StudyQuestStrings.t(language, "Sign In with Email", "ইমেইল দিয়ে সাইন-ইন")
-                                            } else {
-                                                StudyQuestStrings.t(language, "Create Free Account", "নতুন অ্যাকাউন্ট তৈরি করো")
-                                            },
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                                    Text(
-                                        text = StudyQuestStrings.t(language, "or", "অথবা"),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        userInteractedWithAuth = true
-                                        silentAutoSignInJob?.cancel()
-                                        focusManager.clearFocus()
-                                        googleController.launch()
-                                    },
-                                    enabled = !isSigningIn,
-                                    shape = RoundedCornerShape(15.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(50.dp)
-                                        .testTag("google_sign_in_button")
-                                ) {
-                                    GoogleLogoMark(size = 20.dp)
-                                    Spacer(Modifier.width(10.dp))
-                                    Text(
-                                        text = StudyQuestStrings.t(language, "Continue with Google", "গুগল দিয়ে শুরু করুন"),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    TextButton(
-                                        onClick = {
-                                            currentStage = if (isSignUp) AuthStage.SIGN_IN else AuthStage.SIGN_UP
-                                            onClearAuthMessages()
-                                        },
-                                        enabled = !isSigningIn,
-                                        modifier = Modifier
-                                            .minimumInteractiveComponentSize()
-                                            .testTag(if (isSignUp) "auth_mode_sign_in" else "auth_mode_sign_up")
-                                    ) {
-                                        Text(
-                                            text = if (isSignUp) {
-                                                StudyQuestStrings.t(language, "Already have an account? Sign In", "আগে থেকেই অ্যাকাউন্ট আছে? সাইন-ইন")
-                                            } else {
-                                                StudyQuestStrings.t(language, "New to StudyQuest? Create Account", "নতুন শিক্ষার্থী? অ্যাকাউন্ট তৈরি করো")
-                                            },
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Status / Cancel / Reset / Error Feedback (Visible across any stage)
-        Column(
-            modifier = Modifier
-                .widthIn(max = 560.dp)
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if (isSigningIn) {
-                Text(
-                    text = authStatusMessage ?: StudyQuestStrings.t(
-                        language,
-                        "Signing in with Google...",
-                        "গুগল অ্যাকাউন্ট যাচাই হচ্ছে..."
-                    ),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("auth_status_message")
                 )
-            }
 
-            AnimatedVisibility(visible = isSigningIn && canCancelSignIn) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .widthIn(max = 560.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 30.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         text = StudyQuestStrings.t(
                             language,
-                            "Retrying automatically in background. You can cancel anytime.",
-                            "ব্যাকগ্রাউন্ডে স্বয়ংক্রিয়ভাবে আবার চেষ্টা চলছে। চাইলে বাতিল করতে পারো।"
+                            "Learn calmly. Master every chapter.",
+                            "গোছানো পড়াশোনায় প্রতিটি অধ্যায়ে দক্ষ হও।"
                         ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
-                    OutlinedButton(
+
+                    Text(
+                        text = StudyQuestStrings.t(
+                            language,
+                            "Sync textbooks, practice history, and notes across devices.",
+                            "পাঠ্যবই, অনুশীলনের ইতিহাস ও নোট সব ডিভাইসে সিঙ্ক রাখো।"
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    // ONE Primary High-Contrast Pill CTA
+                    Button(
                         onClick = {
+                            userInteractedWithAuth = true
+                            silentAutoSignInJob?.cancel()
+                            focusManager.clearFocus()
+                            googleController.launch()
+                        },
+                        enabled = !isSigningIn,
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = semantic.heroLimeStart,
+                            contentColor = semantic.onHeroLime,
+                            disabledContainerColor = semantic.heroLimeStart.copy(alpha = 0.55f),
+                            disabledContentColor = semantic.onHeroLime.copy(alpha = 0.65f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .minimumInteractiveComponentSize()
+                            .testTag("google_sign_in_button")
+                    ) {
+                        if (isSigningIn) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = semantic.onHeroLime,
+                                strokeWidth = 2.4.dp
+                            )
+                        } else {
+                            GoogleLogoMark(size = 20.dp)
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = StudyQuestStrings.t(language, "Continue with Google", "গুগল দিয়ে শুরু করো"),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Single Quiet Link Strip Beneath Primary CTA
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        TextButton(
+                            onClick = {
+                                userInteractedWithAuth = true
+                                silentAutoSignInJob?.cancel()
+                                onClearAuthMessages()
+                                currentStage = AuthStage.SIGN_IN
+                            },
+                            enabled = !isSigningIn,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("welcome_sign_in_btn")
+                        ) {
+                            Text(
+                                text = StudyQuestStrings.t(language, "Sign in with email", "ইমেইল সাইন-ইন"),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        TextButton(
+                            onClick = {
+                                userInteractedWithAuth = true
+                                silentAutoSignInJob?.cancel()
+                                onClearAuthMessages()
+                                currentStage = AuthStage.SIGN_UP
+                            },
+                            enabled = !isSigningIn,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("welcome_create_account_btn")
+                        ) {
+                            Text(
+                                text = StudyQuestStrings.t(language, "Create account", "অ্যাকাউন্ট তৈরি"),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (onEnterGuestMode != null) {
+                            TextButton(
+                                onClick = {
+                                    userInteractedWithAuth = true
+                                    silentAutoSignInJob?.cancel()
+                                    onEnterGuestMode()
+                                },
+                                enabled = !isSigningIn,
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("welcome_guest_mode_btn")
+                            ) {
+                                Text(
+                                    text = StudyQuestStrings.t(language, "Guest mode", "গেস্ট মোড"),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+
+                    AuthFeedbackSection(
+                        language = language,
+                        isSigningIn = isSigningIn,
+                        canCancelSignIn = canCancelSignIn,
+                        authStatusMessage = authStatusMessage,
+                        passwordResetStatus = passwordResetStatus,
+                        authError = authError,
+                        onCancel = {
                             googleController.cancel()
                             onCancelSignIn()
                         },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .minimumInteractiveComponentSize()
-                            .testTag("google_sign_in_cancel_button")
-                    ) {
-                        Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(StudyQuestStrings.t(language, "Cancel Sign-In", "সাইন-ইন বাতিল করো"))
-                    }
-                }
-            }
-
-            if (passwordResetStatus != null) {
-                val (resetOk, resetMsg) = passwordResetStatus
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = if (resetOk) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
-                    border = BorderStroke(
-                        1.dp,
-                        (if (resetOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error).copy(alpha = 0.4f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("password_reset_banner")
-                ) {
-                    Text(
-                        text = resetMsg,
-                        color = if (resetOk) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(14.dp)
+                        onRetryGoogle = { googleController.launch() }
                     )
                 }
             }
-
-            if (!authError.isNullOrBlank()) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+        } else {
+            // Standalone Full-Canvas Monochrome Auth Screen (SIGN_IN & SIGN_UP)
+            val isSignUp = stage == AuthStage.SIGN_UP
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .verticalScroll(scrollState)
+                    .imePadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Column(
                     modifier = Modifier
+                        .widthIn(max = 520.dp)
                         .fillMaxWidth()
-                        .testTag("auth_error_banner")
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    // Top Chrome: Back Arrow + Segmented [Sign In | Create Account] Pill
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = authError,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium
-                        )
-                        OutlinedButton(
-                            onClick = { googleController.launch() },
-                            enabled = !isSigningIn,
-                            modifier = Modifier.minimumInteractiveComponentSize()
+                        IconButton(
+                            onClick = {
+                                userInteractedWithAuth = true
+                                currentStage = AuthStage.WELCOME
+                                onClearAuthMessages()
+                            },
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("auth_back_to_welcome_btn")
                         ) {
-                            Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(StudyQuestStrings.t(language, "Retry Google Sign-In", "আবার চেষ্টা করো"))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = StudyQuestStrings.t(language, "Back", "ফিরে যাও")
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Row(modifier = Modifier.padding(3.dp)) {
+                                AuthModeSegmentPill(
+                                    label = StudyQuestStrings.t(language, "Sign In", "সাইন-ইন"),
+                                    selected = !isSignUp,
+                                    enabled = !isSigningIn,
+                                    testTag = "auth_mode_sign_in",
+                                    onClick = {
+                                        currentStage = AuthStage.SIGN_IN
+                                        onClearAuthMessages()
+                                    }
+                                )
+                                AuthModeSegmentPill(
+                                    label = StudyQuestStrings.t(language, "Create Account", "নতুন অ্যাকাউন্ট"),
+                                    selected = isSignUp,
+                                    enabled = !isSigningIn,
+                                    testTag = "auth_mode_sign_up",
+                                    onClick = {
+                                        currentStage = AuthStage.SIGN_UP
+                                        onClearAuthMessages()
+                                    }
+                                )
+                            }
                         }
                     }
-                }
-            }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(top = 2.dp, bottom = 18.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.VerifiedUser,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    text = StudyQuestStrings.t(
-                        language,
-                        "Secured by Firebase Authentication. NCTB lessons & progress stay synced.",
-                        "Firebase Authentication দ্বারা সুরক্ষিত। আপনার এনসিটিবি পাঠ ও অগ্রগতি নিরাপদে সিঙ্ক থাকে।"
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+                    Spacer(Modifier.height(4.dp))
+
+                    // Oversized Display Headline + Quiet Subtitle
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = if (isSignUp) {
+                                StudyQuestStrings.t(language, "Create your account.", "নতুন অ্যাকাউন্ট তৈরি করো।")
+                            } else {
+                                StudyQuestStrings.t(language, "Welcome back.", "আবার স্বাগতম।")
+                            },
+                            style = MaterialTheme.typography.displaySmall,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = if (isSignUp) {
+                                StudyQuestStrings.t(
+                                    language,
+                                    "Save your textbooks, badges, and notes securely.",
+                                    "আপনার পাঠ্যবই, ব্যাজ ও নোট ক্লাউডে নিরাপদে সংরক্ষণ করুন।"
+                                )
+                            } else {
+                                StudyQuestStrings.t(
+                                    language,
+                                    "Sign in to continue your NCTB study plan.",
+                                    "আপনার এনসিটিবি অধ্যয়ন চালিয়ে যেতে সাইন-ইন করুন।"
+                                )
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Minimal Form Fields
+                    if (isSignUp) {
+                        OutlinedTextField(
+                            value = fullName,
+                            onValueChange = { fullName = it },
+                            label = { Text(StudyQuestStrings.t(language, "Full Name", "তোমার পুরো নাম")) },
+                            leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                            singleLine = true,
+                            enabled = !isSigningIn,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = cleanFieldColors,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("auth_name_input")
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text(StudyQuestStrings.t(language, "Email Address", "ইমেইল ঠিকানা")) },
+                        leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
+                        isError = emailLooksMalformed,
+                        supportingText = if (emailLooksMalformed) {
+                            {
+                                Text(
+                                    text = StudyQuestStrings.t(language, "Enter a valid email address", "সঠিক ইমেইল ঠিকানা দিন"),
+                                    color = EditorialError
+                                )
+                            }
+                        } else null,
+                        singleLine = true,
+                        enabled = !isSigningIn,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = cleanFieldColors,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("auth_email_input")
+                    )
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text(StudyQuestStrings.t(language, "Password", "পাসওয়ার্ড")) },
+                        leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { passwordVisible = !passwordVisible },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("auth_password_visibility_btn")
+                            ) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = StudyQuestStrings.t(
+                                        language,
+                                        if (passwordVisible) "Hide password" else "Show password",
+                                        if (passwordVisible) "পাসওয়ার্ড লুকাও" else "পাসওয়ার্ড দেখাও"
+                                    )
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        singleLine = true,
+                        enabled = !isSigningIn,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = if (!isSignUp) ImeAction.Done else ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                if (!isSignUp && !isSigningIn) {
+                                    focusManager.clearFocus()
+                                    onEmailSignIn(email, password)
+                                }
+                            }
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = cleanFieldColors,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("auth_password_input")
+                    )
+
+                    if (isSignUp && password.isNotEmpty()) {
+                        val strengthColor = when (passwordScore) {
+                            0, 1 -> EditorialError
+                            2 -> MaterialTheme.colorScheme.secondary
+                            else -> EditorialSuccess
+                        }
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("auth_password_strength")
+                        ) {
+                            LinearProgressIndicator(
+                                progress = { (passwordScore.coerceAtLeast(1) / 3f).coerceIn(0.25f, 1f) },
+                                color = strengthColor,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                            )
+                            Text(
+                                text = passwordStrengthLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = strengthColor
+                            )
+                        }
+                    }
+
+                    if (isSignUp) {
+                        OutlinedTextField(
+                            value = confirmPassword,
+                            onValueChange = { confirmPassword = it },
+                            label = { Text(StudyQuestStrings.t(language, "Confirm Password", "পাসওয়ার্ড নিশ্চিত করো")) },
+                            leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
+                            isError = passwordMismatch,
+                            supportingText = if (passwordMismatch) {
+                                {
+                                    Text(
+                                        text = StudyQuestStrings.t(language, "Passwords do not match", "পাসওয়ার্ড দুটি মিলছে না"),
+                                        color = EditorialError
+                                    )
+                                }
+                            } else null,
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { confirmPasswordVisible = !confirmPasswordVisible },
+                                    modifier = Modifier.minimumInteractiveComponentSize()
+                                ) {
+                                    Icon(
+                                        imageVector = if (confirmPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                        contentDescription = StudyQuestStrings.t(
+                                            language,
+                                            if (confirmPasswordVisible) "Hide confirm password" else "Show confirm password",
+                                            if (confirmPasswordVisible) "পাসওয়ার্ড লুকাও" else "পাসওয়ার্ড দেখাও"
+                                        )
+                                    )
+                                }
+                            },
+                            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            singleLine = true,
+                            enabled = !isSigningIn,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    if (!isSigningIn) {
+                                        focusManager.clearFocus()
+                                        onEmailSignUp(fullName, email, password, confirmPassword)
+                                    }
+                                }
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = cleanFieldColors,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("auth_confirm_password_input")
+                        )
+
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = StudyQuestStrings.t(language, "Age Group", "শিক্ষার্থীর বয়সসীমা"),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                listOf(
+                                    "under_13" to StudyQuestStrings.t(language, "Under 13", "১৩-এর নিচে"),
+                                    "13_17" to StudyQuestStrings.t(language, "13–17", "১৩–১৭"),
+                                    "18_plus" to StudyQuestStrings.t(language, "18+", "১৮+")
+                                ).forEach { (bracketId, label) ->
+                                    FilterChip(
+                                        selected = selectedAgeBracket == bracketId,
+                                        onClick = {
+                                            selectedAgeBracket = bracketId
+                                            val consent = if (bracketId != "under_13" || guardianApproved) "verified" else "pending"
+                                            onAgeAndConsentSelected(bracketId, consent)
+                                        },
+                                        label = { Text(label) },
+                                        modifier = Modifier.testTag("auth_age_$bracketId")
+                                    )
+                                }
+                            }
+                            if (selectedAgeBracket == "under_13") {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Checkbox(
+                                        checked = guardianApproved,
+                                        onCheckedChange = { checked ->
+                                            guardianApproved = checked
+                                            onAgeAndConsentSelected("under_13", if (checked) "verified" else "pending")
+                                        },
+                                        modifier = Modifier.testTag("auth_guardian_consent_checkbox")
+                                    )
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "Parent or guardian approved this study account (limits public feed).",
+                                            "অভিভাবকের সম্মতি রয়েছে (পাবলিক ফিড সীমিত থাকবে)।"
+                                        ),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    resetEmail = email.trim()
+                                    onClearPasswordResetStatus()
+                                    showResetDialog = true
+                                },
+                                enabled = !isSigningIn,
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("auth_forgot_password_btn")
+                            ) {
+                                Text(
+                                    text = StudyQuestStrings.t(language, "Forgot password?", "পাসওয়ার্ড ভুলে গেছ?"),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    // Primary Submit Pill CTA
+                    Button(
+                        onClick = {
+                            userInteractedWithAuth = true
+                            silentAutoSignInJob?.cancel()
+                            focusManager.clearFocus()
+                            if (!isSignUp) {
+                                onEmailSignIn(email, password)
+                            } else {
+                                onAgeAndConsentSelected(
+                                    selectedAgeBracket,
+                                    if (selectedAgeBracket != "under_13" || guardianApproved) "verified" else "pending"
+                                )
+                                onEmailSignUp(fullName, email, password, confirmPassword)
+                            }
+                        },
+                        enabled = !isSigningIn && (!isSignUp || selectedAgeBracket != "under_13" || guardianApproved),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        shape = RoundedCornerShape(999.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .testTag("email_auth_submit_button")
+                    ) {
+                        if (isSigningIn) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.4.dp
+                            )
+                        } else {
+                            Text(
+                                text = if (!isSignUp) {
+                                    StudyQuestStrings.t(language, "Sign In", "সাইন-ইন")
+                                } else {
+                                    StudyQuestStrings.t(language, "Create Account", "অ্যাকাউন্ট তৈরি করো")
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                        Text(
+                            text = StudyQuestStrings.t(language, "or", "অথবা"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            userInteractedWithAuth = true
+                            silentAutoSignInJob?.cancel()
+                            focusManager.clearFocus()
+                            googleController.launch()
+                        },
+                        enabled = !isSigningIn,
+                        shape = RoundedCornerShape(999.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("google_sign_in_button")
+                    ) {
+                        GoogleLogoMark(size = 18.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = StudyQuestStrings.t(language, "Continue with Google", "গুগল দিয়ে শুরু করো"),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    AuthFeedbackSection(
+                        language = language,
+                        isSigningIn = isSigningIn,
+                        canCancelSignIn = canCancelSignIn,
+                        authStatusMessage = authStatusMessage,
+                        passwordResetStatus = passwordResetStatus,
+                        authError = authError,
+                        onCancel = {
+                            googleController.cancel()
+                            onCancelSignIn()
+                        },
+                        onRetryGoogle = { googleController.launch() }
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.VerifiedUser,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = StudyQuestStrings.t(
+                                language,
+                                "Secured by Firebase Authentication",
+                                "Firebase Authentication দ্বারা সুরক্ষিত"
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }
@@ -1518,7 +1306,7 @@ fun WelcomeAndGoogleSignInScreen(
                     Text(
                         text = StudyQuestStrings.t(
                             language,
-                            "Enter your registered email address and we'll send a Firebase password reset link.",
+                            "Enter your registered email address and we'll send a password reset link.",
                             "তোমার নিবন্ধিত ইমেইল লিখো, আমরা পাসওয়ার্ড রিসেট লিংক পাঠিয়ে দেব।"
                         ),
                         style = MaterialTheme.typography.bodySmall
@@ -1556,29 +1344,156 @@ fun WelcomeAndGoogleSignInScreen(
 }
 
 @Composable
-private fun FeatureBulletRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+private fun AuthModeSegmentPill(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(999.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        modifier = Modifier
+            .minimumInteractiveComponentSize()
+            .testTag(testTag)
     ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-            modifier = Modifier.size(28.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-            }
-        }
         Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
         )
     }
 }
 
+@Composable
+private fun AuthFeedbackSection(
+    language: AppLanguage,
+    isSigningIn: Boolean,
+    canCancelSignIn: Boolean,
+    authStatusMessage: String?,
+    passwordResetStatus: Pair<Boolean, String>?,
+    authError: String?,
+    onCancel: () -> Unit,
+    onRetryGoogle: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (isSigningIn) {
+            Text(
+                text = authStatusMessage ?: StudyQuestStrings.t(
+                    language,
+                    "Signing in with Google...",
+                    "গুগল অ্যাকাউন্ট যাচাই হচ্ছে..."
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("auth_status_message")
+            )
+        }
+
+        AnimatedVisibility(visible = isSigningIn && canCancelSignIn) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = StudyQuestStrings.t(
+                        language,
+                        "Retrying automatically in background. You can cancel anytime.",
+                        "ব্যাকগ্রাউন্ডে স্বয়ংক্রিয়ভাবে আবার চেষ্টা চলছে। চাইলে বাতিল করতে পারো।"
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                OutlinedButton(
+                    onClick = onCancel,
+                    shape = RoundedCornerShape(999.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .minimumInteractiveComponentSize()
+                        .testTag("google_sign_in_cancel_button")
+                ) {
+                    Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(StudyQuestStrings.t(language, "Cancel Sign-In", "সাইন-ইন বাতিল করো"))
+                }
+            }
+        }
+
+        if (passwordResetStatus != null) {
+            val (resetOk, resetMsg) = passwordResetStatus
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (resetOk) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+                border = BorderStroke(
+                    1.dp,
+                    (if (resetOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error).copy(alpha = 0.35f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("password_reset_banner")
+            ) {
+                Text(
+                    text = resetMsg,
+                    color = if (resetOk) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(14.dp)
+                )
+            }
+        }
+
+        if (!authError.isNullOrBlank()) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.35f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("auth_error_banner")
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = authError,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    OutlinedButton(
+                        onClick = onRetryGoogle,
+                        enabled = !isSigningIn,
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(StudyQuestStrings.t(language, "Retry Google Sign-In", "আবার চেষ্টা করো"))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 4-Step Progressive Onboarding Wizard.
+ * Replaces dense scrollable forms with one clear question, one title, and one sticky primary CTA per step.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AcademicSetupWizardScreen(
@@ -1611,9 +1526,15 @@ fun AcademicSetupWizardScreen(
         studyGoalTitle: String
     ) -> Unit
 ) {
+    var step by remember { mutableIntStateOf(0) } // 0=Identity, 1=Class&Stream, 2=Book&Subjects, 3=Goal&Start
+    val totalSteps = 4
+
     BackHandler {
-        onBack()
+        if (!isSaving) {
+            if (step > 0) step -= 1 else onBack()
+        }
     }
+
     val context = LocalContext.current
     var displayName by remember(profile.displayName) { mutableStateOf(profile.displayName) }
     var selectedClassId by remember { mutableStateOf(profile.classId.ifBlank { "class_10" }) }
@@ -1633,10 +1554,10 @@ fun AcademicSetupWizardScreen(
     }
     val goalPresets = remember(language) {
         listOf(
-            StudyQuestStrings.t(language, "SSC Board Exam Readiness", "এসএসসি বোর্ড পরীক্ষার পূর্ণ প্রস্তুতি"),
-            StudyQuestStrings.t(language, "Weekly Chapter Mastery", "সাপ্তাহিক অধ্যায়ভিত্তিক দক্ষতা"),
-            StudyQuestStrings.t(language, "Daily Streak & Focus Habit", "প্রতিদিনের পড়া ও স্ট্রিক অভ্যাস"),
-            StudyQuestStrings.t(language, "School Term Exam Prep", "স্কুলের সাময়িক পরীক্ষার প্রস্তুতি")
+            StudyQuestStrings.t(language, "SSC Board Readiness", "এসএসসি বোর্ড প্রস্তুতি"),
+            StudyQuestStrings.t(language, "Weekly Chapter Mastery", "সাপ্তাহিক অধ্যায় দক্ষতা"),
+            StudyQuestStrings.t(language, "Daily Focus Habit", "প্রতিদিনের পড়া অভ্যাস"),
+            StudyQuestStrings.t(language, "Term Exam Prep", "সাময়িক পরীক্ষার প্রস্তুতি")
         )
     }
     var selectedGoalIndex by remember { mutableIntStateOf(0) }
@@ -1679,284 +1600,496 @@ fun AcademicSetupWizardScreen(
         ActivityResultContracts.RequestPermission()
     ) { granted -> notifGranted = granted }
 
-    StudyQuestAmbientBackdrop(modifier = Modifier.fillMaxSize()) {
-        Box(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
             modifier = Modifier
+                .widthIn(max = 580.dp)
                 .fillMaxSize()
-                .safeDrawingPadding(),
-            contentAlignment = Alignment.TopCenter
         ) {
+            // Minimal Step Chrome + Linear Progress
             Column(
                 modifier = Modifier
-                    .widthIn(max = 620.dp)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        IconButton(
-                            onClick = { if (!isSaving) onBack() },
-                            modifier = Modifier
-                                .minimumInteractiveComponentSize()
-                                .testTag("setup_back_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = StudyQuestStrings.t(language, "Back", "ফিরে যাও")
-                            )
-                        }
-                        StudyQuestBrandMark(size = 34.dp)
-                        Column {
-                            Text(
-                                text = StudyQuestStrings.t(language, "Student Onboarding", "শিক্ষার্থী প্রোফাইল সেটআপ"),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = profile.studyQuestId,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                    IconButton(
+                        onClick = {
+                            if (!isSaving) {
+                                if (step > 0) step -= 1 else onBack()
+                            }
+                        },
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .testTag("setup_back_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = StudyQuestStrings.t(language, "Back", "ফিরে যাও")
+                        )
                     }
+
+                    Text(
+                        text = StudyQuestStrings.t(
+                            language,
+                            "Step ${step + 1} of $totalSteps",
+                            "ধাপ ${StudyQuestStrings.formatDigits(step + 1, language)}/${StudyQuestStrings.formatDigits(totalSteps, language)}"
+                        ),
+                        style = MaterialTheme.typography.labelLarge.copy(fontFamily = JetBrainsMonoFontFamily),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
                     TextButton(
                         onClick = onSignOut,
+                        enabled = !isSaving,
                         modifier = Modifier
                             .minimumInteractiveComponentSize()
                             .testTag("onboarding_switch_account")
                     ) {
-                        Text(StudyQuestStrings.t(language, "Switch Account", "অ্যাকাউন্ট বদলান"))
+                        Text(
+                            text = StudyQuestStrings.t(language, "Switch", "বদলান"),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
-                QuestCoachCard(
-                    mood = QuestCoachMood.LEARNING_ASSISTANCE,
-                    messageEn = "Welcome! Personalize your Class, Group, NCTB 2026/2027 Edition & Locked Active Textbook.",
-                    messageBn = "স্বাগতম! তোমার শ্রেণি, বিভাগ, ২০২৬/২০২৭ এনসিটিবি সংস্করণ ও লককৃত সক্রিয় পাঠ্যবই নির্বাচন করো।",
-                    language = language,
-                    reducedMotion = false
+                LinearProgressIndicator(
+                    progress = { (step + 1).toFloat() / totalSteps.toFloat() },
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(999.dp))
                 )
+            }
 
-                StudyQuestCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        AvatarBadgeView(
-                            avatarId = selectedAvatar,
-                            frameId = profile.frameId,
-                            displayName = displayName.ifBlank { profile.displayName },
-                            size = 56.dp
-                        )
-                        OutlinedTextField(
-                            value = displayName,
-                            onValueChange = { displayName = it },
-                            label = { Text(StudyQuestStrings.t(language, "Your Student Name", "তোমার নাম")) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("setup_name_input")
-                        )
-                    }
-                }
+            // Focused Step Body
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 14.dp)
+            ) {
+                AnimatedContent(
+                    targetState = step,
+                    transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(140)) },
+                    label = "wizard_step_content"
+                ) { currentStep ->
+                    when (currentStep) {
+                        0 -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(22.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "What should we call you?",
+                                            "আপনার নাম কী?"
+                                        ),
+                                        style = MaterialTheme.typography.displaySmall,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "ID: ${profile.studyQuestId} • Pick an emblem and display name.",
+                                            "আইডি: ${profile.studyQuestId} • একটি প্রতীক ও নাম নির্বাচন করো।"
+                                        ),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
 
-                StudyQuestCard {
-                    Text(
-                        text = StudyQuestStrings.t(language, "Select Class (6–10 & SSC)", "শ্রেণি নির্বাচন করো"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        BangladeshCurriculumCatalog.classes.filter { it.futureReadyTag == null }.forEach { cls ->
-                            FilterChip(
-                                selected = selectedClassId == cls.id,
-                                onClick = {
-                                    selectedClassId = cls.id
-                                    val nextGroup = if (cls.supportsGroups) selectedGroup else "general"
-                                    val validIds = BangladeshCurriculumCatalog.subjectsForClassAndGroup(cls.id, nextGroup).map { it.id }
-                                    selectedSubjects.retainAll(validIds.toSet())
-                                    if (selectedSubjects.isEmpty()) selectedSubjects.addAll(validIds.take(4))
-                                },
-                                label = { Text(StudyQuestStrings.t(language, cls.labelEn, cls.labelBn)) },
-                                modifier = Modifier.testTag("setup_class_${cls.id}")
-                            )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    AvatarBadgeView(
+                                        avatarId = selectedAvatar,
+                                        frameId = profile.frameId,
+                                        displayName = displayName.ifBlank { profile.displayName },
+                                        size = 64.dp
+                                    )
+                                    OutlinedTextField(
+                                        value = displayName,
+                                        onValueChange = { displayName = it },
+                                        label = { Text(StudyQuestStrings.t(language, "Student Name", "শিক্ষার্থীর নাম")) },
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(16.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("setup_name_input")
+                                    )
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(language, "Starter Emblem", "পছন্দের প্রতীক"),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        BangladeshCurriculumCatalog.cosmeticsCatalog
+                                            .filter { it.category == "avatar" && it.costCoins == 0 }
+                                            .forEach { cos ->
+                                                FilterChip(
+                                                    selected = selectedAvatar == cos.id,
+                                                    onClick = { selectedAvatar = cos.id },
+                                                    label = { Text(StudyQuestStrings.t(language, cos.nameEn, cos.nameBn)) },
+                                                    modifier = Modifier.testTag("setup_avatar_${cos.id}")
+                                                )
+                                            }
+                                    }
+                                }
+                            }
                         }
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("class_lock_policy_note")
-                    ) {
-                        Text(
-                            text = StudyQuestStrings.t(
-                                language,
-                                "Academic Year Lock: Your selected class stays locked for this Bangladesh (Asia/Dhaka) academic year and automatically promotes every Jan 1 (even if you join late in December), unless the annual exam is not passed.",
-                                "শিক্ষাবর্ষ লক নীতি: নির্বাচিত শ্রেণি বর্তমান শিক্ষাবর্ষের জন্য লক থাকবে এবং প্রতি ১ জানুয়ারি স্বয়ংক্রিয়ভাবে পরবর্তী শ্রেণিতে উন্নীত হবে (বার্ষিক পরীক্ষায় অনুত্তীর্ণ না হলে)।"
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
 
-                    if (supportsGroups) {
-                        Spacer(Modifier.height(14.dp))
-                        Text(
-                            text = StudyQuestStrings.t(language, "SSC Academic Group", "এসএসসি বিভাগ নির্বাচন"),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            AcademicGroup.entries.filter { it != AcademicGroup.GENERAL }.forEach { grp ->
-                                FilterChip(
-                                    selected = selectedGroup == grp.id,
-                                    onClick = {
-                                        selectedGroup = grp.id
-                                        val validIds = BangladeshCurriculumCatalog.subjectsForClassAndGroup(selectedClassId, grp.id).map { it.id }
-                                        selectedSubjects.clear()
-                                        selectedSubjects.addAll(validIds.take(5))
-                                    },
-                                    label = { Text(StudyQuestStrings.t(language, grp.labelEn, grp.labelBn)) },
-                                    modifier = Modifier.testTag("setup_group_${grp.id}")
-                                )
+                        1 -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "Select your class & stream.",
+                                            "আপনার শ্রেণি ও ভার্সন নির্বাচন করো।"
+                                        ),
+                                        style = MaterialTheme.typography.displaySmall,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "Classes 6–10 & SSC aligned with NCTB curriculum.",
+                                            "এনসিটিবি পাঠ্যক্রম অনুযায়ী ৬ষ্ঠ–১০ম শ্রেণি ও এসএসসি।"
+                                        ),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(language, "Class", "শ্রেণি"),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        BangladeshCurriculumCatalog.classes.filter { it.futureReadyTag == null }.forEach { cls ->
+                                            FilterChip(
+                                                selected = selectedClassId == cls.id,
+                                                onClick = {
+                                                    selectedClassId = cls.id
+                                                    val nextGroup = if (cls.supportsGroups) selectedGroup else "general"
+                                                    val validIds = BangladeshCurriculumCatalog.subjectsForClassAndGroup(cls.id, nextGroup).map { it.id }
+                                                    selectedSubjects.retainAll(validIds.toSet())
+                                                    if (selectedSubjects.isEmpty()) selectedSubjects.addAll(validIds.take(4))
+                                                },
+                                                label = { Text(StudyQuestStrings.t(language, cls.labelEn, cls.labelBn)) },
+                                                modifier = Modifier.testTag("setup_class_${cls.id}")
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(language, "Version", "পাঠ্যক্রম ভার্সন"),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        CurriculumVersion.entries.forEach { ver ->
+                                            FilterChip(
+                                                selected = selectedVersion == ver.id,
+                                                onClick = { selectedVersion = ver.id },
+                                                label = { Text(StudyQuestStrings.t(language, ver.labelEn, ver.labelBn)) },
+                                                modifier = Modifier.testTag("setup_version_${ver.id}")
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (supportsGroups) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(
+                                            text = StudyQuestStrings.t(language, "Academic Group", "বিভাগ নির্বাচন"),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            AcademicGroup.entries.filter { it != AcademicGroup.GENERAL }.forEach { grp ->
+                                                FilterChip(
+                                                    selected = selectedGroup == grp.id,
+                                                    onClick = {
+                                                        selectedGroup = grp.id
+                                                        val validIds = BangladeshCurriculumCatalog.subjectsForClassAndGroup(selectedClassId, grp.id).map { it.id }
+                                                        selectedSubjects.clear()
+                                                        selectedSubjects.addAll(validIds.take(5))
+                                                    },
+                                                    label = { Text(StudyQuestStrings.t(language, grp.labelEn, grp.labelBn)) },
+                                                    modifier = Modifier.testTag("setup_group_${grp.id}")
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("class_lock_policy_note")
+                                ) {
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "Academic Year Lock: Your class stays locked for this cycle and auto-promotes each Jan 1 (Asia/Dhaka) when eligible.",
+                                            "শিক্ষাবর্ষ লক নীতি: নির্বাচিত শ্রেণি বর্তমান শিক্ষাবর্ষের জন্য লক থাকবে এবং প্রতি ১ জানুয়ারি স্বয়ংক্রিয়ভাবে পরবর্তী শ্রেণিতে উন্নীত হবে।"
+                                        ),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(14.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        2 -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "Lock your active textbook.",
+                                            "সক্রিয় পাঠ্যবই নির্বাচন করো।"
+                                        ),
+                                        style = MaterialTheme.typography.displaySmall,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "Your reader, practice drills, and AI explanations stay focused on your active book.",
+                                            "পাঠ্যবই পড়া, অনুশীলন ও AI সমাধান আপনার নির্বাচিত বইয়ের ওপর ভিত্তি করে চলবে।"
+                                        ),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    listOf("2026" to "2026 NCTB", "2027" to "2027 NCTB").forEach { (yr, label) ->
+                                        FilterChip(
+                                            selected = selectedEditionYear == yr,
+                                            onClick = { selectedEditionYear = yr },
+                                            label = { Text(label) },
+                                            modifier = Modifier.testTag("setup_year_$yr")
+                                        )
+                                    }
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    candidateBooks.take(6).forEach { b ->
+                                        val isSelected = activeLockedBookChoice.id == b.id
+                                        Surface(
+                                            onClick = { selectedBookId = b.id },
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                            border = BorderStroke(
+                                                width = if (isSelected) 1.5.dp else 1.dp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                                            ),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .testTag("setup_book_${b.id}")
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(14.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = StudyQuestStrings.t(language, b.titleEn, b.titleBn),
+                                                        style = MaterialTheme.typography.titleSmall,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                    Text(
+                                                        text = "${b.bookCode} • ${b.academicYear}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                                if (isSelected) {
+                                                    Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(language, "Subjects", "বিষয়সমূহ"),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    val availableSubjects = BangladeshCurriculumCatalog.subjectsForClassAndGroup(selectedClassId, effectiveGroup)
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        availableSubjects.forEach { subj ->
+                                            val active = subj.id in selectedSubjects
+                                            FilterChip(
+                                                selected = active,
+                                                onClick = {
+                                                    if (active && selectedSubjects.size > 1) selectedSubjects.remove(subj.id)
+                                                    else if (!active) selectedSubjects.add(subj.id)
+                                                },
+                                                label = { Text(StudyQuestStrings.t(language, subj.titleEn, subj.titleBn)) },
+                                                modifier = Modifier.testTag("setup_subject_${subj.id}")
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        else -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "Set your daily goal.",
+                                            "দৈনিক পড়ার লক্ষ্য ঠিক করো।"
+                                        ),
+                                        style = MaterialTheme.typography.displaySmall,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    Text(
+                                        text = StudyQuestStrings.t(
+                                            language,
+                                            "Choose a sustainable daily rhythm to maintain your study streak.",
+                                            "প্রতিদিনের স্ট্রিক ধরে রাখতে সহজ একটি সময় নির্ধারণ করো।"
+                                        ),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(language, "Daily Target", "দৈনিক সময়"),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        listOf(15L, 30L, 45L, 60L).forEach { mins ->
+                                            FilterChip(
+                                                selected = dailyGoalMinutes == mins,
+                                                onClick = { dailyGoalMinutes = mins },
+                                                label = {
+                                                    Text(StudyQuestStrings.t(language, "$mins min / day", "দৈনিক $mins মিনিট"))
+                                                },
+                                                modifier = Modifier.testTag("setup_daily_goal_$mins")
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = StudyQuestStrings.t(language, "Primary Focus", "মূল লক্ষ্য"),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        goalPresets.forEachIndexed { idx, label ->
+                                            FilterChip(
+                                                selected = selectedGoalIndex == idx,
+                                                onClick = { selectedGoalIndex = idx },
+                                                label = { Text(label) },
+                                                modifier = Modifier.testTag("setup_goal_$idx")
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notifGranted) {
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.surface,
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(14.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Icon(Icons.Filled.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = StudyQuestStrings.t(language, "Study Reminders", "পড়ার রিমাইন্ডার"),
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                                Text(
+                                                    text = StudyQuestStrings.t(language, "Enable reminders for spaced revision & challenges.", "রিভিশন ও চ্যালেঞ্জের রিমাইন্ডার পেতে চালু করো।"),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            OutlinedButton(onClick = { notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }) {
+                                                Text(StudyQuestStrings.t(language, "Allow", "অনুমতি"))
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        text = StudyQuestStrings.t(language, "Curriculum Version", "পাঠ্যক্রম ভার্সন"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        CurriculumVersion.entries.forEach { ver ->
-                            FilterChip(
-                                selected = selectedVersion == ver.id,
-                                onClick = { selectedVersion = ver.id },
-                                label = { Text(StudyQuestStrings.t(language, ver.labelEn, ver.labelBn)) },
-                                modifier = Modifier.testTag("setup_version_${ver.id}")
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        text = StudyQuestStrings.t(language, "Your Subjects", "তোমার বিষয়সমূহ"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    val availableSubjects = BangladeshCurriculumCatalog.subjectsForClassAndGroup(selectedClassId, effectiveGroup)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        availableSubjects.forEach { subj ->
-                            val active = subj.id in selectedSubjects
-                            FilterChip(
-                                selected = active,
-                                onClick = {
-                                    if (active && selectedSubjects.size > 1) selectedSubjects.remove(subj.id)
-                                    else if (!active) selectedSubjects.add(subj.id)
-                                },
-                                label = { Text(StudyQuestStrings.t(language, subj.titleEn, subj.titleBn)) },
-                                modifier = Modifier.testTag("setup_subject_${subj.id}")
-                            )
-                        }
-                    }
                 }
+            }
 
-                StudyQuestCard {
-                    Text(
-                        text = StudyQuestStrings.t(language, "Daily Study Target", "দৈনিক পড়ার লক্ষ্য"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(15L, 30L, 45L, 60L).forEach { mins ->
-                            FilterChip(
-                                selected = dailyGoalMinutes == mins,
-                                onClick = { dailyGoalMinutes = mins },
-                                label = {
-                                    Text(StudyQuestStrings.t(language, "$mins min / day", "দৈনিক $mins মিনিট"))
-                                },
-                                modifier = Modifier.testTag("setup_daily_goal_$mins")
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        text = StudyQuestStrings.t(language, "Primary Study Goal", "প্রাথমিক অধ্যয়ন লক্ষ্য"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        goalPresets.forEachIndexed { idx, label ->
-                            FilterChip(
-                                selected = selectedGoalIndex == idx,
-                                onClick = { selectedGoalIndex = idx },
-                                label = { Text(label) },
-                                modifier = Modifier.testTag("setup_goal_$idx")
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        text = StudyQuestStrings.t(language, "Choose Starter Emblem", "পছন্দের প্রতীক"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        BangladeshCurriculumCatalog.cosmeticsCatalog.filter { it.category == "avatar" && it.costCoins == 0 }.forEach { cos ->
-                            FilterChip(
-                                selected = selectedAvatar == cos.id,
-                                onClick = { selectedAvatar = cos.id },
-                                label = { Text(StudyQuestStrings.t(language, cos.nameEn, cos.nameBn)) },
-                                modifier = Modifier.testTag("setup_avatar_${cos.id}")
-                            )
-                        }
-                    }
-                }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notifGranted) {
-                    StudyQuestCard {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(Icons.Filled.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = StudyQuestStrings.t(language, "Study & Battle Reminders", "পড়া ও কুইজ রিমাইন্ডার"),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = StudyQuestStrings.t(language, "Allow notifications for spaced repetition reminders and friend challenges.", "রিভিশন ও বন্ধুর চ্যালেঞ্জের জন্য নোটিফিকেশন চালু রাখো।"),
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                            OutlinedButton(onClick = { notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }) {
-                                Text(StudyQuestStrings.t(language, "Allow", "অনুমতি"))
-                            }
-                        }
-                    }
-                }
-
+            // Sticky Single Primary Footer
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 if (!errorMessage.isNullOrBlank()) {
                     Surface(
                         shape = RoundedCornerShape(14.dp),
@@ -1972,106 +2105,83 @@ fun AcademicSetupWizardScreen(
                     }
                 }
 
-                StudyQuestCard(accentColor = BrandTealPrimary) {
-                    Text(
-                        text = StudyQuestStrings.t(language, "NCTB Edition & Active Textbook Lock", "এনসিটিবি সংস্করণ ও সক্রিয় বই লক"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("2026" to "2026 NCTB Official", "2027" to "2027 NCTB Track").forEach { (yr, label) ->
-                            FilterChip(
-                                selected = selectedEditionYear == yr,
-                                onClick = { selectedEditionYear = yr },
-                                label = { Text(label) },
-                                modifier = Modifier.testTag("setup_year_$yr")
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        candidateBooks.forEach { b ->
-                            FilterChip(
-                                selected = activeLockedBookChoice.id == b.id,
-                                onClick = { selectedBookId = b.id },
-                                label = { Text(StudyQuestStrings.t(language, b.titleEn, b.titleBn)) },
-                                modifier = Modifier.testTag("setup_book_${b.id}")
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = SoftSageGreen.copy(alpha = 0.65f),
-                        modifier = Modifier.fillMaxWidth()
+                if (step < totalSteps - 1) {
+                    Button(
+                        onClick = { step += 1 },
+                        enabled = !isSaving && (step != 2 || selectedSubjects.isNotEmpty()),
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .minimumInteractiveComponentSize()
+                            .testTag("setup_next_step_btn")
                     ) {
                         Text(
-                            text = StudyQuestStrings.t(
-                                language,
-                                "Locked Book Policy: All reading, quizzes, flashcards & AI Tutor stay focused on '${activeLockedBookChoice.titleEn}' and install automatically for offline access.",
-                                "লককৃত বই নীতি: পড়া, কুইজ, ফ্ল্যাশকার্ড ও AI টিউটর '${activeLockedBookChoice.titleBn}' বইয়েই সীমিত থাকবে এবং স্বয়ংক্রিয়ভাবে অফলাইনে সংরক্ষিত হবে।"
-                            ),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                }
-
-                Button(
-                    onClick = {
-                        val goal = goalPresets.getOrElse(selectedGoalIndex) { goalPresets.first() }
-                        if (onCompleteSetupWithBook != null) {
-                            onCompleteSetupWithBook(
-                                displayName.ifBlank { profile.displayName },
-                                selectedClassId,
-                                selectedVersion,
-                                selectedSubjects.toList(),
-                                selectedAvatar,
-                                effectiveGroup,
-                                dailyGoalMinutes,
-                                goal,
-                                activeLockedBookChoice
-                            )
-                        } else {
-                            onCompleteSetup(
-                                displayName.ifBlank { profile.displayName },
-                                selectedClassId,
-                                selectedVersion,
-                                selectedSubjects.toList(),
-                                selectedAvatar,
-                                effectiveGroup,
-                                dailyGoalMinutes,
-                                goal
-                            )
-                        }
-                    },
-                    enabled = !isSaving && selectedSubjects.isNotEmpty(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = BrandTealPrimary,
-                        contentColor = PureEditorialSurface
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp)
-                        .testTag("complete_setup_button")
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            color = PureEditorialSurface,
-                            strokeWidth = 2.5.dp
-                        )
-                    } else {
-                        Icon(Icons.Filled.CheckCircle, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = StudyQuestStrings.t(language, "Start Learning with StudyQuest", "শেখা শুরু করুন"),
+                            text = StudyQuestStrings.t(language, "Continue", "এগিয়ে যাও"),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            val goal = goalPresets.getOrElse(selectedGoalIndex) { goalPresets.first() }
+                            if (onCompleteSetupWithBook != null) {
+                                onCompleteSetupWithBook(
+                                    displayName.ifBlank { profile.displayName },
+                                    selectedClassId,
+                                    selectedVersion,
+                                    selectedSubjects.toList(),
+                                    selectedAvatar,
+                                    effectiveGroup,
+                                    dailyGoalMinutes,
+                                    goal,
+                                    activeLockedBookChoice
+                                )
+                            } else {
+                                onCompleteSetup(
+                                    displayName.ifBlank { profile.displayName },
+                                    selectedClassId,
+                                    selectedVersion,
+                                    selectedSubjects.toList(),
+                                    selectedAvatar,
+                                    effectiveGroup,
+                                    dailyGoalMinutes,
+                                    goal
+                                )
+                            }
+                        },
+                        enabled = !isSaving && selectedSubjects.isNotEmpty(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        shape = RoundedCornerShape(999.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .minimumInteractiveComponentSize()
+                            .testTag("complete_setup_button")
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Text(
+                                text = StudyQuestStrings.t(language, "Start Learning", "শেখা শুরু করো"),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

@@ -56,6 +56,7 @@ import com.example.data.model.CommunityPostDoc
 import com.example.data.model.PublicProfile
 import com.example.ui.components.AvatarBadgeView
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.OfflineLockBadgeChip
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.theme.CobaltPrimary
 import com.example.ui.theme.LocalStudyQuestColors
@@ -77,7 +78,8 @@ fun ClassCommunityBoard(
     onMarkHelpful: (CommunityPostDoc, CommunityCommentDoc) -> Unit,
     onReportPost: (CommunityPostDoc, String) -> Unit,
     onDeleteOwnPost: (String) -> Unit,
-    onRequestGoogleSignIn: () -> Unit
+    onRequestGoogleSignIn: () -> Unit,
+    isOnline: Boolean = true
 ) {
     val semantic = LocalStudyQuestColors.current
 
@@ -163,7 +165,10 @@ fun ClassCommunityBoard(
                         Text(livePost.body, style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.height(8.dp))
                         val upvoted = myProfile.userId in livePost.upvoterUids
-                        TextButton(onClick = { onToggleUpvote(livePost) }) {
+                        TextButton(
+                            onClick = { onToggleUpvote(livePost) },
+                            enabled = isOnline
+                        ) {
                             Icon(Icons.Filled.ThumbUp, contentDescription = null, tint = if (upvoted) CobaltPrimary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
                             Text("${livePost.upvoterUids.size} Upvotes")
@@ -218,7 +223,13 @@ fun ClassCommunityBoard(
                 OutlinedTextField(
                     value = replyText,
                     onValueChange = { replyText = it },
-                    placeholder = { Text(StudyQuestStrings.t(uiLanguage, "Write a helpful reply...", "সহায়ক উত্তর লিখো...")) },
+                    placeholder = {
+                        Text(
+                            if (isOnline) StudyQuestStrings.t(uiLanguage, "Write a helpful reply...", "সহায়ক উত্তর লিখো...")
+                            else StudyQuestStrings.t(uiLanguage, "Offline — replies unlock online", "অফলাইন — নেটওয়ার্কে উত্তর দিন")
+                        )
+                    },
+                    enabled = isOnline,
                     singleLine = true,
                     modifier = Modifier.weight(1f).testTag("community_reply_input")
                 )
@@ -229,6 +240,7 @@ fun ClassCommunityBoard(
                             replyText = ""
                         }
                     },
+                    enabled = isOnline && replyText.isNotBlank(),
                     modifier = Modifier.minimumInteractiveComponentSize().testTag("community_reply_send_btn")
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send reply", tint = CobaltPrimary)
@@ -281,13 +293,22 @@ fun ClassCommunityBoard(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    Button(
-                        onClick = { showComposer = true },
-                        modifier = Modifier.minimumInteractiveComponentSize().testTag("community_new_post_btn")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(Icons.Filled.AddComment, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(StudyQuestStrings.t(uiLanguage, "Ask", "লিখো"))
+                        if (!isOnline) {
+                            OfflineLockBadgeChip(language = uiLanguage)
+                        }
+                        Button(
+                            onClick = { showComposer = true },
+                            enabled = isOnline,
+                            modifier = Modifier.minimumInteractiveComponentSize().testTag("community_new_post_btn")
+                        ) {
+                            Icon(Icons.Filled.AddComment, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(StudyQuestStrings.t(uiLanguage, "Ask", "লিখো"))
+                        }
                     }
                 }
             }
@@ -334,7 +355,10 @@ fun ClassCommunityBoard(
                                 color = CobaltPrimary
                             )
                         }
-                        IconButton(onClick = { onToggleUpvote(post) }) {
+                        IconButton(
+                            onClick = { onToggleUpvote(post) },
+                            enabled = isOnline
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Filled.ThumbUp, contentDescription = "Upvote", tint = if (upvoted) CobaltPrimary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(3.dp))

@@ -305,15 +305,19 @@ fun PracticeAndExamRunnerScreen(
                         "${assessmentResult.title} • $accuracyPct% accuracy",
                         "${assessmentResult.title} • ${StudyQuestStrings.formatDigits(accuracyPct, uiLanguage)}% সঠিকতা"
                     ),
-                    xpAwardedText = if (assessmentResult.xpEarned > 0) "+${StudyQuestStrings.formatDigits(assessmentResult.xpEarned, uiLanguage)} XP" else null,
+                    xpAwardedText = StudyQuestStrings.t(
+                        uiLanguage,
+                        "$accuracyPct% Mastery",
+                        "${StudyQuestStrings.formatDigits(accuracyPct, uiLanguage)}% দক্ষতা"
+                    ),
                     reducedMotion = reducedMotion
                 )
             }
             item {
                 QuestCoachCard(
                     mood = QuestCoachMood.SUCCESS,
-                    messageEn = "Awesome effort! You earned +${assessmentResult.xpEarned} XP on ${assessmentResult.title}.",
-                    messageBn = "দারুণ প্রচেষ্টা! ${assessmentResult.title}-এ তুমি +${StudyQuestStrings.formatDigits(assessmentResult.xpEarned, uiLanguage)} XP অর্জন করেছ।",
+                    messageEn = "Awesome effort! You got ${assessmentResult.correctCount}/${questions.size} correct on ${assessmentResult.title}.",
+                    messageBn = "দারুণ প্রচেষ্টা! ${assessmentResult.title}-এ তুমি ${StudyQuestStrings.formatDigits(assessmentResult.correctCount, uiLanguage)}/${StudyQuestStrings.formatDigits(questions.size, uiLanguage)}টি সঠিক উত্তর দিয়েছো।",
                     language = uiLanguage,
                     reducedMotion = reducedMotion,
                     showCelebrationLottie = false
@@ -741,7 +745,8 @@ fun AiDoubtSolverSheet(
     remainingAiCredits: Int? = null,
     onOpenAiLab: (() -> Unit)? = null,
     onSubmitDoubt: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    isOnline: Boolean = true
 ) {
     var questionText by remember(initialContext) {
         mutableStateOf(
@@ -780,7 +785,11 @@ fun AiDoubtSolverSheet(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = StudyQuestStrings.t(language, "Your Personal Learning Companion", "আপনার ব্যক্তিগত পড়াশোনার সঙ্গী"),
+                            text = if (isOnline) {
+                                StudyQuestStrings.t(language, "Cloud AI Companion", "ক্লাউড AI সহায়ক")
+                            } else {
+                                StudyQuestStrings.t(language, "Offline Knowledge Atlas (6,000 Guides)", "অফলাইন অ্যাটলাস (৬,০০০ গাইড)")
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

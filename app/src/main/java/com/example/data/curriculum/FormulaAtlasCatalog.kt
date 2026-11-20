@@ -1,0 +1,326 @@
+package com.example.data.curriculum
+
+data class FormulaEntry(
+    val id: String,
+    val subjectId: String,
+    val categoryEn: String,
+    val categoryBn: String,
+    val titleEn: String,
+    val titleBn: String,
+    val expression: String,
+    val conditionEn: String,
+    val conditionBn: String,
+    val tipEn: String,
+    val tipBn: String
+)
+
+object FormulaAtlasCatalog {
+    val entries: List<FormulaEntry> = listOf(
+        // Mathematics
+        FormulaEntry(
+            id = "math_quad_roots",
+            subjectId = "math",
+            categoryEn = "Algebra",
+            categoryBn = "বীজগণিত",
+            titleEn = "Quadratic Formula & Discriminant",
+            titleBn = "দ্বিঘাত সমীকরণের মূল ও নিশ্চায়ক",
+            expression = "x = [-b ± sqrt(b^2 - 4ac)] / (2a),  D = b^2 - 4ac",
+            conditionEn = "For ax^2 + bx + c = 0 (a != 0)",
+            conditionBn = "ax^2 + bx + c = 0 (a != 0) সমীকরণের জন্য",
+            tipEn = "D > 0 gives two distinct real roots; D = 0 gives equal roots.",
+            tipBn = "D > 0 হলে দুটি ভিন্ন বাস্তব মূল; D = 0 হলে মূলদ্বয় সমান।"
+        ),
+        FormulaEntry(
+            id = "math_ap_sum",
+            subjectId = "math",
+            categoryEn = "Series",
+            categoryBn = "ধারা",
+            titleEn = "Arithmetic Series nth Term & Sum",
+            titleBn = "সমান্তর ধারার n-তম পদ ও সমষ্টি",
+            expression = "a_n = a + (n - 1)d,   S_n = (n/2) * [2a + (n - 1)d]",
+            conditionEn = "First term a, common difference d",
+            conditionBn = "প্রথম পদ a, সাধারণ অন্তর d",
+            tipEn = "Find d by subtracting any term from the next term.",
+            tipBn = "পরবর্তী পদ থেকে পূর্ববর্তী পদ বিয়োগ করে d বের করো।"
+        ),
+        FormulaEntry(
+            id = "math_gp_sum",
+            subjectId = "math",
+            categoryEn = "Series",
+            categoryBn = "ধারা",
+            titleEn = "Geometric Series nth Term & Sum",
+            titleBn = "গুণোত্তর ধারার n-তম পদ ও সমষ্টি",
+            expression = "a_n = a * r^(n-1),   S_n = a(r^n - 1)/(r - 1)",
+            conditionEn = "For common ratio r > 1 (flip signs if r < 1)",
+            conditionBn = "সাধারণ অনুপাত r > 1 হলে (r < 1 হলে 1 - r^n ব্যবহার করো)",
+            tipEn = "Check r != 1 before applying the sum formula.",
+            tipBn = "সমষ্টির সূত্র বসানোর আগে r != 1 যাচাই করো।"
+        ),
+        FormulaEntry(
+            id = "math_trig_identities",
+            subjectId = "math",
+            categoryEn = "Trigonometry",
+            categoryBn = "ত্রিকোণমিতি",
+            titleEn = "Pythagorean Trigonometric Identities",
+            titleBn = "ত্রিকোণমিতিক অভেদাবলি",
+            expression = "sin^2(θ) + cos^2(θ) = 1  |  sec^2(θ) = 1 + tan^2(θ)  |  csc^2(θ) = 1 + cot^2(θ)",
+            conditionEn = "Valid where denominators are non-zero",
+            conditionBn = "যেখানে হর শূন্য নয় সেখানে প্রযোজ্য",
+            tipEn = "Convert sec/csc/tan/cot into sin & cos when stuck in SSC proofs.",
+            tipBn = "প্রমাণে আটকে গেলে sec, tan, cot-কে sin ও cos-এ রূপান্তর করো।"
+        ),
+        FormulaEntry(
+            id = "math_heron_area",
+            subjectId = "math",
+            categoryEn = "Mensuration",
+            categoryBn = "পরিমিতি",
+            titleEn = "Heron's Triangle Area Formula",
+            titleBn = "বিষমবাহু ত্রিভুজের ক্ষেত্রফল",
+            expression = "s = (a + b + c) / 2,   Area = sqrt[s(s - a)(s - b)(s - c)]",
+            conditionEn = "For triangle sides a, b, c",
+            conditionBn = "ত্রিভুজের তিন বাহু a, b, c হলে",
+            tipEn = "Always verify triangle inequality a + b > c first.",
+            tipBn = "প্রথমে যাচাই করো যেকোনো দুই বাহুর যোগফল তৃতীয় বাহু অপেক্ষা বড়।"
+        ),
+        FormulaEntry(
+            id = "math_cylinder_cone",
+            subjectId = "math",
+            categoryEn = "Solid Geometry",
+            categoryBn = "ঘন জ্যামিতি",
+            titleEn = "Cylinder, Cone & Sphere Volumes",
+            titleBn = "বেলন, কোণক ও গোলকের আয়তন",
+            expression = "V_cyl = πr^2h  |  V_cone = (1/3)πr^2h  |  V_sphere = (4/3)πr^3",
+            conditionEn = "Radius r, height h",
+            conditionBn = "ব্যাসার্ধ r এবং উচ্চতা h",
+            tipEn = "Total surface area of cylinder = 2πr(r + h).",
+            tipBn = "সমগ্রতলের ক্ষেত্রফল = 2πr(r + h)।"
+        ),
+        FormulaEntry(
+            id = "math_compound_interest",
+            subjectId = "math",
+            categoryEn = "Commercial Math",
+            categoryBn = "মুনাফা",
+            titleEn = "Compound Principal & Profit",
+            titleBn = "চক্রবৃদ্ধি মূলধন ও মুনাফা",
+            expression = "C = P(1 + r)^n,   Compound Profit = C - P",
+            conditionEn = "Principal P, annual rate r (decimal), years n",
+            conditionBn = "মূলধন P, মুনাফার হার r, সময় n বছর",
+            tipEn = "Divide percentage rate by 100 before substituting r.",
+            tipBn = "শতকরা হারকে ১০০ দিয়ে ভাগ করে r বসাবে।"
+        ),
+        FormulaEntry(
+            id = "math_log_laws",
+            subjectId = "math",
+            categoryEn = "Logarithms",
+            categoryBn = "লগারিদম",
+            titleEn = "Laws of Indices & Logarithms",
+            titleBn = "সূচক ও লগারিদমের সূত্র",
+            expression = "log_a(MN) = log_a(M) + log_a(N),   log_a(M^k) = k*log_a(M)",
+            conditionEn = "Base a > 0, a != 1; M, N > 0",
+            conditionBn = "ভিত্তি a > 0, a != 1 এবং M, N > 0",
+            tipEn = "Remember log_a(a) = 1 and log_a(1) = 0.",
+            tipBn = "মনে রাখবে log_a(a) = 1 এবং log_a(1) = 0।"
+        ),
+
+        // Physics
+        FormulaEntry(
+            id = "phys_kinematics",
+            subjectId = "physics",
+            categoryEn = "Motion",
+            categoryBn = "গতি",
+            titleEn = "Equations of Uniformly Accelerated Motion",
+            titleBn = "সমত্বরণে গতির সমীকরণসমূহ",
+            expression = "v = u + at  |  s = ut + (1/2)at^2  |  v^2 = u^2 + 2as",
+            conditionEn = "Initial velocity u, final velocity v, acceleration a, time t",
+            conditionBn = "আদিবেগ u, শেষবেগ v, ত্বরণ a, সময় t",
+            tipEn = "From rest means u = 0; stopping means v = 0.",
+            tipBn = "স্থির অবস্থান থেকে যাত্রা মানে u = 0; থেমে যাওয়া মানে v = 0।"
+        ),
+        FormulaEntry(
+            id = "phys_projectile",
+            subjectId = "physics",
+            categoryEn = "Kinematics",
+            categoryBn = "প্রাস",
+            titleEn = "Projectile Range, Max Height & Flight Time",
+            titleBn = "প্রাসের পাল্লা, সর্বাধিক উচ্চতা ও বিচরণকাল",
+            expression = "R = (v0^2 * sin2θ)/g  |  H = (v0^2 * sin^2θ)/(2g)  |  T = (2v0*sinθ)/g",
+            conditionEn = "Launch speed v0, angle θ, g = 9.8 m/s^2",
+            conditionBn = "নিক্ষেপণ বেগ v0, কোণ θ, g = 9.8 m/s^2",
+            tipEn = "Maximum horizontal range occurs at launch angle θ = 45°.",
+            tipBn = "অনুভূমিক পাল্লা সর্বাধিক হয় যখন নিক্ষেপণ কোণ θ = 45°।"
+        ),
+        FormulaEntry(
+            id = "phys_newton_momentum",
+            subjectId = "physics",
+            categoryEn = "Force & Momentum",
+            categoryBn = "বল ও ভরবেগ",
+            titleEn = "Newton's Second Law & Momentum Conservation",
+            titleBn = "নিউটনের দ্বিতীয় সূত্র ও ভরবেগের সংরক্ষণ",
+            expression = "F = ma,   p = mv,   m1u1 + m2u2 = m1v1 + m2v2",
+            conditionEn = "Mass in kg, acceleration in m/s^2, Force in Newton (N)",
+            conditionBn = "ভর kg, ত্বরণ m/s^2 এবং বল নিউটন (N) এককে",
+            tipEn = "Always assign opposite +/- signs for opposite velocity directions.",
+            tipBn = "বিপরীত দিকের বেগের ক্ষেত্রে অবশ্যই বিপরীত (+/-) চিহ্ন ব্যবহার করো।"
+        ),
+        FormulaEntry(
+            id = "phys_energy_power",
+            subjectId = "physics",
+            categoryEn = "Work, Power & Energy",
+            categoryBn = "কাজ, ক্ষমতা ও শক্তি",
+            titleEn = "Kinetic Energy, Potential Energy & Power",
+            titleBn = "গতিশক্তি, বিভবশক্তি ও ক্ষমতা",
+            expression = "E_k = (1/2)mv^2  |  E_p = mgh  |  P = W/t = Fv",
+            conditionEn = "Energy in Joules (J), Power in Watts (W)",
+            conditionBn = "শক্তি জুল (J) এবং ক্ষমতা ওয়াট (W) এককে",
+            tipEn = "Efficiency η = (Useful Output / Total Input) × 100%.",
+            tipBn = "কর্মদক্ষতা η = (লভ্য কার্যকর শক্তি / মোট প্রদত্ত শক্তি) × ১০০%।"
+        ),
+        FormulaEntry(
+            id = "phys_waves_sound",
+            subjectId = "physics",
+            categoryEn = "Waves & Sound",
+            categoryBn = "তরঙ্গ ও শব্দ",
+            titleEn = "Wave Velocity, Frequency & Echo Distance",
+            titleBn = "তরঙ্গ বেগ, কম্পাঙ্ক ও প্রতিধ্বনি",
+            expression = "v = fλ,   T = 1/f,   Echo distance d = (v * t) / 2",
+            conditionEn = "Speed of sound in air at 0°C = 330 m/s (+0.6 m/s per °C)",
+            conditionBn = "০°C তাপমাত্রায় শব্দের বেগ ৩৩০ m/s (প্রতি ১°C-এ ০.৬ m/s বাড়ে)",
+            tipEn = "Minimum persistence of hearing time for an echo is 0.1 s.",
+            tipBn = "প্রতিধ্বনি শোনার ন্যূনতম সময় ব্যবধান ০.১ সেকেন্ড।"
+        ),
+        FormulaEntry(
+            id = "phys_ohm_power",
+            subjectId = "physics",
+            categoryEn = "Electricity",
+            categoryBn = "চল তড়িৎ",
+            titleEn = "Ohm's Law, Equivalent Resistance & Joule Heating",
+            titleBn = "ও'মের সূত্র, তুল্য রোধ ও তড়িৎ ক্ষমতা",
+            expression = "V = IR  |  R_s = R1 + R2  |  1/R_p = 1/R1 + 1/R2  |  P = VI = I^2R",
+            conditionEn = "Current I (A), Voltage V (V), Resistance R (Ω)",
+            conditionBn = "প্রবাহমাত্রা I (A), বিভব V (V), রোধ R (Ω)",
+            tipEn = "1 kWh (1 electrical unit) = 3.6 × 10^6 Joules.",
+            tipBn = "১ কিলোওয়াট-ঘণ্টা (১ ইউনিট) = ৩.৬ × ১০^৬ জুল।"
+        ),
+        FormulaEntry(
+            id = "phys_optics_lens",
+            subjectId = "physics",
+            categoryEn = "Optics",
+            categoryBn = "আলোকবিজ্ঞান",
+            titleEn = "Lens & Mirror Equation and Optical Power",
+            titleBn = "লেন্স-দর্পণ সমীকরণ ও লেন্সের ক্ষমতা",
+            expression = "1/f = 1/u + 1/v,   m = -v/u = l'/l,   P = 1/f (meters)",
+            conditionEn = "Convex f > 0, Concave f < 0; Power in Dioptre (D)",
+            conditionBn = "উত্তল লেন্সে f > 0, অবতল লেন্সে f < 0; ক্ষমতা ডায়প্টার (D)",
+            tipEn = "Convert focal length cm to meters before computing Dioptres.",
+            tipBn = "ক্ষমতা D বের করার আগে ফোকাস দূরত্ব মিটারে রূপান্তর করো।"
+        ),
+        FormulaEntry(
+            id = "phys_constants",
+            subjectId = "physics",
+            categoryEn = "Constants",
+            categoryBn = "ধ্রুবকসমূহ",
+            titleEn = "Essential SSC Physics Universal Constants",
+            titleBn = "প্রয়োজনীয় পদার্থবিজ্ঞান ধ্রুবক",
+            expression = "g = 9.8 m/s^2  |  c = 3×10^8 m/s  |  G = 6.674×10^-11 N·m^2/kg^2",
+            conditionEn = "Specific heat of water = 4200 J/(kg·K); Ice latent heat = 336,000 J/kg",
+            conditionBn = "পানির আপেক্ষিক তাপ ৪২০০ J/kg·K; বরফ গলনের সুপ্ততাপ ৩৩৬,০০০ J/kg",
+            tipEn = "Always convert Celsius differences cleanly—Δ1°C equals Δ1 K.",
+            tipBn = "তাপমাত্রার পার্থক্যে Δ1°C এবং Δ1 K মান সবসময় সমান।"
+        ),
+
+        // Chemistry
+        FormulaEntry(
+            id = "chem_mole_molarity",
+            subjectId = "chemistry",
+            categoryEn = "Stoichiometry",
+            categoryBn = "মোল ও মোলারিটি",
+            titleEn = "Mole Concept, Avogadro Number & Molarity",
+            titleBn = "মোল সংখ্যা ও দ্রবণের মোলারিটি",
+            expression = "n = w/M = N/N_A = V_STP/22.4 L   |   S = (1000 * w) / (M * V_mL)",
+            conditionEn = "N_A = 6.023 × 10^23 mol^-1; Molar gas volume at STP = 22.4 L",
+            conditionBn = "N_A = 6.023 × 10^23; প্রমাণ অবস্থায় ১ মোল গ্যাসের আয়তন ২২.৪ লিটার",
+            tipEn = "Use V in mL cleanly inside S = 1000w / (MV).",
+            tipBn = "S = 1000w / (MV) সূত্রে আয়তন V অবশ্যই মিলিলিটারে (mL) বসাবে।"
+        ),
+        FormulaEntry(
+            id = "chem_dilution_titration",
+            subjectId = "chemistry",
+            categoryEn = "Solutions",
+            categoryBn = "দ্রবণ ও টাইট্রেশন",
+            titleEn = "Dilution & Acid-Base Neutralization Law",
+            titleBn = "লঘুকরণ ও প্রশমন সমীকরণ",
+            expression = "V1 * S1 = V2 * S2   |   (V_a * S_a)/a = (V_b * S_b)/b",
+            conditionEn = "Where a, b are stoichiometric coefficients in balanced equation",
+            conditionBn = "সমতাকৃত বিক্রিয়ায় এসিড ও ক্ষারের মোল সংখ্যা যথাক্রমে a ও b",
+            tipEn = "Balance the neutralization reaction before reading coefficients a and b.",
+            tipBn = "a ও b বসানোর আগে অবশ্যই রাসায়নিক বিক্রিয়াটি সমতা করো।"
+        ),
+        FormulaEntry(
+            id = "chem_bohr_shells",
+            subjectId = "chemistry",
+            categoryEn = "Atomic Structure",
+            categoryBn = "পরমাণুর গঠন",
+            titleEn = "Bohr Electron Shell Capacity & Angular Momentum",
+            titleBn = "বোর শক্তিস্তর ও কৌণিক ভরবেগ",
+            expression = "Max electrons = 2n^2   |   mvr = nh / (2π)",
+            conditionEn = "Shell index n = 1(K), 2(L), 3(M), 4(N)",
+            conditionBn = "শক্তিস্তর n = ১(K), ২(L), ৩(M), ৪(N)",
+            tipEn = "For Z = 19 (K) and 20 (Ca), outer electrons enter 4s before 3d fills.",
+            tipBn = "K(19) ও Ca(20)-এর ক্ষেত্রে অষ্টক পূর্ণ হয়ে ৪র্থ কক্ষপথে ইলেকট্রন প্রবেশ করে।"
+        ),
+        FormulaEntry(
+            id = "chem_ph_ideal_gas",
+            subjectId = "chemistry",
+            categoryEn = "Acids & Gases",
+            categoryBn = "এসিড ও গ্যাস সূত্র",
+            titleEn = "pH Definition & Combined Gas Law",
+            titleBn = "pH স্কেল ও সমন্বিত গ্যাস সূত্র",
+            expression = "pH = -log10[H+]   |   PV = nRT   |   P1V1/T1 = P2V2/T2",
+            conditionEn = "T in Kelvin (K = °C + 273); R = 0.0821 L·atm/(mol·K)",
+            conditionBn = "তাপমাত্রা কেলভিন (K = °C + ২৭৩) এককে",
+            tipEn = "pH < 7 acidic, pH = 7 neutral, pH > 7 basic at 25°C.",
+            tipBn = "২৫°C-এ pH < 7 অম্লীয়, pH = 7 প্রশম এবং pH > 7 ক্ষারীয়।"
+        ),
+
+        // Biology
+        FormulaEntry(
+            id = "bio_photosynthesis",
+            subjectId = "biology",
+            categoryEn = "Bioenergetics",
+            categoryBn = "জীবনীশক্তি",
+            titleEn = "Photosynthesis Balanced Equation",
+            titleBn = "সালোকসংশ্লেষণ বিক্রিয়া",
+            expression = "6CO2 + 12H2O  --(Light / Chlorophyll)-->  C6H12O6 + 6O2 + 6H2O",
+            conditionEn = "Light phase in Thylakoid; Calvin cycle in Stroma of Chloroplast",
+            conditionBn = "আলোক পর্যায় থাইলাকয়েডে; অন্ধকার পর্যায় ক্লোরোপ্লাস্টের স্ট্রোমাতে",
+            tipEn = "Oxygen released comes from photolysis of water (H2O), not CO2.",
+            tipBn = "উৎপন্ন অক্সিজেনের উৎস হলো পানি (H2O), কার্বন ডাইঅক্সাইড নয়।"
+        ),
+        FormulaEntry(
+            id = "bio_respiration_atp",
+            subjectId = "biology",
+            categoryEn = "Bioenergetics",
+            categoryBn = "শ্বসন",
+            titleEn = "Aerobic Respiration & ATP Yield",
+            titleBn = "সবাত শ্বসন ও এটিপি (ATP) উৎপাদন",
+            expression = "C6H12O6 + 6O2  -->  6CO2 + 6H2O + 38 ATP (686 kcal)",
+            conditionEn = "Glycolysis in Cytoplasm; Krebs & ETS in Mitochondria",
+            conditionBn = "গ্লাইকোলাইসিস সাইটোপ্লাজমে; ক্রেবস চক্র ও ইটিএস মাইটোকন্ড্রিয়ায়",
+            tipEn = "Anaerobic respiration in yeast yields ethanol + CO2 + 2 ATP.",
+            tipBn = "অবাত শ্বসনে ইথানল, CO2 এবং মাত্র ২ অণু ATP উৎপন্ন হয়।"
+        ),
+        FormulaEntry(
+            id = "bio_genetics_bmi",
+            subjectId = "biology",
+            categoryEn = "Genetics & Nutrition",
+            categoryBn = "বংশগতি ও পুষ্টি",
+            titleEn = "BMI Index & Mendelian Hybrid Ratios",
+            titleBn = "বিএমআই (BMI) ও মেন্ডেলের অনুপাত",
+            expression = "BMI = Weight(kg) / Height(m)^2  |  Monohybrid = 3:1  |  Dihybrid = 9:3:3:1",
+            conditionEn = "Healthy adult BMI range: 18.5 – 24.9 kg/m^2",
+            conditionBn = "সুস্থ স্বাভাবিক BMI সীমা: ১৮.৫ – ২৪.৯ kg/m^2",
+            tipEn = "Convert height in cm to meters (cm / 100) before squaring.",
+            tipBn = "উচ্চতা সেমি থেকে মিটারে (/১০০) রূপান্তর করে বর্গ করবে।"
+        )
+    )
+}

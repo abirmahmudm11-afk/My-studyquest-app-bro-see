@@ -454,9 +454,11 @@ class StudyQuestRedesignRobolectricTest {
         composeRule.onNodeWithTag("launch_pillar_card_nctb").assertIsDisplayed()
         composeRule.onNodeWithTag("launch_pillar_dot_ai").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("pick_lang_bn").performScrollTo().performClick()
+        composeRule.onNodeWithTag("pick_lang_bn").performClick()
+        composeRule.onNodeWithTag("launch_get_started_btn").performScrollTo().performClick()
         assertEquals(AppLanguage.BANGLA, selectedLanguage)
-        composeRule.onNodeWithTag("pick_lang_en").performScrollTo().performClick()
+        composeRule.onNodeWithTag("pick_lang_en").performClick()
+        composeRule.onNodeWithTag("launch_get_started_btn").performScrollTo().performClick()
         assertEquals(AppLanguage.ENGLISH, selectedLanguage)
     }
 

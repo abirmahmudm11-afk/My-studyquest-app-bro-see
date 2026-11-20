@@ -14,11 +14,11 @@ This folder contains the debug-signed Android packages for **StudyQuest** (`com.
 1. Download `src/StudyQuest-download.apk` and transfer it to your Android device.
 2. Open the `.apk` file on your device and allow **Install unknown apps** for your file manager/browser if prompted.
 3. Launch **StudyQuest** and sign in with **Email/Password** or **Continue with Google**.
-   - **Firebase Project ID**: `gen-lang-client-0669393455`
-   - **Firestore Database ID**: `ai-studio-android-mystudyq-4c48da8c-48a1-4504-88c7-abaf50bf152c`
-   - **Debug Signing SHA-1**: `26:EC:1F:5E:26:20:9D:62:3C:57:61:C9:CD:8E:1B:4B:EC:CB:F5:81`
-   - **Debug Signing SHA-256**: `79:E6:5A:4C:92:32:B2:2B:FF:D2:46:29:47:3B:10:3A:E5:3D:80:BA:FC:60:E9:B9:F8:DC:00:59:E4:1E:EC:3B`
-   - **Email/Password Auth**: Ensure **Email/Password** is enabled under **Firebase Console → Authentication → Sign-in method** for project `gen-lang-client-0669393455`.
+   - **Firebase Project ID**: `gen-lang-client-0309270439`
+   - **Firestore Database ID**: `ai-studio-android-mystudyq-376f8234-00ff-4c1d-9bbd-33197f904eea`
+   - **Debug Signing SHA-1**: `D0:C9:F0:C2:20:F8:BD:6D:76:77:38:48:B1:E5:A9:56:89:D0:BC:5F`
+   - **Debug Signing SHA-256**: `C6:F3:1E:B1:40:04:09:86:B1:5D:47:6E:80:A5:98:A2:EB:65:9A:02:3F:E7:B4:0E:6C:30:DC:BA:FB:09:1C:5B`
+   - **Email/Password Auth**: Ensure **Email/Password** is enabled under **Firebase Console → Authentication → Sign-in method** for project `gen-lang-client-0309270439`.
 
 ---
 

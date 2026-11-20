@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import com.example.core.AppLanguage
+import com.example.core.OfflineVaultManager
 import com.example.data.curriculum.BangladeshCurriculumCatalog
 import com.example.data.curriculum.TextbookCatalog
 import com.example.data.local.BookChapterEntity
@@ -245,18 +246,24 @@ class TextbookDownloadRepository(
                 )
             )
 
-            // Download remote official PDF when url exists; otherwise keep custom imported PDF or generate offline study companion PDF
+            // Download remote official PDF when url exists; otherwise install bundled Study Vault illustrated PDF or generate fallback
             val pdfReadyFile: File = when {
                 !book.pdfUrl.isNullOrBlank() && (forceRedownloadPdf || !destFile.exists() || existing?.isCustomImported == false) -> {
                     val downloaded = downloadRemotePdf(book.id, book.pdfUrl, destFile)
                     if (downloaded) destFile else {
-                        if (!destFile.exists()) generateCompanionStudyPdf(book, chapters, destFile, language)
+                        if (!destFile.exists()) {
+                            val copied = OfflineVaultManager.copyBundledSubjectPdf(appContext, book.subjectId, destFile)
+                            if (!copied) generateCompanionStudyPdf(book, chapters, destFile, language)
+                        }
                         destFile
                     }
                 }
                 destFile.exists() && destFile.length() > 256L && !forceRedownloadPdf -> destFile
                 else -> {
-                    generateCompanionStudyPdf(book, chapters, destFile, language)
+                    val copied = OfflineVaultManager.copyBundledSubjectPdf(appContext, book.subjectId, destFile)
+                    if (!copied) {
+                        generateCompanionStudyPdf(book, chapters, destFile, language)
+                    }
                     destFile
                 }
             }

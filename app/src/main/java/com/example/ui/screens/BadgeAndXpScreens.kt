@@ -21,7 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Star
@@ -59,8 +59,8 @@ import com.example.data.model.BadgeRarity
 import com.example.data.model.PublicProfile
 import com.example.data.model.UserBadgeDoc
 import com.example.data.model.XpTransactionDoc
+import com.example.ui.components.CharcoalMilestoneCard
 import com.example.ui.components.EmptyStateView
-import com.example.ui.components.StatBadgePill
 import com.example.ui.components.StudyQuestCard
 import com.example.ui.components.StudyQuestGradientHeroBanner
 import com.example.ui.components.rarityAccentColor
@@ -102,7 +102,7 @@ fun BadgesAndXpScreen(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
             Text(
-                text = StudyQuestStrings.t(uiLanguage, "Badges, Trophies & XP Ledger", "ব্যাজ, ট্রফি ও XP খাতা"),
+                text = StudyQuestStrings.t(uiLanguage, "Badges, Trophies & Milestones", "ব্যাজ, ট্রফি ও মাইলফলক"),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -124,7 +124,7 @@ fun BadgesAndXpScreen(
             Tab(
                 selected = selectedTab == 2,
                 onClick = { selectedTab = 2 },
-                text = { Text(StudyQuestStrings.t(uiLanguage, "XP Ledger", "XP খাতা")) },
+                text = { Text(StudyQuestStrings.t(uiLanguage, "Milestones", "মাইলফলক")) },
                 modifier = Modifier.testTag("tab_xp_ledger")
             )
         }
@@ -273,9 +273,13 @@ fun BadgesAndXpScreen(
                                     Spacer(Modifier.height(4.dp))
                                     Text(
                                         text = if (unlocked) {
-                                            StudyQuestStrings.t(uiLanguage, "Unlocked • +${def.xpBonus} XP Bonus", "অর্জিত • +${def.xpBonus} XP")
+                                            StudyQuestStrings.t(
+                                                uiLanguage,
+                                                "Unlocked • ${def.rarity.labelEn} Achievement",
+                                                "অর্জিত • ${def.rarity.labelBn} অর্জন"
+                                            )
                                         } else {
-                                            "$prog / ${def.target} • +${def.xpBonus} XP"
+                                            "${StudyQuestStrings.formatDigits(prog, uiLanguage)} / ${StudyQuestStrings.formatDigits(def.target, uiLanguage)} • ${StudyQuestStrings.t(uiLanguage, def.rarity.labelEn, def.rarity.labelBn)}"
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
@@ -292,7 +296,7 @@ fun BadgesAndXpScreen(
                                             Icon(
                                                 if (doc?.favorite == true) Icons.Filled.Star else Icons.Outlined.StarOutline,
                                                 contentDescription = "Favorite badge",
-                                                tint = AmberGold
+                                                tint = MaterialTheme.colorScheme.primary
                                             )
                                         }
                                         IconButton(
@@ -302,7 +306,7 @@ fun BadgesAndXpScreen(
                                             Icon(
                                                 if (doc?.pinned == true) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                                                 contentDescription = "Pin badge to profile",
-                                                tint = CobaltPrimary
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -343,56 +347,41 @@ fun BadgesAndXpScreen(
             }
 
             2 -> {
-                val (xpInLevel, xpNeededForNext) = StudyQuestStrings.xpIntoCurrentLevel(profile.totalXp)
+                val unlockedTotal = GamificationCatalog.badgesCatalog.count { badgeDocMap[it.id]?.unlocked == true }
+                val totalCatalog = GamificationCatalog.badgesCatalog.size.coerceAtLeast(1)
+                val nextTargetDef = remember(badgeDocMap) {
+                    GamificationCatalog.badgesCatalog.firstOrNull { badgeDocMap[it.id]?.unlocked != true }
+                        ?: GamificationCatalog.badgesCatalog.first()
+                }
+                val nextProg = (badgeDocMap[nextTargetDef.id]?.progress ?: 0L).coerceAtMost(nextTargetDef.target)
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item {
-                        StudyQuestCard {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "Level ${profile.overallLevel} • ${StudyQuestStrings.levelTitle(profile.overallLevel.toInt(), uiLanguage)}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = StudyQuestStrings.t(
-                                            uiLanguage,
-                                            "$xpInLevel / $xpNeededForNext XP to Level ${profile.overallLevel + 1}",
-                                            "পরবর্তী লেভেলে যেতে $xpInLevel / $xpNeededForNext XP"
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                StatBadgePill(
-                                    icon = Icons.Filled.Bolt,
-                                    label = "${profile.totalXp} XP",
-                                    tint = CobaltPrimary,
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            LinearProgressIndicator(
-                                progress = { (xpInLevel.toFloat() / xpNeededForNext.toFloat()).coerceIn(0f, 1f) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(999.dp))
-                            )
-                        }
+                        CharcoalMilestoneCard(
+                            eyebrow = StudyQuestStrings.t(uiLanguage, "ACHIEVEMENT PROGRESS", "অর্জনের অগ্রগতি"),
+                            title = StudyQuestStrings.t(
+                                uiLanguage,
+                                "$unlockedTotal of $totalCatalog Badges Earned",
+                                "${StudyQuestStrings.formatDigits(totalCatalog, uiLanguage)}টির মধ্যে ${StudyQuestStrings.formatDigits(unlockedTotal, uiLanguage)}টি ব্যাজ অর্জিত"
+                            ),
+                            progressLabel = StudyQuestStrings.t(
+                                uiLanguage,
+                                "Next: ${nextTargetDef.titleEn} ($nextProg / ${nextTargetDef.target})",
+                                "পরবর্তী: ${nextTargetDef.titleBn} (${StudyQuestStrings.formatDigits(nextProg, uiLanguage)} / ${StudyQuestStrings.formatDigits(nextTargetDef.target, uiLanguage)})"
+                            ),
+                            progress = unlockedTotal.toFloat() / totalCatalog.toFloat(),
+                            unlockedCount = unlockedTotal,
+                            totalCount = totalCatalog,
+                            onClick = { selectedTab = 0 }
+                        )
                     }
 
                     item {
                         Text(
-                            text = StudyQuestStrings.t(uiLanguage, "Auditable XP History", "যাচাইকৃত XP লেনদেনের ইতিহাস"),
+                            text = StudyQuestStrings.t(uiLanguage, "Verified Learning Milestones", "যাচাইকৃত অধ্যয়ন মাইলফলক"),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -401,10 +390,10 @@ fun BadgesAndXpScreen(
                     if (xpLedger.isEmpty()) {
                         item {
                             EmptyStateView(
-                                titleEn = "No XP transactions yet",
-                                titleBn = "এখনো কোনো XP লেনদেন নেই",
-                                subtitleEn = "Complete a lesson, quiz, focus session, or assignment to record your first XP transaction.",
-                                subtitleBn = "প্রথম XP রেকর্ড দেখতে একটি পাঠ, কুইজ বা ফোকাস সেশন সম্পন্ন করো।",
+                                titleEn = "No learning milestones logged yet",
+                                titleBn = "এখনো কোনো মাইলফলক রেকর্ড হয়নি",
+                                subtitleEn = "Complete a lesson, quiz, focus session, or assignment to record your first verified milestone.",
+                                subtitleBn = "প্রথম মাইলফলক দেখতে একটি পাঠ, কুইজ বা ফোকাস সেশন সম্পন্ন করো।",
                                 language = uiLanguage
                             )
                         }
@@ -416,36 +405,42 @@ fun BadgesAndXpScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = tx.description?.ifBlank { tx.sourceType } ?: tx.sourceType,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.SemiBold
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.CheckCircle,
+                                            contentDescription = null,
+                                            tint = semantic.success,
+                                            modifier = Modifier.size(20.dp)
                                         )
-                                        Text(
-                                            text = "${tx.sourceType.uppercase()} • ${tx.sourceId}",
-                                            fontFamily = JetBrainsMonoFontFamily,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        if (tx.xpDelta != 0L) {
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = "+${tx.xpDelta} XP",
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.Bold,
-                                                color = semantic.success
+                                                text = tx.description?.ifBlank { tx.sourceType } ?: tx.sourceType,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.SemiBold
                                             )
-                                        }
-                                        if (tx.coinDelta != 0L) {
-                                            val sign = if (tx.coinDelta > 0) "+" else ""
                                             Text(
-                                                text = "$sign${tx.coinDelta} Coins",
+                                                text = "${tx.sourceType.uppercase()} • ${tx.sourceId}",
+                                                fontFamily = JetBrainsMonoFontFamily,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = CobaltPrimary
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(999.dp),
+                                        color = semantic.successContainer
+                                    ) {
+                                        Text(
+                                            text = StudyQuestStrings.t(uiLanguage, "Verified", "যাচাইকৃত"),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = semantic.onSuccessContainer,
+                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                                        )
                                     }
                                 }
                             }

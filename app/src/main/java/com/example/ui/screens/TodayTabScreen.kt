@@ -26,22 +26,27 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Replay
-import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
@@ -52,10 +57,12 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -64,6 +71,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -73,6 +81,7 @@ import androidx.compose.ui.unit.dp
 import com.example.core.AppLanguage
 import com.example.core.StudyQuestStrings
 import com.example.data.curriculum.BangladeshCurriculumCatalog
+import com.example.data.curriculum.GamificationCatalog
 import com.example.data.curriculum.TextbookCatalog
 import com.example.data.local.CachedBookEntity
 import com.example.data.local.LocalRevisionEntity
@@ -83,18 +92,23 @@ import com.example.data.model.QuestPlanCatalog
 import com.example.data.model.StudyPlanDoc
 import com.example.data.model.TextbookCatalogItem
 import com.example.data.model.TextbookDownloadStatus
+import com.example.data.model.UserBadgeDoc
 import com.example.data.model.UserNotificationDoc
 import com.example.data.model.UserQuestDoc
 import com.example.data.model.UserSubscriptionDoc
 import com.example.data.repository.DailyStudyMetric
 import com.example.data.repository.SubjectAnalyticsSummary
 import com.example.data.repository.WeakTopicStat
+import com.example.ui.components.ActivityDonutBreakdownCard
+import com.example.ui.components.ActivityRingSlice
+import com.example.ui.components.CharcoalMilestoneCard
+import com.example.ui.components.CompactWeeklyStreakStrip
 import com.example.ui.components.EditorialSectionHeader
 import com.example.ui.components.GuestUpgradeBannerCard
-import com.example.ui.components.HeroCarouselSlide
-import com.example.ui.components.HeroDockAction
+import com.example.ui.components.MapThePathCard
+import com.example.ui.components.ModeStatusBottomSheet
+import com.example.ui.components.PastelQuestBentoTile
 import com.example.ui.components.ReferenceActivityRow
-import com.example.ui.components.ReferenceHeroCarouselStage
 import com.example.ui.components.ReferenceSummaryPanel
 import com.example.ui.components.StaggeredEntrance
 import com.example.ui.components.StudyQuestCard
@@ -102,16 +116,12 @@ import com.example.ui.components.StudyTimeAndXpBarChart
 import com.example.ui.components.SyncStatusPill
 import com.example.ui.theme.BrandTealPrimary
 import com.example.ui.theme.CeruleanSlate
-import com.example.ui.theme.CrispCoolSurface
-import com.example.ui.theme.DeepSlateInk
 import com.example.ui.theme.EditorialError
 import com.example.ui.theme.EditorialSuccess
-import com.example.ui.theme.HeroMintCardEnd
-import com.example.ui.theme.HeroMintCardStart
+import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.LocalStudyQuestColors
 import com.example.ui.theme.LocalStudyQuestSurfaceStyle
 import com.example.ui.theme.MineralTeal
-import com.example.ui.theme.MutedMintFocal
 import com.example.ui.theme.SlateBotanical
 import com.example.ui.theme.SoftPowderBlue
 import com.example.ui.theme.studyQuestGlassAwareBorder
@@ -168,10 +178,19 @@ fun TodayTabScreen(
     availableBooksForLock: List<TextbookCatalogItem> = emptyList(),
     cachedBooks: List<CachedBookEntity> = emptyList(),
     onOpenTextbookReader: () -> Unit = {},
-    onSwitchActiveBook: (TextbookCatalogItem) -> Unit = {}
+    onSwitchActiveBook: (TextbookCatalogItem) -> Unit = {},
+    userBadges: List<UserBadgeDoc> = emptyList(),
+    onOpenStemLab: () -> Unit = {},
+    onOpenDownloadManager: () -> Unit = {},
+    onOpenFormulaAtlas: () -> Unit = {},
+    onOpenMistakeNotebook: () -> Unit = {},
+    onOpenExamCountdown: () -> Unit = {},
+    onOpenPocketAudio: () -> Unit = {},
+    unresolvedMistakesCount: Int = 0
 ) {
     var showNotificationsSheet by remember { mutableStateOf(false) }
     var showSwitchBookSheet by remember { mutableStateOf(false) }
+    var showModeStatusSheet by remember { mutableStateOf(false) }
     var switchYearFilter by remember { mutableStateOf(activeLockedBook?.academicYear ?: "2026") }
     val semantic = LocalStudyQuestColors.current
     val visualConfig = LocalStudyQuestSurfaceStyle.current
@@ -243,127 +262,36 @@ fun TodayTabScreen(
         subjectAnalytics.firstOrNull { it.subjectId == subj.id }?.averageAccuracy?.toFloat()
     } ?: goalRatio
 
-    val heroSlides = remember(
-        activeLockedBook,
-        spotlightLesson,
-        categorySubjects,
-        subjectAnalytics,
-        language,
-        isInstalledOffline,
-        subjectAccuracy
-    ) {
-        buildList {
-            val primaryTitle = when {
-                activeLockedBook != null -> StudyQuestStrings.t(language, activeLockedBook.titleEn, activeLockedBook.titleBn)
-                spotlightLesson != null -> StudyQuestStrings.t(language, spotlightLesson.titleEn, spotlightLesson.titleBn)
-                else -> StudyQuestStrings.t(language, "Continue Today's Course", "আজকের পাঠ চালিয়ে যান")
-            }
-            val primaryEyebrow = if (activeLockedBook != null) {
-                val offlineTag = if (isInstalledOffline) {
-                    StudyQuestStrings.t(language, " • Offline", " • অফলাইন")
-                } else ""
-                StudyQuestStrings.t(
-                    language,
-                    "ACTIVE TEXTBOOK • ${activeLockedBook.academicYear}$offlineTag",
-                    "সক্রিয় পাঠ্যবই • ${activeLockedBook.academicYear}$offlineTag"
-                )
-            } else {
-                StudyQuestStrings.t(language, "RECOMMENDED LESSON", "পরবর্তী পাঠ")
-            }
-            val primarySubtitle = when {
-                spotlightLesson != null -> StudyQuestStrings.t(
-                    language,
-                    "Up next: ${spotlightLesson.titleEn} • ${spotlightLesson.estimatedMinutes} min guided session",
-                    "পরবর্তী পাঠ: ${spotlightLesson.titleBn} • ${StudyQuestStrings.formatDigits(spotlightLesson.estimatedMinutes, language)} মিনিট"
-                )
-                activeLockedBook != null -> StudyQuestStrings.t(
-                    language,
-                    "${StudyQuestStrings.classLabel(activeLockedBook.classId, language)} • ${activeLockedBook.bookCode}",
-                    "${StudyQuestStrings.classLabel(activeLockedBook.classId, language)} • ${activeLockedBook.bookCode}"
-                )
-                else -> StudyQuestStrings.t(
-                    language,
-                    "Focused syllabus drill aligned with your NCTB class.",
-                    "আপনার শ্রেণির এনসিটিবি সিলেবাস অনুযায়ী অনুশীলন।"
-                )
-            }
-
-            add(
-                HeroCarouselSlide(
-                    id = "primary_course",
-                    eyebrow = primaryEyebrow,
-                    title = primaryTitle,
-                    subtitle = primarySubtitle,
-                    metricValue = "${StudyQuestStrings.formatDigits((subjectAccuracy * 100).toInt(), language)}%",
-                    metricCaption = StudyQuestStrings.t(language, "Readiness", "প্রস্তুতি"),
-                    progress = subjectAccuracy,
-                    actionLabel = StudyQuestStrings.t(language, "Continue Learning", "পড়া শুরু করুন"),
-                    actionIcon = if (activeLockedBook != null) Icons.Filled.MenuBook else Icons.Filled.PlayArrow,
-                    gradientColors = listOf(HeroMintCardStart, HeroMintCardEnd),
-                    contentOnCard = DeepSlateInk,
-                    secondaryActionLabel = if (activeLockedBook != null) StudyQuestStrings.t(language, "Switch", "বদলাও") else null,
-                    secondaryActionTestTag = if (activeLockedBook != null) "today_switch_book_btn" else null,
-                    onSecondaryAction = if (activeLockedBook != null) ({ showSwitchBookSheet = true }) else null,
-                    cardTestTag = "today_active_book_card",
-                    primaryActionTestTag = if (activeLockedBook != null) "today_open_reader_btn" else "today_start_quest_btn",
-                    onClick = if (activeLockedBook != null) onOpenTextbookReader else onOpenQuickPractice
-                )
-            )
-
-            categorySubjects.take(4).forEachIndexed { idx, subj ->
-                val summary = subjectAnalytics.find { it.subjectId == subj.id }
-                val mastery = summary?.averageAccuracy?.toFloat()?.coerceIn(0f, 1f) ?: 0f
-                val chCount = BangladeshCurriculumCatalog.chapters.count { it.subjectId == subj.id }
-                val cardGradient = when (idx % 3) {
-                    0 -> listOf(Color(0xFFD7E6F5), Color(0xFFB5CFE8))
-                    1 -> listOf(Color(0xFF426C91), Color(0xFF2D5375))
-                    else -> listOf(Color(0xFF318482), Color(0xFF236668))
-                }
-                val inkColor = if (idx % 3 == 0) DeepSlateInk else Color.White
-                add(
-                    HeroCarouselSlide(
-                        id = "subj_${subj.id}",
-                        eyebrow = "${subj.code} • ${StudyQuestStrings.classLabel(profile.classId, language)}",
-                        title = StudyQuestStrings.t(language, subj.titleEn, subj.titleBn),
-                        subtitle = StudyQuestStrings.t(
-                            language,
-                            "$chCount structured chapters & board drills",
-                            "${StudyQuestStrings.formatDigits(chCount, language)}টি অধ্যায় ও বোর্ড অনুশীলন"
-                        ),
-                        metricValue = "${StudyQuestStrings.formatDigits((mastery * 100).toInt(), language)}%",
-                        metricCaption = StudyQuestStrings.t(language, "Mastery", "দক্ষতা"),
-                        progress = mastery,
-                        actionLabel = StudyQuestStrings.t(language, "Open Subject", "বিষয় খুলুন"),
-                        actionIcon = Icons.AutoMirrored.Filled.MenuBook,
-                        gradientColors = cardGradient,
-                        contentOnCard = inkColor,
-                        onClick = { onOpenSubjectCategory(subj) }
-                    )
-                )
-            }
-        }
+    val primaryTitle = when {
+        activeLockedBook != null -> StudyQuestStrings.t(language, activeLockedBook.titleEn, activeLockedBook.titleBn)
+        spotlightLesson != null -> StudyQuestStrings.t(language, spotlightLesson.titleEn, spotlightLesson.titleBn)
+        else -> StudyQuestStrings.t(language, "Continue Today's Course", "আজকের পাঠ চালিয়ে যান")
     }
-
-    val dockActions = remember(activeLockedBook, language) {
-        listOf(
-            HeroDockAction(
-                id = "dock_continue",
-                label = StudyQuestStrings.t(language, "Continue", "পড়ুন"),
-                icon = Icons.AutoMirrored.Filled.MenuBook,
-                onClick = if (activeLockedBook != null) onOpenTextbookReader else onOpenQuickPractice
-            ),
-            HeroDockAction(
-                id = "dock_practice",
-                label = StudyQuestStrings.t(language, "Practice", "অনুশীলন"),
-                icon = Icons.Filled.Bolt,
-                onClick = onOpenQuickPractice
-            ),
-            HeroDockAction(
-                id = "dock_ai",
-                label = StudyQuestStrings.t(language, "AI Tutor", "AI টিউটর"),
-                icon = Icons.Filled.AutoAwesome,
-                onClick = onOpenAiDoubtSolver
-            )
+    val primaryEyebrow = if (activeLockedBook != null) {
+        val offlineTag = if (isInstalledOffline) StudyQuestStrings.t(language, " • OFFLINE", " • অফলাইন") else ""
+        StudyQuestStrings.t(
+            language,
+            "ACTIVE TEXTBOOK • ${activeLockedBook.academicYear}$offlineTag",
+            "সক্রিয় পাঠ্যবই • ${activeLockedBook.academicYear}$offlineTag"
+        )
+    } else {
+        StudyQuestStrings.t(language, "RECOMMENDED LESSON", "পরবর্তী পাঠ")
+    }
+    val primarySubtitle = when {
+        spotlightLesson != null -> StudyQuestStrings.t(
+            language,
+            "Up next: ${spotlightLesson.titleEn} • ${spotlightLesson.estimatedMinutes} min",
+            "পরবর্তী পাঠ: ${spotlightLesson.titleBn} • ${StudyQuestStrings.formatDigits(spotlightLesson.estimatedMinutes, language)} মিনিট"
+        )
+        activeLockedBook != null -> StudyQuestStrings.t(
+            language,
+            "${StudyQuestStrings.classLabel(activeLockedBook.classId, language)} • ${activeLockedBook.bookCode}",
+            "${StudyQuestStrings.classLabel(activeLockedBook.classId, language)} • ${activeLockedBook.bookCode}"
+        )
+        else -> StudyQuestStrings.t(
+            language,
+            "Focused syllabus drill aligned with your NCTB class.",
+            "আপনার শ্রেণির এনসিটিবি সিলেবাস অনুযায়ী অনুশীলন।"
         )
     }
 
@@ -371,86 +299,259 @@ fun TodayTabScreen(
         modifier = Modifier
             .fillMaxSize()
             .testTag("today_home_list"),
-        contentPadding = PaddingValues(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        contentPadding = PaddingValues(top = 14.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. Wide Slate Blue-Gray Atmospheric Hero Stage with 3D Carousel & Glass Dock
+        // 1. Clean Swiss Monochrome Editorial Header + Primary Focal Study Card
         item {
-            ReferenceHeroCarouselStage(
-                slides = heroSlides,
-                dockActions = dockActions,
-                reducedMotion = reducedMotion,
-                headerSlot = {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("today_personal_header"),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = formattedDate,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.White.copy(alpha = 0.80f)
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = greetingTitle,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            SyncStatusPill(
-                                isOnline = isOnline,
-                                pendingSyncCount = pendingSyncCount,
-                                language = language
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 980.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("today_personal_header"),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = formattedDate.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = greetingTitle,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        SyncStatusPill(
+                            isOnline = isOnline,
+                            pendingSyncCount = pendingSyncCount,
+                            language = language,
+                            onClick = { showModeStatusSheet = true }
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = onOpenMessages,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("today_open_messages")
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Chat,
+                                contentDescription = StudyQuestStrings.t(language, "Messages", "মেসেজ"),
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = onOpenMessages,
-                                modifier = Modifier
-                                    .minimumInteractiveComponentSize()
-                                    .testTag("today_open_messages")
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Chat,
-                                    contentDescription = StudyQuestStrings.t(language, "Messages", "মেসেজ"),
-                                    tint = Color.White
-                                )
-                            }
-                            IconButton(
-                                onClick = { showNotificationsSheet = true },
-                                modifier = Modifier
-                                    .minimumInteractiveComponentSize()
-                                    .testTag("today_open_notifications")
-                            ) {
-                                BadgedBox(
-                                    badge = {
-                                        if (unreadNotificationCount > 0) {
-                                            Badge(containerColor = MutedMintFocal, contentColor = DeepSlateInk) {
-                                                Text("$unreadNotificationCount")
-                                            }
+                        IconButton(
+                            onClick = { showNotificationsSheet = true },
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("today_open_notifications")
+                        ) {
+                            BadgedBox(
+                                badge = {
+                                    if (unreadNotificationCount > 0) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ) {
+                                            Text("$unreadNotificationCount")
                                         }
                                     }
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Filled.Notifications,
+                                    contentDescription = StudyQuestStrings.t(language, "Notifications", "নোটিফিকেশন"),
+                                    tint = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Single High-Contrast Monochrome Focal Card (Active Textbook / Recommended Lesson)
+                val focalBg = if (visualConfig.isDark) Color(0xFF161D2A) else Color(0xFF0F172A)
+                val focalBorder = if (visualConfig.isDark) Color.White.copy(alpha = 0.12f) else Color(0xFF1E293B)
+                val readinessPct = (subjectAccuracy * 100).toInt().coerceIn(0, 100)
+                Surface(
+                    onClick = if (activeLockedBook != null) onOpenTextbookReader else onOpenQuickPractice,
+                    shape = RoundedCornerShape(16.dp),
+                    color = focalBg,
+                    border = BorderStroke(1.dp, focalBorder),
+                    shadowElevation = 0.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("today_active_book_card")
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = primaryEyebrow,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White.copy(alpha = 0.65f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = primaryTitle,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color.White.copy(alpha = 0.10f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.16f))
+                            ) {
+                                Text(
+                                    text = "${StudyQuestStrings.formatDigits(readinessPct, language)}%",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontFamily = JetBrainsMonoFontFamily),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = primarySubtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.78f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        LinearProgressIndicator(
+                            progress = { subjectAccuracy.coerceIn(0.05f, 1f) },
+                            color = Color.White,
+                            trackColor = Color.White.copy(alpha = 0.18f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = if (activeLockedBook != null) onOpenTextbookReader else onOpenQuickPractice,
+                                shape = RoundedCornerShape(999.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.White,
+                                    contentColor = Color(0xFF0F172A)
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .testTag(if (activeLockedBook != null) "today_open_reader_btn" else "today_start_quest_btn")
+                            ) {
+                                Icon(
+                                    imageVector = if (activeLockedBook != null) Icons.Filled.MenuBook else Icons.Filled.PlayArrow,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = StudyQuestStrings.t(language, "Continue Learning", "পড়া শুরু করুন"),
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                            if (activeLockedBook != null) {
+                                TextButton(
+                                    onClick = { showSwitchBookSheet = true },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White.copy(alpha = 0.85f)),
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .testTag("today_switch_book_btn")
                                 ) {
-                                    Icon(
-                                        Icons.Filled.Notifications,
-                                        contentDescription = StudyQuestStrings.t(language, "Notifications", "নোটিফিকেশন"),
-                                        tint = Color.White
+                                    Text(
+                                        text = StudyQuestStrings.t(language, "Switch", "বদলাও"),
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                 }
                             }
                         }
                     }
                 }
-            )
+            }
+        }
+
+        if (!isOnline) {
+            item {
+                Box(modifier = Modifier.widthIn(max = 980.dp).fillMaxWidth().padding(horizontal = 16.dp)) {
+                    StudyQuestCard(modifier = Modifier.testTag("today_offline_vault_banner")) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = StudyQuestStrings.t(
+                                        language,
+                                        "Offline Study Vault Active",
+                                        "অফলাইন স্টাডি ভল্ট সক্রিয়"
+                                    ),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = StudyQuestStrings.t(
+                                        language,
+                                        "Books, studio focus audio, STEM labs & doubt solver work offline.",
+                                        "বই, স্টুডিও অডিও, STEM ল্যাব ও সমাধান অফলাইনে চালু আছে।"
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                FilledTonalButton(onClick = onOpenDownloadManager) {
+                                    Text(StudyQuestStrings.t(language, "Downloads", "ডাউনলোড"))
+                                }
+                                FilledTonalButton(onClick = onOpenStemLab) {
+                                    Text(StudyQuestStrings.t(language, "STEM Lab", "ল্যাব"))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Guest Sync or Academic Status Banners (when applicable)
@@ -572,7 +673,7 @@ fun TodayTabScreen(
                             "দৈনিক লক্ষ্যের ${StudyQuestStrings.formatDigits((goalRatio * 100).toInt(), language)}%"
                         ),
                         progress = goalRatio,
-                        accentColor = BrandTealPrimary,
+                        accentColor = MaterialTheme.colorScheme.primary,
                         onClick = onOpenPomodoro,
                         modifier = Modifier.weight(1f)
                     )
@@ -589,11 +690,211 @@ fun TodayTabScreen(
                             "${StudyQuestStrings.formatDigits(completedLessonsCount, language)} পাঠ • ${StudyQuestStrings.formatDigits(completedExamsCount, language)} পরীক্ষা"
                         ),
                         progress = if (avgAccuracyPct > 0) avgAccuracyPct / 100f else 0.15f,
-                        accentColor = MutedMintFocal,
+                        accentColor = semantic.success,
                         onClick = onOpenStudyProgress,
                         modifier = Modifier.weight(1f)
                     )
                 }
+            }
+        }
+
+        // 2B. Playful Quest Section (Photo 1 Hybrid): Streak Calendar, Map the Path, Pastel Bento, Charcoal Badge Spotlight & My Activity Ring
+        item {
+            val activeHistoryKeys = remember(dailyStudySeries) {
+                dailyStudySeries.filter { it.studyMinutes > 0 || it.lessonsCompleted > 0 || it.examsCompleted > 0 }.map { it.dayKey }
+            }
+            val unlockedBadgeDocs = remember(userBadges) { userBadges.filter { it.unlocked } }
+            val unlockedCount = unlockedBadgeDocs.size
+            val totalBadgesCount = GamificationCatalog.badgesCatalog.size
+            val badgeMap = remember(userBadges) { userBadges.associateBy { it.badgeId } }
+            val nextBadgeDef = remember(badgeMap) {
+                GamificationCatalog.badgesCatalog
+                    .filter { badgeMap[it.id]?.unlocked != true }
+                    .maxByOrNull { def ->
+                        val p = (badgeMap[def.id]?.progress ?: 0L).toFloat()
+                        p / def.target.coerceAtLeast(1L).toFloat()
+                    }
+                    ?: GamificationCatalog.badgesCatalog.first()
+            }
+            val nextBadgeProg = (badgeMap[nextBadgeDef.id]?.progress ?: 0L).coerceAtMost(nextBadgeDef.target)
+            val totalWeekMinutes = remember(dailyStudySeries, todayMinutes) {
+                dailyStudySeries.sumOf { it.studyMinutes }.coerceAtLeast(todayMinutes)
+            }
+            val practiceCount = remember(recentRecords) {
+                recentRecords.count { it.recordType !in listOf("lesson", "exam", "promotion_exam") }
+            }
+            val pathTitle = activeLockedBook?.let {
+                StudyQuestStrings.t(language, it.titleEn, it.titleBn)
+            } ?: spotlightSubject?.let {
+                StudyQuestStrings.t(language, it.titleEn, it.titleBn)
+            } ?: StudyQuestStrings.t(language, "NCTB Study Path", "এনসিটিবি পাঠ্যক্রম")
+            val totalClassLessons = remember(profile.classId, activeLockedBook) {
+                val subjId = activeLockedBook?.subjectId
+                if (subjId != null) {
+                    BangladeshCurriculumCatalog.lessons.count { it.subjectId == subjId }.coerceAtLeast(4)
+                } else {
+                    BangladeshCurriculumCatalog.lessons.size.coerceAtLeast(6)
+                }
+            }
+            val activitySlices = remember(completedLessonsCount, completedExamsCount, practiceCount, unlockedCount, language, visualConfig.isDark) {
+                val s1 = if (visualConfig.isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+                val s2 = if (visualConfig.isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                val s3 = if (visualConfig.isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                listOf(
+                    ActivityRingSlice(
+                        label = StudyQuestStrings.t(language, "Lessons", "পাঠ"),
+                        count = completedLessonsCount,
+                        color = s1
+                    ),
+                    ActivityRingSlice(
+                        label = StudyQuestStrings.t(language, "Practice", "অনুশীলন"),
+                        count = practiceCount,
+                        color = s2
+                    ),
+                    ActivityRingSlice(
+                        label = StudyQuestStrings.t(language, "Mock Exams", "পরীক্ষা"),
+                        count = completedExamsCount,
+                        color = s3
+                    ),
+                    ActivityRingSlice(
+                        label = StudyQuestStrings.t(language, "Badges", "ব্যাজ"),
+                        count = unlockedCount,
+                        color = EditorialSuccess
+                    )
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 980.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CompactWeeklyStreakStrip(
+                    streakCount = profile.streakCount,
+                    historyKeys = activeHistoryKeys,
+                    freezeCount = profile.streakFreezeCount,
+                    language = language,
+                    onBuyFreeze = onBuyStreakFreeze,
+                    showBuyFreeze = !isGuestMode
+                )
+
+                MapThePathCard(
+                    avatarId = profile.avatarId,
+                    frameId = profile.frameId,
+                    displayName = profile.displayName,
+                    pathTitle = pathTitle,
+                    pathSubtitle = StudyQuestStrings.t(
+                        language,
+                        "${StudyQuestStrings.classLabel(profile.classId, language)} • Guided curriculum steps",
+                        "${StudyQuestStrings.classLabel(profile.classId, language)} • ধারাবাহিক শেখা"
+                    ),
+                    stepCurrent = completedLessonsCount,
+                    stepTotal = totalClassLessons,
+                    unlockedBadgesCount = unlockedCount,
+                    language = language,
+                    onContinuePath = if (activeLockedBook != null) onOpenTextbookReader else onOpenQuickPractice,
+                    onOpenBadges = onOpenBadgesAndXp
+                )
+
+                // 2x2 Pastel Bento Cards (Reference Photo 1)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    PastelQuestBentoTile(
+                        title = StudyQuestStrings.t(language, "Flashcards", "ফ্ল্যাশকার্ড"),
+                        valueText = StudyQuestStrings.formatDigits(dueRevisionCount, language),
+                        subtitle = StudyQuestStrings.t(language, "due for recall", "রিভিশন বাকি"),
+                        icon = Icons.Filled.Style,
+                        containerColor = semantic.pastelLavender,
+                        contentColor = semantic.onPastelLavender,
+                        badgeLabel = StudyQuestStrings.t(language, "Deck", "ডেক"),
+                        onClick = onOpenFlashcardsVault,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("today_bento_flashcards")
+                    )
+                    PastelQuestBentoTile(
+                        title = StudyQuestStrings.t(language, "Daily Quiz", "দৈনিক কুইজ"),
+                        valueText = if (dailyChallengeDoneToday) "1/1" else "0/1",
+                        subtitle = if (dailyChallengeDoneToday) {
+                            StudyQuestStrings.t(language, "Completed today", "আজ সম্পন্ন")
+                        } else {
+                            StudyQuestStrings.t(language, "Ready to play", "খেলতে প্রস্তুত")
+                        },
+                        icon = Icons.Filled.Quiz,
+                        containerColor = semantic.pastelPeach,
+                        contentColor = semantic.onPastelPeach,
+                        badgeLabel = if (dailyChallengeDoneToday) StudyQuestStrings.t(language, "Done", "সম্পন্ন") else StudyQuestStrings.t(language, "Daily", "দৈনিক"),
+                        onClick = onOpenDailyChallenge,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("today_bento_daily_quiz")
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    PastelQuestBentoTile(
+                        title = StudyQuestStrings.t(language, "Focus Goal", "ফোকাস লক্ষ্য"),
+                        valueText = "${StudyQuestStrings.formatDigits(todayMinutes, language)}m",
+                        subtitle = StudyQuestStrings.t(
+                            language,
+                            "of ${dailyGoalMinutes}m daily",
+                            "দৈনিক ${StudyQuestStrings.formatDigits(dailyGoalMinutes, language)}মি."
+                        ),
+                        icon = Icons.Filled.Timer,
+                        containerColor = semantic.pastelSky,
+                        contentColor = semantic.onPastelSky,
+                        badgeLabel = "${StudyQuestStrings.formatDigits((goalRatio * 100).toInt(), language)}%",
+                        onClick = onOpenPomodoro,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("today_bento_focus")
+                    )
+                    PastelQuestBentoTile(
+                        title = StudyQuestStrings.t(language, "Badges Earned", "অর্জিত ব্যাজ"),
+                        valueText = StudyQuestStrings.formatDigits(unlockedCount, language),
+                        subtitle = StudyQuestStrings.t(
+                            language,
+                            "of $totalBadgesCount achievements",
+                            "মোট ${StudyQuestStrings.formatDigits(totalBadgesCount, language)}টি"
+                        ),
+                        icon = Icons.Filled.WorkspacePremium,
+                        containerColor = semantic.pastelMint,
+                        contentColor = semantic.onPastelMint,
+                        badgeLabel = StudyQuestStrings.t(language, "Cabinet", "সংগ্রহ"),
+                        onClick = onOpenBadgesAndXp,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("today_bento_badges")
+                    )
+                }
+
+                CharcoalMilestoneCard(
+                    eyebrow = StudyQuestStrings.t(language, "NEXT BADGE MILESTONE", "পরবর্তী ব্যাজ অর্জন"),
+                    title = StudyQuestStrings.t(language, nextBadgeDef.titleEn, nextBadgeDef.titleBn),
+                    progressLabel = StudyQuestStrings.t(
+                        language,
+                        "$nextBadgeProg / ${nextBadgeDef.target} • ${nextBadgeDef.rarity.labelEn} Achievement",
+                        "${StudyQuestStrings.formatDigits(nextBadgeProg, language)} / ${StudyQuestStrings.formatDigits(nextBadgeDef.target, language)} • ${nextBadgeDef.rarity.labelBn}"
+                    ),
+                    progress = nextBadgeProg.toFloat() / nextBadgeDef.target.coerceAtLeast(1L).toFloat(),
+                    unlockedCount = unlockedCount,
+                    totalCount = totalBadgesCount,
+                    onClick = onOpenBadgesAndXp
+                )
+
+                ActivityDonutBreakdownCard(
+                    totalMinutes = totalWeekMinutes,
+                    slices = activitySlices,
+                    language = language,
+                    onClick = onOpenStudyProgress
+                )
             }
         }
 
@@ -914,7 +1215,13 @@ fun TodayTabScreen(
                         Triple(StudyQuestStrings.t(language, "Quick Doubt", "দ্রুত সমাধান"), Icons.Filled.AutoAwesome, "today_ai_solver" to onOpenAiDoubtSolver),
                         Triple(StudyQuestStrings.t(language, "Goals & Tasks", "লক্ষ্য ও কাজ"), Icons.Filled.Assignment, "today_assignments_goals" to onOpenAssignmentsAndGoals),
                         Triple(StudyQuestStrings.t(language, "Analytics", "বিশ্লেষণ"), Icons.Filled.Analytics, "today_mastery_analytics" to onOpenMasteryAnalytics),
-                        Triple(StudyQuestStrings.t(language, "Video Studio", "ভিডিও স্টুডিও"), Icons.Filled.VideoLibrary, "today_ai_video_studio" to onOpenAiVideoStudio)
+                        Triple(StudyQuestStrings.t(language, "Video Studio", "ভিডিও স্টুডিও"), Icons.Filled.VideoLibrary, "today_ai_video_studio" to onOpenAiVideoStudio),
+                        Triple(StudyQuestStrings.t(language, "STEM Lab", "STEM ল্যাব"), Icons.Filled.Science, "today_stem_lab" to onOpenStemLab),
+                        Triple(StudyQuestStrings.t(language, "Downloads Hub", "ডাউনলোড হাব"), Icons.Filled.DownloadForOffline, "today_downloads_hub" to onOpenDownloadManager),
+                        Triple(StudyQuestStrings.t(language, "Formula Atlas", "সূত্র অ্যাটলাস"), Icons.AutoMirrored.Filled.MenuBook, "today_formula_atlas" to onOpenFormulaAtlas),
+                        Triple(StudyQuestStrings.t(language, "Mistakes ($unresolvedMistakesCount)", "ভুলের খাতা ($unresolvedMistakesCount)"), Icons.Filled.Build, "today_mistake_bank" to onOpenMistakeNotebook),
+                        Triple(StudyQuestStrings.t(language, "Exam Timer", "পরীক্ষা লক্ষ্য"), Icons.Filled.Event, "today_exam_countdown" to onOpenExamCountdown),
+                        Triple(StudyQuestStrings.t(language, "Audio Briefs", "অডিও ব্রিফ"), Icons.Filled.Headphones, "today_audio_briefs" to onOpenPocketAudio)
                     )
 
                     LazyRow(
@@ -1088,6 +1395,15 @@ fun TodayTabScreen(
             }
         }
     }
+
+    if (showModeStatusSheet) {
+        ModeStatusBottomSheet(
+            isOnline = isOnline,
+            pendingSyncCount = pendingSyncCount,
+            language = language,
+            onDismiss = { showModeStatusSheet = false }
+        )
+    }
 }
 
 @Composable
@@ -1102,9 +1418,10 @@ private fun TodayFeatureHeroTile(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = studyQuestGlassAwareSurfaceColor(MaterialTheme.colorScheme.surface),
-        border = studyQuestGlassAwareBorder(accentColor.copy(alpha = 0.28f)),
+        border = studyQuestGlassAwareBorder(),
+        shadowElevation = 0.dp,
         modifier = modifier.minimumInteractiveComponentSize()
     ) {
         Column(
@@ -1120,27 +1437,27 @@ private fun TodayFeatureHeroTile(
             ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = accentColor.copy(alpha = 0.13f),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.size(38.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = icon,
                             contentDescription = title,
-                            tint = accentColor,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 }
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = accentColor.copy(alpha = 0.12f)
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
                         text = badge,
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = accentColor,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
