@@ -542,6 +542,7 @@ private fun AuthenticatedReadyHost(
     )
 
     val isOnline by sessionVm.isOnline.collectAsStateWithLifecycle()
+    val isNetworkAvailable by sessionVm.isNetworkAvailable.collectAsStateWithLifecycle()
     val quests by sessionVm.quests.collectAsStateWithLifecycle()
     val notifications by sessionVm.notifications.collectAsStateWithLifecycle()
     val unreadNotifs by sessionVm.unreadNotificationCount.collectAsStateWithLifecycle()
@@ -962,7 +963,10 @@ private fun AuthenticatedReadyHost(
                                 pendingLearnDest = LearnDestination.PocketAudioRevision
                                 navigateToTab(1)
                             },
-                            unresolvedMistakesCount = unresolvedMistakes.size
+                            unresolvedMistakesCount = unresolvedMistakes.size,
+                            offlineModeEnabled = prefs.offlineModeEnabled,
+                            isNetworkAvailable = isNetworkAvailable,
+                            onToggleOfflineMode = { sessionVm.updateOfflineMode(it) }
                         )
                     }
 

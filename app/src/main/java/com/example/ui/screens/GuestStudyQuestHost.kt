@@ -94,6 +94,7 @@ fun GuestStudyQuestHost(
     val prefs by guestVm.localPreferences.collectAsStateWithLifecycle()
     val profile by guestVm.profile.collectAsStateWithLifecycle()
     val isOnline by guestVm.isOnline.collectAsStateWithLifecycle()
+    val isNetworkAvailable by guestVm.isNetworkAvailable.collectAsStateWithLifecycle()
     val quests by guestVm.quests.collectAsStateWithLifecycle()
     val notifications by guestVm.notifications.collectAsStateWithLifecycle()
     val unlockedCosmetics by guestVm.unlockedCosmetics.collectAsStateWithLifecycle()
@@ -421,7 +422,10 @@ fun GuestStudyQuestHost(
                                         pendingLearnDest = LearnDestination.PocketAudioRevision
                                         navigateToTab(1)
                                     },
-                                    unresolvedMistakesCount = unresolvedMistakes.size
+                                    unresolvedMistakesCount = unresolvedMistakes.size,
+                                    offlineModeEnabled = prefs.offlineModeEnabled,
+                                    isNetworkAvailable = isNetworkAvailable,
+                                    onToggleOfflineMode = { guestVm.updateOfflineMode(it) }
                                 )
                             }
 

@@ -186,7 +186,10 @@ fun TodayTabScreen(
     onOpenMistakeNotebook: () -> Unit = {},
     onOpenExamCountdown: () -> Unit = {},
     onOpenPocketAudio: () -> Unit = {},
-    unresolvedMistakesCount: Int = 0
+    unresolvedMistakesCount: Int = 0,
+    offlineModeEnabled: Boolean = false,
+    isNetworkAvailable: Boolean = isOnline,
+    onToggleOfflineMode: ((Boolean) -> Unit)? = null
 ) {
     var showNotificationsSheet by remember { mutableStateOf(false) }
     var showSwitchBookSheet by remember { mutableStateOf(false) }
@@ -329,8 +332,7 @@ fun TodayTabScreen(
                         Spacer(Modifier.height(2.dp))
                         Text(
                             text = greetingTitle,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onBackground,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -492,6 +494,26 @@ fun TodayTabScreen(
                                 )
                             }
                             if (activeLockedBook != null) {
+                                if (!isInstalledOffline) {
+                                    TextButton(
+                                        onClick = onOpenDownloadManager,
+                                        colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("today_download_book_btn")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.DownloadForOffline,
+                                            contentDescription = StudyQuestStrings.t(language, "Download offline", "ডাউনলোড"),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            text = StudyQuestStrings.t(language, "Save", "সেভ"),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
                                 TextButton(
                                     onClick = { showSwitchBookSheet = true },
                                     colors = ButtonDefaults.textButtonColors(contentColor = Color.White.copy(alpha = 0.85f)),
@@ -1401,7 +1423,14 @@ fun TodayTabScreen(
             isOnline = isOnline,
             pendingSyncCount = pendingSyncCount,
             language = language,
-            onDismiss = { showModeStatusSheet = false }
+            onDismiss = { showModeStatusSheet = false },
+            offlineModeEnabled = offlineModeEnabled,
+            isNetworkAvailable = isNetworkAvailable,
+            onToggleOfflineMode = onToggleOfflineMode,
+            onOpenDownloadManager = {
+                showModeStatusSheet = false
+                onOpenDownloadManager()
+            }
         )
     }
 }

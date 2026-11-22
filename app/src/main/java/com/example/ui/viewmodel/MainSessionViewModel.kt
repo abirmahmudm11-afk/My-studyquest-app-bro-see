@@ -639,8 +639,15 @@ class MainSessionViewModel(
     val localPreferences: StateFlow<LocalUserPreferences> = preferences.preferencesFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), LocalUserPreferences())
 
-    val isOnline: StateFlow<Boolean> = connectivityObserver.observeOnline()
+    val isNetworkAvailable: StateFlow<Boolean> = connectivityObserver.observeOnline()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), true)
+
+    val isOnline: StateFlow<Boolean> = combine(
+        isNetworkAvailable,
+        localPreferences
+    ) { netOnline, prefs ->
+        netOnline && !prefs.offlineModeEnabled
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), true)
 
     private val _bootstrappedProfile = MutableStateFlow<PublicProfile?>(null)
     private val _bootstrapping = MutableStateFlow(true)
@@ -1080,6 +1087,12 @@ class MainSessionViewModel(
         viewModelScope.launch {
             preferences.setSurfaceStyle(style)
             authRepo.syncPreferencesToCloud(currentUser.uid, localPreferences.value.copy(surfaceStyle = style))
+        }
+    }
+
+    fun updateOfflineMode(enabled: Boolean) {
+        viewModelScope.launch {
+            preferences.setOfflineModeEnabled(enabled)
         }
     }
 

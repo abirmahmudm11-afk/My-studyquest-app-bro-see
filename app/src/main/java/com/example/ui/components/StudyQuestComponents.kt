@@ -54,9 +54,11 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Switch
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -294,7 +296,11 @@ fun ModeStatusBottomSheet(
     isOnline: Boolean,
     pendingSyncCount: Int,
     language: AppLanguage,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    offlineModeEnabled: Boolean = false,
+    isNetworkAvailable: Boolean = isOnline,
+    onToggleOfflineMode: ((Boolean) -> Unit)? = null,
+    onOpenDownloadManager: (() -> Unit)? = null
 ) {
     BackHandler { onDismiss() }
     ModalBottomSheet(
@@ -329,14 +335,61 @@ fun ModeStatusBottomSheet(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = StudyQuestStrings.t(
-                            language,
-                            "Switches automatically based on your live internet connection.",
-                            "ইন্টারনেট সংযোগের উপর ভিত্তি করে স্বয়ংক্রিয়ভাবে পরিবর্তিত হয়।"
-                        ),
+                        text = when {
+                            !isNetworkAvailable -> StudyQuestStrings.t(
+                                language,
+                                "No network signal detected — running purely from your local Study Vault.",
+                                "ইন্টারনেট সংযোগ নেই — আপনার লোকাল স্টাডি ভল্ট থেকে চলছে।"
+                            )
+                            offlineModeEnabled -> StudyQuestStrings.t(
+                                language,
+                                "Manual Offline Mode is turned on. Switch off anytime to resume cloud sync.",
+                                "ম্যানুয়াল অফলাইন মোড চালু আছে। ক্লাউড সিঙ্ক ফেরাতে এটি বন্ধ করো।"
+                            )
+                            else -> StudyQuestStrings.t(
+                                language,
+                                "Live cloud sync & multiplayer are active alongside your offline vault.",
+                                "ক্লাউড সিঙ্ক, AI ও মাল্টিপ্লেয়ারের সাথে অফলাইন ভল্টও প্রস্তুত।"
+                            )
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+
+            if (onToggleOfflineMode != null) {
+                StudyQuestCard(
+                    accentColor = if (offlineModeEnabled) EditorialSuccess else MaterialTheme.colorScheme.outline
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = StudyQuestStrings.t(language, "Offline Study Mode", "অফলাইন স্টাডি মোড"),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = StudyQuestStrings.t(
+                                    language,
+                                    "Save mobile data & preview pure offline textbooks, notes & audio.",
+                                    "ডেটা বাঁচিয়ে শুধুমাত্র অফলাইন বই, সমাধান ও অডিও ব্যবহার করো।"
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Switch(
+                            checked = offlineModeEnabled,
+                            onCheckedChange = onToggleOfflineMode,
+                            modifier = Modifier.testTag("mode_offline_switch")
+                        )
+                    }
                 }
             }
 
@@ -397,6 +450,20 @@ fun ModeStatusBottomSheet(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            if (onOpenDownloadManager != null) {
+                FilledTonalButton(
+                    onClick = onOpenDownloadManager,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .minimumInteractiveComponentSize()
+                        .testTag("mode_open_downloads_btn")
+                ) {
+                    Icon(Icons.Filled.DownloadForOffline, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(StudyQuestStrings.t(language, "Manage Offline Books & Packs", "অফলাইন বই ও প্যাক ডাউনলোড"))
+                }
             }
             Spacer(Modifier.height(12.dp))
         }

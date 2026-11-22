@@ -37,7 +37,7 @@ val JetBrainsMonoFontFamily = FontFamily(
 
 fun studyQuestTypography(isBangla: Boolean): Typography {
     val bodyFamily = if (isBangla) NotoSansBengaliFontFamily else PlusJakartaFontFamily
-    val editorialDisplayFamily = if (isBangla) NotoSansBengaliFontFamily else PlusJakartaFontFamily
+    val editorialDisplayFamily = if (isBangla) NotoSansBengaliFontFamily else FrauncesFontFamily
     val subDisplayFamily = if (isBangla) NotoSansBengaliFontFamily else PlusJakartaFontFamily
     val lineHeightBoost = if (isBangla) 1.15f else 1.0f
 
@@ -45,29 +45,30 @@ fun studyQuestTypography(isBangla: Boolean): Typography {
         displaySmall = TextStyle(
             fontFamily = editorialDisplayFamily,
             fontWeight = FontWeight.Bold,
-            fontSize = 32.sp,
+            fontSize = 34.sp,
             lineHeight = (40 * lineHeightBoost).sp,
-            letterSpacing = (-0.5).sp
+            letterSpacing = (-0.6).sp
         ),
         headlineLarge = TextStyle(
             fontFamily = editorialDisplayFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 28.sp,
-            lineHeight = (36 * lineHeightBoost).sp,
+            lineHeight = (35 * lineHeightBoost).sp,
             letterSpacing = (-0.4).sp
         ),
         headlineMedium = TextStyle(
             fontFamily = editorialDisplayFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 24.sp,
-            lineHeight = (32 * lineHeightBoost).sp,
+            lineHeight = (31 * lineHeightBoost).sp,
             letterSpacing = (-0.25).sp
         ),
         headlineSmall = TextStyle(
-            fontFamily = editorialDisplayFamily,
-            fontWeight = FontWeight.SemiBold,
+            fontFamily = subDisplayFamily,
+            fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
-            lineHeight = (28 * lineHeightBoost).sp
+            lineHeight = (27 * lineHeightBoost).sp,
+            letterSpacing = (-0.2).sp
         ),
         titleLarge = TextStyle(
             fontFamily = subDisplayFamily,

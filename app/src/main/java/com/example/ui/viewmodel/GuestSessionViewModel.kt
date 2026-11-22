@@ -71,8 +71,15 @@ class GuestSessionViewModel(
     val localPreferences: StateFlow<LocalUserPreferences> = preferences.preferencesFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), LocalUserPreferences(isGuestMode = true))
 
-    val isOnline: StateFlow<Boolean> = connectivityObserver.observeOnline()
+    val isNetworkAvailable: StateFlow<Boolean> = connectivityObserver.observeOnline()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), true)
+
+    val isOnline: StateFlow<Boolean> = combine(
+        isNetworkAvailable,
+        localPreferences
+    ) { netOnline, prefs ->
+        netOnline && !prefs.offlineModeEnabled
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), true)
 
     val profile: StateFlow<PublicProfile> = localPreferences
         .map { guestRepo.buildGuestProfile(it) }
@@ -393,6 +400,10 @@ class GuestSessionViewModel(
 
     fun updateSurfaceStyle(style: SurfaceStyle) {
         viewModelScope.launch { preferences.setSurfaceStyle(style) }
+    }
+
+    fun updateOfflineMode(enabled: Boolean) {
+        viewModelScope.launch { preferences.setOfflineModeEnabled(enabled) }
     }
 
     fun updateReducedMotion(enabled: Boolean) {

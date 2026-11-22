@@ -356,8 +356,8 @@ fun LanguagePickerLaunchScreen(
             modifier = Modifier
                 .widthIn(max = 560.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 24.dp, vertical = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
             Text(
                 text = StudyQuestStrings.t(
@@ -369,18 +369,6 @@ fun LanguagePickerLaunchScreen(
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.testTag("launch_display_title")
             )
-
-            Text(
-                text = StudyQuestStrings.t(
-                    previewLanguage,
-                    "Offline textbooks, board practice, and bilingual help for Classes 6–10.",
-                    "৬ষ্ঠ–১০ম শ্রেণির অফলাইন পাঠ্যবই, বোর্ড অনুশীলন ও সহজ AI সহায়তা।"
-                ),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(Modifier.height(16.dp))
 
             Button(
                 onClick = { onSelectLanguage(previewLanguage) },
@@ -670,8 +658,8 @@ fun WelcomeAndGoogleSignInScreen(
                     modifier = Modifier
                         .widthIn(max = 560.dp)
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 30.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = 24.dp, vertical = 34.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     Text(
                         text = StudyQuestStrings.t(
@@ -682,18 +670,6 @@ fun WelcomeAndGoogleSignInScreen(
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-
-                    Text(
-                        text = StudyQuestStrings.t(
-                            language,
-                            "Sync textbooks, practice history, and notes across devices.",
-                            "পাঠ্যবই, অনুশীলনের ইতিহাস ও নোট সব ডিভাইসে সিঙ্ক রাখো।"
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(Modifier.height(10.dp))
 
                     // ONE Primary High-Contrast Pill CTA
                     Button(

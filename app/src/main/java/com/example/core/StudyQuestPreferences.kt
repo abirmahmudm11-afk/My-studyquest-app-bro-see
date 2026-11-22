@@ -99,6 +99,7 @@ data class LocalUserPreferences(
     val musicDuringBreak: Boolean = true,
     val dailyGoalXp: Int = 60,
     val weeklyGoalMinutes: Int = 180,
+    val offlineModeEnabled: Boolean = false,
     // Guest Mode State
     val isGuestMode: Boolean = false,
     val guestOnboardingCompleted: Boolean = false,
@@ -148,6 +149,7 @@ class StudyQuestPreferences(private val context: Context) {
         val MUSIC_DURING_BREAK = booleanPreferencesKey("music_during_break")
         val DAILY_GOAL_XP = intPreferencesKey("daily_goal_xp")
         val WEEKLY_GOAL_MINUTES = intPreferencesKey("weekly_goal_minutes")
+        val OFFLINE_MODE_ENABLED = booleanPreferencesKey("offline_mode_enabled")
 
         // Guest Mode Keys
         val IS_GUEST_MODE = booleanPreferencesKey("is_guest_mode")
@@ -220,6 +222,7 @@ class StudyQuestPreferences(private val context: Context) {
             musicDuringBreak = prefs[Keys.MUSIC_DURING_BREAK] ?: true,
             dailyGoalXp = prefs[Keys.DAILY_GOAL_XP] ?: 60,
             weeklyGoalMinutes = prefs[Keys.WEEKLY_GOAL_MINUTES] ?: 180,
+            offlineModeEnabled = prefs[Keys.OFFLINE_MODE_ENABLED] ?: false,
             isGuestMode = prefs[Keys.IS_GUEST_MODE] ?: false,
             guestOnboardingCompleted = prefs[Keys.GUEST_ONBOARDING_DONE] ?: false,
             guestDisplayName = prefs[Keys.GUEST_DISPLAY_NAME] ?: "Guest Scholar",
@@ -377,6 +380,12 @@ class StudyQuestPreferences(private val context: Context) {
         context.studyQuestDataStore.edit { prefs ->
             prefs[Keys.DAILY_GOAL_XP] = dailyXp
             prefs[Keys.WEEKLY_GOAL_MINUTES] = weeklyMinutes
+        }
+    }
+
+    suspend fun setOfflineModeEnabled(enabled: Boolean) {
+        context.studyQuestDataStore.edit { prefs ->
+            prefs[Keys.OFFLINE_MODE_ENABLED] = enabled
         }
     }
 
