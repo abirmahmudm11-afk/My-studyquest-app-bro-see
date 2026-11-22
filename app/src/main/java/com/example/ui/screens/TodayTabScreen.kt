@@ -539,15 +539,15 @@ fun TodayTabScreen(
                     StudyQuestCard(modifier = Modifier.testTag("today_offline_vault_banner")) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
                                     text = StudyQuestStrings.t(
                                         language,
-                                        "Offline Study Vault Active",
-                                        "অফলাইন স্টাডি ভল্ট সক্রিয়"
+                                        "Offline Study Mode",
+                                        "অফলাইন স্টাডি মোড"
                                     ),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
@@ -555,19 +555,34 @@ fun TodayTabScreen(
                                 Text(
                                     text = StudyQuestStrings.t(
                                         language,
-                                        "Books, studio focus audio, STEM labs & doubt solver work offline.",
-                                        "বই, স্টুডিও অডিও, STEM ল্যাব ও সমাধান অফলাইনে চালু আছে।"
+                                        "Textbooks, audio briefs, STEM labs & 6,000-entry solver work offline. Live 1v1, chat & cloud sync wait for Online Mode.",
+                                        "পাঠ্যবই, অডিও, STEM ল্যাব ও সমাধান অফলাইনে চালু; লাইভ ১v১, চ্যাট ও সিঙ্ক অনলাইনে চালু হবে।"
                                     ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                FilledTonalButton(onClick = onOpenDownloadManager) {
-                                    Text(StudyQuestStrings.t(language, "Downloads", "ডাউনলোড"))
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                FilledTonalButton(
+                                    onClick = onOpenDownloadManager,
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .testTag("offline_banner_downloads_btn")
+                                ) {
+                                    Text(StudyQuestStrings.t(language, "Books", "বই ও প্যাক"))
                                 }
-                                FilledTonalButton(onClick = onOpenStemLab) {
-                                    Text(StudyQuestStrings.t(language, "STEM Lab", "ল্যাব"))
+                                if (offlineModeEnabled && isNetworkAvailable && onToggleOfflineMode != null) {
+                                    TextButton(
+                                        onClick = { onToggleOfflineMode(false) },
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("offline_banner_go_online_btn")
+                                    ) {
+                                        Text(StudyQuestStrings.t(language, "Go Online", "অনলাইনে যান"))
+                                    }
                                 }
                             }
                         }
@@ -1076,10 +1091,11 @@ fun TodayTabScreen(
                             title = StudyQuestStrings.t(language, "Study Groups", "স্টাডি গ্রুপ"),
                             subtitle = StudyQuestStrings.t(
                                 language,
-                                "Classrooms & peer study",
-                                "লাইভ রুম ও সহপাঠী"
+                                if (isOnline) "Classrooms & peer study" else "Offline limited • Online rooms",
+                                if (isOnline) "লাইভ রুম ও সহপাঠী" else "অফলাইনে সীমিত • অনলাইন রুম"
                             ),
-                            badge = StudyQuestStrings.t(language, "Rooms", "রুম"),
+                            badge = if (isOnline) StudyQuestStrings.t(language, "Rooms", "রুম")
+                            else StudyQuestStrings.t(language, "Online", "অনলাইন"),
                             icon = Icons.Filled.Groups,
                             accentColor = MineralTeal,
                             onClick = onOpenStudyGroups,
@@ -1097,10 +1113,11 @@ fun TodayTabScreen(
                             title = StudyQuestStrings.t(language, "Class Rankings", "শ্রেণি র‌্যাংকিং"),
                             subtitle = StudyQuestStrings.t(
                                 language,
-                                "Compare class accuracy",
-                                "শ্রেণিভিত্তিক অবস্থান"
+                                if (isOnline) "Compare class accuracy" else "Local record only offline",
+                                if (isOnline) "শ্রেণিভিত্তিক অবস্থান" else "অফলাইনে লোকাল স্কোর"
                             ),
-                            badge = StudyQuestStrings.t(language, "Board", "বোর্ড"),
+                            badge = if (isOnline) StudyQuestStrings.t(language, "Board", "বোর্ড")
+                            else StudyQuestStrings.t(language, "Online", "অনলাইন"),
                             icon = Icons.Filled.EmojiEvents,
                             accentColor = SlateBotanical,
                             onClick = onOpenLeaderboard,
@@ -1112,10 +1129,10 @@ fun TodayTabScreen(
                             title = StudyQuestStrings.t(language, "AI Doubt Solver", "এআই সমাধান"),
                             subtitle = StudyQuestStrings.t(
                                 language,
-                                "Step-by-step NCTB help",
-                                "ধাপে ধাপে উত্তর"
+                                if (isOnline) "Step-by-step NCTB help" else "Offline 6k solver atlas",
+                                if (isOnline) "ধাপে ধাপে উত্তর" else "অফলাইন ৬০০০ গাইড"
                             ),
-                            badge = "AI",
+                            badge = if (isOnline) "AI" else StudyQuestStrings.t(language, "Offline", "অফলাইন"),
                             icon = Icons.Filled.AutoAwesome,
                             accentColor = CeruleanSlate,
                             onClick = onOpenAiDoubtSolver,

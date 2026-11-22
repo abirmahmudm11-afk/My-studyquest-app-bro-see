@@ -439,7 +439,7 @@ class StudyQuestRedesignRobolectricTest {
     }
 
     @Test
-    fun languagePickerLaunchScreen_rendersLiveShowcaseAndSelectsLanguages() {
+    fun languagePickerLaunchScreen_rendersStreamlinedHeroTitleAndSingleCta() {
         var selectedLanguage: AppLanguage? = null
         composeRule.setContent {
             StudyQuestTheme(darkTheme = false, isBangla = false) {
@@ -450,10 +450,8 @@ class StudyQuestRedesignRobolectricTest {
             }
         }
 
-        composeRule.onNodeWithTag("launch_live_pillar_pager").assertIsDisplayed()
-        composeRule.onNodeWithTag("launch_pillar_card_nctb").assertIsDisplayed()
-        composeRule.onNodeWithTag("launch_pillar_dot_ai").performClick()
-        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("launch_hero_stage").assertIsDisplayed()
+        composeRule.onNodeWithTag("launch_display_title").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("pick_lang_bn").performClick()
         composeRule.onNodeWithTag("launch_get_started_btn").performScrollTo().performClick()
         assertEquals(AppLanguage.BANGLA, selectedLanguage)
@@ -463,7 +461,7 @@ class StudyQuestRedesignRobolectricTest {
     }
 
     @Test
-    fun welcomeAuthScreen_interactive3dCarouselAndGlassAuthCardWork() {
+    fun welcomeAuthScreen_streamlinedTitleCtaAndEmailAuthTransitionsWork() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         ensureFirebaseAppInitialized(context)
 
@@ -482,11 +480,9 @@ class StudyQuestRedesignRobolectricTest {
             }
         }
 
-        composeRule.onNodeWithTag("auth_preview_carousel").assertIsDisplayed()
-        composeRule.onNodeWithTag("auth_carousel_next_btn").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag("auth_carousel_prev_btn").performClick()
-        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("auth_welcome_hero_stage").assertIsDisplayed()
+        composeRule.onNodeWithTag("welcome_display_title").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("google_sign_in_button").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("welcome_sign_in_btn").performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("auth_email_input").performScrollTo().assertIsDisplayed()

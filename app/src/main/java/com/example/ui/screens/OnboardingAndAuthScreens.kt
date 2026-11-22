@@ -304,7 +304,7 @@ fun rememberGoogleSignInLauncher(
 
 /**
  * First Screen — Swiss Minimal Launch.
- * Architecture: Compact top [ বাংলা | EN ] pill toggle + single Slate/Lime focal stage + ONE Display Title + ONE Primary CTA.
+ * Architecture: Compact top [ বাংলা | EN ] pill toggle + seamless atmospheric stage + ONE Display Title + ONE Primary CTA.
  */
 @Composable
 fun LanguagePickerLaunchScreen(
@@ -320,7 +320,8 @@ fun LanguagePickerLaunchScreen(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
             .navigationBarsPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
         LaunchStudyPortalHeroShowcase(
             language = previewLanguage,
@@ -354,9 +355,9 @@ fun LanguagePickerLaunchScreen(
 
         Column(
             modifier = Modifier
-                .widthIn(max = 560.dp)
+                .widthIn(max = 520.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 36.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
             Text(
@@ -366,6 +367,7 @@ fun LanguagePickerLaunchScreen(
                     "এনসিটিবি পড়াশোনার গোছানো স্থান।"
                 ),
                 style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.testTag("launch_display_title")
             )
@@ -426,8 +428,8 @@ private fun LaunchLangSegment(
 
 /**
  * Welcome & Redesigned Full-Canvas Auth Flow.
- * - WELCOME stage: Slate + Lime 3D carousel stage -> 1 Display Title + 1 Primary CTA ("Continue with Google") + quiet link strip below.
- * - SIGN_IN / SIGN_UP stage: Dedicated full-canvas monochrome Swiss typography Auth workspace (zero hero carousel competing on screen).
+ * - WELCOME stage: Clean atmospheric library backdrop -> ONE Display Title + ONE Primary CTA ("Continue with Google") + quiet secondary access strip below.
+ * - SIGN_IN / SIGN_UP stage: Dedicated full-canvas monochrome Swiss typography Auth workspace.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -593,12 +595,13 @@ fun WelcomeAndGoogleSignInScreen(
                     .verticalScroll(scrollState)
                     .imePadding()
                     .navigationBarsPadding(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
                 AuthWelcomePreviewCarouselStage(
                     language = language,
                     reducedMotion = reducedMotion,
-                    showCarousel = true,
+                    showCarousel = false,
                     headerContent = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -643,7 +646,7 @@ fun WelcomeAndGoogleSignInScreen(
                                     .testTag("toggle_lang_welcome")
                             ) {
                                 Text(
-                                    text = if (language == AppLanguage.BANGLA) "বাংলা  |  EN" else "বাংলা  |  EN",
+                                    text = "বাংলা  |  EN",
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color.White,
@@ -656,9 +659,9 @@ fun WelcomeAndGoogleSignInScreen(
 
                 Column(
                     modifier = Modifier
-                        .widthIn(max = 560.dp)
+                        .widthIn(max = 520.dp)
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 34.dp),
+                        .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 32.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     Text(
@@ -668,7 +671,9 @@ fun WelcomeAndGoogleSignInScreen(
                             "গোছানো পড়াশোনায় প্রতিটি অধ্যায়ে দক্ষ হও।"
                         ),
                         style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.onBackground
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.testTag("welcome_display_title")
                     )
 
                     // ONE Primary High-Contrast Pill CTA
@@ -710,11 +715,11 @@ fun WelcomeAndGoogleSignInScreen(
                         }
                     }
 
-                    // Single Quiet Link Strip Beneath Primary CTA
+                    // Quiet Secondary Access Strip Beneath Primary CTA
                     FlowRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 4.dp),
+                            .padding(top = 2.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -772,7 +777,7 @@ fun WelcomeAndGoogleSignInScreen(
                                     .testTag("welcome_guest_mode_btn")
                             ) {
                                 Text(
-                                    text = StudyQuestStrings.t(language, "Guest mode", "গেস্ট মোড"),
+                                    text = StudyQuestStrings.t(language, "Offline / Guest", "অফলাইন / গেস্ট"),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.primary
                                 )

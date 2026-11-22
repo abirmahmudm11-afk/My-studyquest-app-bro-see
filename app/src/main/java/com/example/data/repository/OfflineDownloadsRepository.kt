@@ -241,7 +241,7 @@ class OfflineDownloadsRepository(
                     titleBn = titles.second,
                     subtitleEn = "44.1 kHz studio chapter summary audio",
                     subtitleBn = "৪৪.১ kHz স্টুডিও অধ্যায় সারসংক্ষেপ অডিও",
-                    sizeMb = 7.4,
+                    sizeMb = 0.4,
                     assetFileName = file,
                     status = "installed",
                     progressPct = 100
@@ -251,11 +251,11 @@ class OfflineDownloadsRepository(
 
         // 3. Focus Studio Soundscapes
         val soundscapes = listOf(
-            Triple("track_deep_alpha", "Deep Alpha Concentration", "ডিপ আলফা ফোকাস (৪৪.১ kHz)") to 18.2,
-            Triple("track_monsoon_rain", "Dhaka Monsoon Rain Layer", "বর্ষার বৃষ্টি অ্যাম্বিয়েন্স") to 16.5,
-            Triple("track_night_library", "Midnight Library Ambience", "নীরব লাইব্রেরি সাউন্ডস্কেপ") to 15.8,
-            Triple("track_study_room", "Quiet Exam Study Room", "পরীক্ষা প্রস্তুতি কক্ষ") to 14.9,
-            Triple("track_zen_breath", "Calm Breath & Recall", "মনোযোগ ও শ্বাস প্রশ্বাস") to 14.2
+            Triple("track_deep_alpha", "Deep Alpha Concentration", "ডিপ আলফা ফোকাস (২২ kHz)") to 0.3,
+            Triple("track_monsoon_rain", "Dhaka Monsoon Rain Layer", "বর্ষার বৃষ্টি অ্যাম্বিয়েন্স") to 0.3,
+            Triple("track_night_library", "Midnight Library Ambience", "নীরব লাইব্রেরি সাউন্ডস্কেপ") to 0.3,
+            Triple("track_study_room", "Quiet Exam Study Room", "পরীক্ষা প্রস্তুতি কক্ষ") to 0.3,
+            Triple("track_zen_breath", "Calm Breath & Recall", "মনোযোগ ও শ্বাস প্রশ্বাস") to 0.3
         )
         soundscapes.forEach { (meta, size) ->
             val (id, en, bn) = meta
@@ -267,8 +267,8 @@ class OfflineDownloadsRepository(
                     subjectId = "general",
                     titleEn = en,
                     titleBn = bn,
-                    subtitleEn = "Lossless 44.1 kHz offline study loop",
-                    subtitleBn = "লসলেস ৪৪.১ kHz অফলাইন স্টাডি অডিও",
+                    subtitleEn = "Seamless loop offline study audio",
+                    subtitleBn = "নিরবচ্ছিন্ন অফলাইন স্টাডি অডিও",
                     sizeMb = size,
                     assetFileName = "$id.wav",
                     status = "installed",
@@ -277,12 +277,12 @@ class OfflineDownloadsRepository(
             )
         }
 
-        // 4. STEM Lab High-DPI Simulation & Diagram Packs
+        // 4. STEM Lab Simulation & Diagram Packs
         val labPacks = listOf(
             Triple("lab_trig", "Trigonometry Unit Circle Lab Pack", "ত্রিকোণমিতি একক বৃত্ত প্যাক") to "math",
             Triple("lab_physics", "Projectile Kinematics Lab Pack", "প্রাস ও গতিবিদ্যা ল্যাব প্যাক") to "physics",
             Triple("lab_chem", "Bohr Atomic Shell Lab Pack", "বোর পরমাণু মডেল প্যাক") to "chemistry",
-            Triple("lab_bio", "Eukaryotic Cell Atlas Pack", "কোষ অ্যাটলাস হাই-ডিপিআই প্যাক") to "biology"
+            Triple("lab_bio", "Eukaryotic Cell Atlas Pack", "কোষ অ্যাটলাস প্যাক") to "biology"
         )
         labPacks.forEach { (meta, subj) ->
             val (id, en, bn) = meta
@@ -294,9 +294,9 @@ class OfflineDownloadsRepository(
                     subjectId = subj,
                     titleEn = en,
                     titleBn = bn,
-                    subtitleEn = "High-DPI technical plate + offline Canvas simulation",
-                    subtitleBn = "উচ্চ-রেজোলিউশন ডায়াগ্রাম প্লেট ও অফলাইন সিমুলেশন",
-                    sizeMb = 8.4,
+                    subtitleEn = "Technical plate + offline Canvas simulation",
+                    subtitleBn = "ডায়াগ্রাম প্লেট ও অফলাইন সিমুলেশন",
+                    sizeMb = 0.1,
                     assetFileName = "$id.png",
                     status = "installed",
                     progressPct = 100

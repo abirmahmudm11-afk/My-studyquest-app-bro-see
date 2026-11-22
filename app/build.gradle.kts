@@ -66,7 +66,7 @@ android {
     buildConfig = true
   }
   androidResources {
-    noCompress += listOf("wav", "ogg", "png", "webp", "pdf", "json")
+    noCompress += listOf("wav", "ogg")
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
   dependenciesInfo {

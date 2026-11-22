@@ -44,13 +44,13 @@ class OfflineStudyVaultRobolectricTest {
         assertEquals(14, stats.bundledPlatesCount)
         assertEquals(6000, stats.workedEntriesCount)
         assertTrue(
-            "Expected bundled vault size > 250 MB, got ${stats.bundledVaultSizeMb}",
-            stats.bundledVaultSizeMb > 250.0
+            "Expected bundled vault size > 12 MB, got ${stats.bundledVaultSizeMb}",
+            stats.bundledVaultSizeMb > 12.0
         )
     }
 
     @Test
-    fun copyBundledSubjectPdf_writesValidMultiPagePdfOverOneMegabyte(): Unit = runBlocking {
+    fun copyBundledSubjectPdf_writesValidMultiPagePdf(): Unit = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val destFile = File.createTempFile("study_vault_math_", ".pdf", context.cacheDir)
         try {
@@ -58,8 +58,8 @@ class OfflineStudyVaultRobolectricTest {
             assertTrue("Expected bundled math.pdf to copy cleanly", copied)
             assertTrue(destFile.exists())
             assertTrue(
-                "Expected bundled math.pdf > 1 MB, got ${destFile.length()} bytes",
-                destFile.length() > 1_000_000L
+                "Expected bundled math.pdf > 4 KB, got ${destFile.length()} bytes",
+                destFile.length() > 4_000L
             )
             val header = destFile.inputStream().use { input ->
                 val buf = ByteArray(5)

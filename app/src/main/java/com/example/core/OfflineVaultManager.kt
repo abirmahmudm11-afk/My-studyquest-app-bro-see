@@ -466,26 +466,28 @@ object OfflineVaultManager {
         val assets = appContext.assets
         var totalBytes = 0L
 
+        fun measureAssetPath(assetPath: String): Long =
+            runCatching {
+                assets.openFd(assetPath).use { it.length.coerceAtLeast(0L) }
+            }.getOrElse {
+                runCatching {
+                    assets.open(assetPath).use { stream ->
+                        var count = 0L
+                        val buf = ByteArray(16384)
+                        while (true) {
+                            val r = stream.read(buf)
+                            if (r <= 0) break
+                            count += r
+                        }
+                        count
+                    }
+                }.getOrDefault(0L)
+            }
+
         fun measureDir(subDir: String): Int {
             val files = runCatching { assets.list("$VAULT_ROOT/$subDir").orEmpty() }.getOrDefault(emptyArray())
             files.forEach { name ->
-                val len = runCatching {
-                    assets.openFd("$VAULT_ROOT/$subDir/$name").use { it.length.coerceAtLeast(0L) }
-                }.getOrElse {
-                    runCatching {
-                        assets.open("$VAULT_ROOT/$subDir/$name").use { stream ->
-                            var count = 0L
-                            val buf = ByteArray(16384)
-                            while (true) {
-                                val r = stream.read(buf)
-                                if (r <= 0) break
-                                count += r
-                            }
-                            count
-                        }
-                    }.getOrDefault(0L)
-                }
-                totalBytes += len
+                totalBytes += measureAssetPath("$VAULT_ROOT/$subDir/$name")
             }
             return files.size
         }
@@ -493,9 +495,7 @@ object OfflineVaultManager {
         val books = measureDir("books")
         val audio = measureDir("audio")
         val plates = measureDir("plates")
-        val atlasBytes = runCatching {
-            assets.openFd("$VAULT_ROOT/knowledge_atlas.json").use { it.length.coerceAtLeast(0L) }
-        }.getOrDefault(0L)
+        val atlasBytes = measureAssetPath("$VAULT_ROOT/knowledge_atlas.json")
         totalBytes += atlasBytes
 
         val entriesCount = loadAtlasEntries(appContext).size
